@@ -1,0 +1,25 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+.venv/
+.env
+.env.*.local
+
+# Data
+data/*.ndjson
+data/*.log
+
+# Node / Node-RED
+node_modules/
+package-lock.json
+npm-debug.log*
+.DS_Store
+
+# Editors/OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db

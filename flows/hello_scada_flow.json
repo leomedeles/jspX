@@ -1,0 +1,175 @@
+[
+  {
+    "id": "f0b8c1aa5e4b1a00",
+    "type": "tab",
+    "label": "Hello SCADA",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "bkr_local",
+    "type": "mqtt-broker",
+    "name": "Local Mosquitto",
+    "broker": "127.0.0.1",
+    "port": "1883",
+    "clientid": "nodered-hello-scada",
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": ""
+  },
+  {
+    "id": "mqtt_in_power",
+    "type": "mqtt in",
+    "z": "f0b8c1aa5e4b1a00",
+    "name": "MQTT telemetry/power",
+    "topic": "telemetry/power",
+    "qos": "0",
+    "datatype": "auto",
+    "broker": "bkr_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "x": 190,
+    "y": 120,
+    "wires": [
+      [
+        "json_parse"
+      ]
+    ]
+  },
+  {
+    "id": "tail_ndjson",
+    "type": "tail",
+    "z": "f0b8c1aa5e4b1a00",
+    "name": "Tail telemetry.ndjson (EDIT PATH)",
+    "file": "C:\\\\REPLACE\\\\path\\\\to\\\\repo\\\\data\\\\telemetry.ndjson",
+    "split": "\\n",
+    "reset": "",
+    "x": 200,
+    "y": 180,
+    "wires": [
+      [
+        "json_parse"
+      ]
+    ]
+  },
+  {
+    "id": "json_parse",
+    "type": "json",
+    "z": "f0b8c1aa5e4b1a00",
+    "name": "Parse JSON",
+    "property": "payload",
+    "action": "obj",
+    "pretty": false,
+    "x": 420,
+    "y": 150,
+    "wires": [
+      [
+        "fn_for_widgets",
+        "dbg_full"
+      ]
+    ]
+  },
+  {
+    "id": "dbg_full",
+    "type": "debug",
+    "z": "f0b8c1aa5e4b1a00",
+    "name": "Debug (full payload)",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 670,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "ui_tab_main",
+    "type": "ui_tab",
+    "name": "Hello SCADA",
+    "icon": "dashboard",
+    "order": 1,
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "ui_group_live",
+    "type": "ui_group",
+    "name": "Live",
+    "tab": "ui_tab_main",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false
+  },
+  {
+    "id": "g_voltage",
+    "type": "ui_gauge",
+    "z": "f0b8c1aa5e4b1a00",
+    "name": "Voltage (pu)",
+    "group": "ui_group_live",
+    "order": 1,
+    "width": 3,
+    "height": 3,
+    "gtype": "gage",
+    "title": "Voltage (pu)",
+    "label": "pu",
+    "format": "{{value}}",
+    "min": "0.9",
+    "max": "1.1",
+    "x": 940,
+    "y": 120,
+    "wires": []
+  },
+  {
+    "id": "t_power",
+    "type": "ui_text",
+    "z": "f0b8c1aa5e4b1a00",
+    "group": "ui_group_live",
+    "order": 2,
+    "width": 3,
+    "height": 1,
+    "name": "P/Q + bus",
+    "label": "P/Q + bus",
+    "format": "P {{msg.payload.p_kw}} kW · Q {{msg.payload.q_kvar}} kvar · bus {{msg.payload.bus_id}}",
+    "layout": "row-spread",
+    "x": 930,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "fn_for_widgets",
+    "type": "function",
+    "z": "f0b8c1aa5e4b1a00",
+    "name": "For widgets",
+    "func": "/* Input: msg.payload is the parsed JSON from sim\n   Output 1: numeric voltage for gauge\n   Output 2: original payload for ui_text */\nreturn [{ payload: msg.payload.voltage_pu }, { payload: msg.payload }];",
+    "outputs": 2,
+    "timeout": "",
+    "noerr": 0,
+    "x": 690,
+    "y": 150,
+    "wires": [
+      [
+        "g_voltage"
+      ],
+      [
+        "t_power"
+      ]
+    ]
+  }
+]
