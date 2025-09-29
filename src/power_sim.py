@@ -14,6 +14,10 @@ try:
 except Exception:
     HAVE_MQTT = False
 
+# # Allow importing sibling modules when running as "python src/power_sim.py"
+# HERE = os.path.dirname(__file__)
+# if HERE and HERE not in sys.path:
+#     sys.path.append(HERE)
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
@@ -37,12 +41,12 @@ def ensure_dir(path: str):
     os.makedirs(path, exist_ok=True)
 
 
-def run_file_mode(out_path: str, bus_id: int, interval_s: float):
+def run_file_mode(out_path: str, interval_s: float, producer):
     ensure_dir(os.path.dirname(out_path))
     print(f"[file] appending ndjson to {out_path} every {interval_s}s (Ctrl+C to stop)")
     with open(out_path, "a", encoding="utf-8") as f:
         while True:
-            sample = gen_sample(bus_id)
+            sample = producer()
             line = json.dumps(sample, separators=(",", ":"))
             # Print to stdout and append to file
             print(line, flush=True)
@@ -51,7 +55,7 @@ def run_file_mode(out_path: str, bus_id: int, interval_s: float):
             time.sleep(interval_s)
 
 
-def run_mqtt_mode(host: str, port: int, topic: str, bus_id: int, interval_s: float):
+def run_mqtt_mode(host: str, port: int, topic: str, interval_s: float, producer):
     if not HAVE_MQTT:
         print("[mqtt] paho-mqtt not installed. Install with: pip install paho-mqtt", file=sys.stderr)
         sys.exit(2)
@@ -63,7 +67,7 @@ def run_mqtt_mode(host: str, port: int, topic: str, bus_id: int, interval_s: flo
 
     try:
         while True:
-            sample = gen_sample(bus_id)
+            sample = producer()
             line = json.dumps(sample, separators=(",", ":"))
             print(line, flush=True)
             client.publish(topic, payload=line, qos=0, retain=False)
@@ -74,7 +78,7 @@ def run_mqtt_mode(host: str, port: int, topic: str, bus_id: int, interval_s: flo
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Hello SCADA power simulator (file or MQTT)")
+    parser = argparse.ArgumentParser(description="jspX SCADA power simulator")
     parser.add_argument("--mqtt", action="store_true", help="Enable MQTT mode (default is file mode)")
     parser.add_argument("--host", default="127.0.0.1", help="MQTT broker host")
     parser.add_argument("--port", type=int, default=1883, help="MQTT broker port")
@@ -83,6 +87,8 @@ def main():
     parser.add_argument("--interval", type=float, default=1.0, help="Emit interval in seconds")
     parser.add_argument("--out", default=os.path.join("data", "telemetry.ndjson"),
                         help="Output file path for file mode")
+    parser.add_argument("--pandapower", action="store_true",
+                        help="Use the pandapower 3-bus model (emits {'ts', 'buses':[...]} schema)")
     args = parser.parse_args()
 
     # Graceful Ctrl+C
@@ -92,10 +98,21 @@ def main():
 
     signal.signal(signal.SIGINT, _sigint)
 
-    if args.mqtt:
-        run_mqtt_mode(args.host, args.port, args.topic, args.bus_id, args.interval)
+    # Choose producer: RNG (legacy) or pandapower grid
+    if args.pandapower:
+        from power_grid import ThreeBusGrid
+        grid = ThreeBusGrid.build()
+        producer = grid.step  # returns dict: {"ts":..., "buses":[{...}]}
+        if args.mqtt and args.topic == "telemetry/power":
+            # Nudge to a more specific topic if user didn't set one
+            args.topic = "telemetry/pandapower"
     else:
-        run_file_mode(args.out, args.bus_id, args.interval)
+        producer = (lambda: gen_sample(args.bus_id))
+
+    if args.mqtt:
+        run_mqtt_mode(args.host, args.port, args.topic, args.interval, producer)
+    else:
+        run_file_mode(args.out, args.interval, producer)
 
 
 if __name__ == "__main__":
