@@ -35,9 +35,12 @@ data/telemetry.ndjson
 ### Prereqs
 - **Windows 10** (tested). Linux/macOS should work with small path tweaks.
 - **Python 3.x**
+    - paho-mqtt==1.6.1
+    - pandapower==3.1.2
+    - numpy==2.3.3
 - **Node.js LTS** (for Node-RED)
-#### mqtt broker
-    - **Mosquitto Broker** **or** embedded node-red
+- **mqtt broker**
+    - Mosquitto Broker **or** embedded node-red
 
 ### Quickstart
 
