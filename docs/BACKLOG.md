@@ -3,13 +3,13 @@
 **Goal:** Replace random telemetry with a tiny pandapower 3-bus system that emits realistic SCADA-like values every 1 s (file or MQTT), visible in Node-RED.
 
 ### Scope (stories & tasks)
-- [ ] Sim backend
-  - [ ] `pip install pandapower`
-  - [ ] Add `src/power_grid.py` that builds a 3-bus net:
+- [x] Sim backend
+  - [x] `pip install pandapower`
+  - [x] Add `src/power_grid.py` that builds a 3-bus net:
         Bus1 ext_grid (slack), line to Bus2 (load), optional Bus3 (second load or PV)
-  - [ ] In a loop: vary loads slightly (±10%), `pp.runpp(net)`, extract per-bus `vm_pu`, `p_kw`, `q_kvar`
-  - [ ] Emit JSON lines; extend schema (e.g., `line_mw`, `backend: "pandapower"`)
-  - [ ] Integrate with `power_sim.py` via `--pandapower` flag (fallback to random if not set)
+  - [x] In a loop: vary loads slightly (±10%), `pp.runpp(net)`, extract per-bus `vm_pu`, `p_kw`, `q_kvar`
+  - [x] Emit JSON lines; extend schema (e.g., `line_mw`, `backend: "pandapower"`)
+  - [x] Integrate with `power_sim.py` via `--pandapower` flag (fallback to random if not set)
 
 - [ ] Node-RED flow
   - [ ] Update flow to accept new schema (file tail and MQTT paths)

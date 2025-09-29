@@ -1,0 +1,631 @@
+[
+    {
+        "id": "tabPP",
+        "type": "tab",
+        "label": "Pandapower 3-bus Dashboard",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "mqttIn",
+        "type": "mqtt in",
+        "z": "tabPP",
+        "name": "MQTT telemetry/pandapower",
+        "topic": "telemetry/pandapower",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "mqttB",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 190,
+        "y": 80,
+        "wires": [
+            [
+                "jsonParse"
+            ]
+        ]
+    },
+    {
+        "id": "jsonParse",
+        "type": "json",
+        "z": "tabPP",
+        "name": "Parse JSON line",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 420,
+        "y": 80,
+        "wires": [
+            [
+                "pickBuses"
+            ]
+        ]
+    },
+    {
+        "id": "pickBuses",
+        "type": "change",
+        "z": "tabPP",
+        "name": "payload → buses[]",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.buses",
+                "tot": "jsonata"
+            }
+        ],
+        "x": 650,
+        "y": 80,
+        "wires": [
+            [
+                "splitBuses"
+            ]
+        ]
+    },
+    {
+        "id": "splitBuses",
+        "type": "split",
+        "z": "tabPP",
+        "name": "Split buses[]",
+        "splt": "\\n",
+        "spltType": "str",
+        "arraySplt": 1,
+        "stream": false,
+        "addname": "",
+        "x": 860,
+        "y": 80,
+        "wires": [
+            [
+                "fanout"
+            ]
+        ]
+    },
+    {
+        "id": "fanout",
+        "type": "function",
+        "z": "tabPP",
+        "name": "Create 3 metrics per bus",
+        "func": "// Input: msg.payload = {bus_idx,name,vm_pu,va_degree,p_mw,q_mvar}\n// Output: 3 messages with topics grid/BUS#/vm_pu etc. and payload numeric\nconst b = msg.payload;\nconst bus = (b.name || `BUS${b.bus_idx}`).replace(/\\s+/g,'');\nconst out = [];\nfunction m(metric, value){\n  return { _msgid: msg._msgid + ':' + metric, topic: `grid/${bus}/${metric}`, payload: Number(value) };\n}\nout.push(m('vm_pu', b.vm_pu));\nout.push(m('p_mw', b.p_mw));\nout.push(m('q_mvar', b.q_mvar));\nreturn [ out ];",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1090,
+        "y": 80,
+        "wires": [
+            [
+                "switchBus"
+            ]
+        ]
+    },
+    {
+        "id": "switchBus",
+        "type": "switch",
+        "z": "tabPP",
+        "name": "Route by BUS",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "cont",
+                "v": "grid/BUS0_SLACK/",
+                "vt": "str"
+            },
+            {
+                "t": "cont",
+                "v": "grid/BUS1_LOAD/",
+                "vt": "str"
+            },
+            {
+                "t": "cont",
+                "v": "grid/BUS2_LOAD/",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 3,
+        "x": 1330,
+        "y": 80,
+        "wires": [
+            [
+                "switchMetricB0"
+            ],
+            [
+                "switchMetricB1"
+            ],
+            [
+                "switchMetricB2"
+            ]
+        ]
+    },
+    {
+        "id": "switchMetricB0",
+        "type": "switch",
+        "z": "tabPP",
+        "name": "BUS0 by metric",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "regex",
+                "v": "/vm_pu$",
+                "vt": "str",
+                "case": false
+            },
+            {
+                "t": "regex",
+                "v": "/p_mw$",
+                "vt": "str",
+                "case": false
+            },
+            {
+                "t": "regex",
+                "v": "/q_mvar$",
+                "vt": "str",
+                "case": false
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 1575,
+        "y": 40,
+        "wires": [
+            [
+                "gB0V"
+            ],
+            [
+                "gB0P"
+            ],
+            [
+                "gB0Q"
+            ]
+        ]
+    },
+    {
+        "id": "switchMetricB1",
+        "type": "switch",
+        "z": "tabPP",
+        "name": "BUS1 by metric",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "regex",
+                "v": "/vm_pu$",
+                "vt": "str",
+                "case": false
+            },
+            {
+                "t": "regex",
+                "v": "/p_mw$",
+                "vt": "str",
+                "case": false
+            },
+            {
+                "t": "regex",
+                "v": "/q_mvar$",
+                "vt": "str",
+                "case": false
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 1575,
+        "y": 120,
+        "wires": [
+            [
+                "gB1V"
+            ],
+            [
+                "gB1P"
+            ],
+            [
+                "gB1Q"
+            ]
+        ]
+    },
+    {
+        "id": "switchMetricB2",
+        "type": "switch",
+        "z": "tabPP",
+        "name": "BUS2 by metric",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "regex",
+                "v": "/vm_pu$",
+                "vt": "str",
+                "case": false
+            },
+            {
+                "t": "regex",
+                "v": "/p_mw$",
+                "vt": "str",
+                "case": false
+            },
+            {
+                "t": "regex",
+                "v": "/q_mvar$",
+                "vt": "str",
+                "case": false
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 1575,
+        "y": 200,
+        "wires": [
+            [
+                "gB2V"
+            ],
+            [
+                "gB2P"
+            ],
+            [
+                "gB2Q"
+            ]
+        ]
+    },
+    {
+        "id": "gB0V",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS0 vm_pu",
+        "group": "grpB0",
+        "order": 1,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "vm_pu",
+        "label": "pu",
+        "format": "{{value}}",
+        "min": 0.95,
+        "max": 1.05,
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "className": "",
+        "x": 1770,
+        "y": 20,
+        "wires": []
+    },
+    {
+        "id": "gB0P",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS0 p_mw",
+        "group": "grpB0",
+        "order": 2,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "p_mw (injection)",
+        "label": "MW",
+        "format": "{{value}}",
+        "min": "-5",
+        "max": "5",
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 1785,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "gB0Q",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS0 q_mvar",
+        "group": "grpB0",
+        "order": 3,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "q_mvar (injection)",
+        "label": "MVAr",
+        "format": "{{value}}",
+        "min": "-5",
+        "max": "5",
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 1800,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "gB1V",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS1 vm_pu",
+        "group": "grpB1",
+        "order": 1,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "vm_pu",
+        "label": "pu",
+        "format": "{{value}}",
+        "min": 0.95,
+        "max": 1.05,
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "className": "",
+        "x": 1770,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "gB1P",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS1 p_mw",
+        "group": "grpB1",
+        "order": 2,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "p_mw (injection is +)",
+        "label": "MW",
+        "format": "{{value}}",
+        "min": "-5",
+        "max": "5",
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 1785,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "gB1Q",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS1 q_mvar",
+        "group": "grpB1",
+        "order": 3,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "q_mvar (injection is +)",
+        "label": "MVAr",
+        "format": "{{value}}",
+        "min": "-5",
+        "max": "5",
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 1800,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "gB2V",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS2 vm_pu",
+        "group": "grpB2",
+        "order": 1,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "vm_pu",
+        "label": "pu",
+        "format": "{{value}}",
+        "min": 0.95,
+        "max": 1.05,
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "className": "",
+        "x": 1770,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "gB2P",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS2 p_mw",
+        "group": "grpB2",
+        "order": 2,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "p_mw (injection is +)",
+        "label": "MW",
+        "format": "{{value}}",
+        "min": "-5",
+        "max": "5",
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 1785,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "gB2Q",
+        "type": "ui_gauge",
+        "z": "tabPP",
+        "name": "BUS2 q_mvar",
+        "group": "grpB2",
+        "order": 3,
+        "width": 4,
+        "height": 4,
+        "gtype": "gage",
+        "title": "q_mvar (injection is +)",
+        "label": "MVAr",
+        "format": "{{value}}",
+        "min": "-5",
+        "max": "5",
+        "colors": [
+            "#ca3838",
+            "#3fadb5",
+            "#5cb85c"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 1800,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "dbg",
+        "type": "debug",
+        "z": "tabPP",
+        "name": "Per-message",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 1310,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "c2ead534edce0ebc",
+        "type": "tail",
+        "z": "tabPP",
+        "name": "Tail telemetry.ndjson (EDIT PATH)",
+        "split": "\\n",
+        "filename": "(EDIT PATH)telemetry.ndjson",
+        "inputs": 0,
+        "x": 160,
+        "y": 180,
+        "wires": [
+            [
+                "jsonParse"
+            ]
+        ]
+    },
+    {
+        "id": "mqttB",
+        "type": "mqtt-broker",
+        "name": "Local Broker",
+        "broker": "127.0.0.1",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    },
+    {
+        "id": "grpB0",
+        "type": "ui_group",
+        "name": "BUS0_SLACK",
+        "tab": "uiTab",
+        "order": 1,
+        "disp": true,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "grpB1",
+        "type": "ui_group",
+        "name": "BUS1_LOAD",
+        "tab": "uiTab",
+        "order": 2,
+        "disp": true,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "grpB2",
+        "type": "ui_group",
+        "name": "BUS2_LOAD",
+        "tab": "uiTab",
+        "order": 3,
+        "disp": true,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "uiTab",
+        "type": "ui_tab",
+        "name": "Grid",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "a17883bea639a4a8",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.6",
+            "node-red-node-tail": "0.4.0"
+        }
+    }
+]

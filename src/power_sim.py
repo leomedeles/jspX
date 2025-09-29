@@ -52,6 +52,7 @@ def run_file_mode(out_path: str, interval_s: float, producer):
             print(line, flush=True)
             f.write(line + "\n")
             f.flush()
+            os.fsync(f.fileno())
             time.sleep(interval_s)
 
 
