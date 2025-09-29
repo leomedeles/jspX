@@ -27,41 +27,54 @@
 - [x] Node-RED shows parsed values changing each second
 - [x] No errors in Node-RED Debug for at least 60 s of runtime
 - [x] README and flow JSON updated; screenshot present
-- [ ] Tag `v0.2.0` with CHANGELOG entry
+- [x] Tag `v0.2.0` with CHANGELOG entry
 
-### Out-of-scope (keep it lean)
-- InfluxDB/Grafana
-- Docker/Compose
-- Alerts/controls
+---
 
-### Risks & fallbacks
-- If pandapower install is slow → commit `power_grid.py` stub that returns fixed values; switch to real `pp.runpp` before tagging.
-- If Dashboard node install lags → rely on Debug; add Dashboard next sprint.
+## Sprint 3 (2 weeks) → v0.3.0: Historian + Grafana
 
-### Timebox
-- Est. 6–8 focused hours total; aim for two 3–4 h sessions.
+**Goal:** Persist 1 Hz telemetry to a time-series DB (InfluxDB) and visualize it in Grafana.
 
+### Scope (stories & tasks)
+- [ ] **Sim backend**
+  - [ ] Confirm JSON schema fits Influx line protocol (or transform).
+  - [ ] Add `--influx` flag in `power_sim.py` to POST directly to Influx (optional).
+- [ ] **Node-RED flow**
+  - [ ] Install/configure `node-red-contrib-influxdb`.
+  - [ ] Write bus metrics into Influx (`measurement=grid`, tags: `{bus:name}`, fields: `{vm_pu,p_mw,q_mvar}`).
+  - [ ] Create a basic Grafana dashboard (voltages, P, Q).
+- [ ] **Docs & verification**
+  - [ ] Add README “Historian” section and Grafana screenshot.
+  - [ ] Optionally add `docker-compose.yml` with Node-RED + InfluxDB + Grafana.
 
+### Acceptance criteria
+- [ ] At least 5 minutes of telemetry stored in Influx without errors.
+- [ ] Grafana dashboard shows live-updating voltages and powers.
+- [ ] README updated with screenshot + run instructions.
+- [ ] Tag `v0.3.0` with CHANGELOG entry.
+
+### Out-of-scope
+- Alerts
+- AI anomaly detection
+- OPC UA / Modbus
+
+---
 
 # Project Backlog
 
 This backlog is a living list of possible tasks, features, and improvements.  
 Not everything here will be done — items can be added, removed, or reprioritized over time.  
-Each sprint we pick a subset to focus on.
 
 ---
 
 ## Near-term candidates
-- [ ] Add **pandapower** 3-bus grid sim and emit voltages/powers (`v0.2.0`)
-- [ ] Update Node-RED flow to parse new telemetry schema
-- [ ] Add ASCII diagram of grid to README
-- [ ] Store verification screenshots in `/docs`
+- [ ] Add historian (InfluxDB) for telemetry storage (`v0.3.0`)
+- [ ] Build Grafana dashboard for voltages and power trends (`v0.3.0`)
+- [ ] Add `--influx` option in sim (direct or via Node-RED)
 
 ## Medium-term
-- [ ] Add historian (InfluxDB) for telemetry storage
-- [ ] Build Grafana dashboard for voltages and power trends
-- [ ] Add alerting logic (e.g. trip breaker if overcurrent)
-- [ ] Package with Docker Compose (Node-RED + sim + DB)
+- [ ] Add alerting logic (breaker trip if overcurrent, bus undervoltage)
+- [ ] Package with Docker Compose (Node-RED + sim + DB + Grafana)
 - [ ] Write SECURITY.md (list hygiene + mitigations)
 
 ## Longer-term / stretch
@@ -74,3 +87,4 @@ Each sprint we pick a subset to focus on.
 
 ## Done (closed items)
 - [x] `v0.1.0`: Hello SCADA loop (random sim + Node-RED flow)
+- [x] `v0.2.0`: 3-bus pandapower model, new JSON schema, Node-RED flow + dashboard
