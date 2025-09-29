@@ -22,6 +22,13 @@ A minimal, reproducible “Hello SCADA” loop for a simulated power portfolio:
         v
 data/telemetry.ndjson
 
+## Grid Model
+
+20 kV feeder (3-bus minimal case)
+
+   [BUS0_SLACK] --L1(5 km)--> [BUS1_LOAD] --L2(3 km)--> [BUS2_LOAD]
+       ext_grid                    ~1.2 MW / 0.3 MVAr        ~0.8 MW / 0.2 MVAr
+       vm≈1.00 pu                  vm≈0.98–0.99 pu           vm≈0.97–0.99 pu
 
 ## Getting Started
 
@@ -45,8 +52,8 @@ py -3 -m venv .venv
 pip install -r requirements.txt
 # 3) Run the simulator (file mode: stdout + append to data/telemetry.ndjson)
 # if mosquito: net start mosquitto
-python src/power_sim.py                 # file mode
-# or: python src/power_sim.py --mqtt    # mqtt mode
+python src/power_sim.py --pandapower    # file mode
+# or: python src/power_sim.py --pandapower --mqtt    # mqtt mode
 
 # 4) Node-RED (first install globally; see below)
 node-red
@@ -57,3 +64,4 @@ node-red
 ```
 ### Verification
 .\docs\dashbooard_v0_1_0.png
+.\docs\dashbooard_v0_2_0.png

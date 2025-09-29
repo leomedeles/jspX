@@ -10,22 +10,23 @@
   - [x] In a loop: vary loads slightly (±10%), `pp.runpp(net)`, extract per-bus `vm_pu`, `p_kw`, `q_kvar`
   - [x] Emit JSON lines; extend schema (e.g., `line_mw`, `backend: "pandapower"`)
   - [x] Integrate with `power_sim.py` via `--pandapower` flag (fallback to random if not set)
+  - [x] Added pandapower and numpy to requirements.txt
 
-- [ ] Node-RED flow
-  - [ ] Update flow to accept new schema (file tail and MQTT paths)
-  - [ ] Keep Debug node; **optional** Dashboard if time allows
-  - [ ] Save updated flow to `flows/hello_scada_flow.json`
+- [x] Node-RED flow
+  - [x] Update flow to accept new schema (file tail and MQTT paths)
+  - [x] Keep Debug node; **optional** Dashboard if time allows
+  - [x] Save updated flow to `flows/pandapower_3bus_flow.json`
 
-- [ ] Docs & verification
-  - [ ] Add ASCII diagram of the 3-bus system to README
-  - [ ] Screenshot Debug (and Dashboard if used) → `/docs`
-  - [ ] Update README “Verification” with new screenshot link
+- [x] Docs & verification
+  - [x] Add ASCII diagram of the 3-bus system to README
+  - [x] Screenshot Debug (and Dashboard if used) → `/docs`
+  - [x] Update README “Verification” with new screenshot link
 
 ### Acceptance criteria
-- [ ] `python src/power_sim.py --pandapower` runs and outputs 1 line/s
-- [ ] Node-RED shows parsed values changing each second
-- [ ] No errors in Node-RED Debug for at least 60 s of runtime
-- [ ] README and flow JSON updated; screenshot present
+- [x] `python src/power_sim.py --pandapower` runs and outputs 1 line/s
+- [x] Node-RED shows parsed values changing each second
+- [x] No errors in Node-RED Debug for at least 60 s of runtime
+- [x] README and flow JSON updated; screenshot present
 - [ ] Tag `v0.2.0` with CHANGELOG entry
 
 ### Out-of-scope (keep it lean)
