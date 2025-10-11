@@ -7,13 +7,15 @@ __pycache__/
 .venv/
 .env
 .env.*.local
+*./sandbox/*
 
 # Data
 data/*.ndjson
-data/*.log
+data/Notes
 
 # Node / Node-RED
 node_modules/
+nodered/
 package-lock.json
 npm-debug.log*
 .DS_Store

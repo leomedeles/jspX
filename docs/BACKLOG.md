@@ -36,22 +36,21 @@
 **Goal:** Persist 1 Hz telemetry to a time-series DB (InfluxDB) and visualize it in Grafana.
 
 ### Scope (stories & tasks)
-- [ ] **Sim backend**
-  - [ ] Confirm JSON schema fits Influx line protocol (or transform).
-  - [ ] Add `--influx` flag in `power_sim.py` to POST directly to Influx (optional).
-- [ ] **Node-RED flow**
-  - [ ] Install/configure `node-red-contrib-influxdb`.
-  - [ ] Write bus metrics into Influx (`measurement=grid`, tags: `{bus:name}`, fields: `{vm_pu,p_mw,q_mvar}`).
-  - [ ] Create a basic Grafana dashboard (voltages, P, Q).
-- [ ] **Docs & verification**
-  - [ ] Add README “Historian” section and Grafana screenshot.
-  - [ ] Optionally add `docker-compose.yml` with Node-RED + InfluxDB + Grafana.
+- [x] **Sim backend**
+  - [x] Confirm JSON schema fits Influx line protocol (or transform).
+  - [-] NOT NEEDED - Add `--influx` flag in `power_sim.py` to POST directly to Influx (optional).
+- [x] **Node-RED flow**
+  - [x] Write bus metrics into Influx (`measurement=grid`, tags: `{bus:name}`, fields: `{vm_pu,p_mw,q_mvar}`).
+  - [x] Create a basic Grafana dashboard (voltages, P, Q).
+- [x] **Docs & verification**
+  - [x] Add README “Historian” section and Grafana screenshot.
+  - [x] Optionally add `docker-compose.yml` with Node-RED + InfluxDB + Grafana.
 
 ### Acceptance criteria
-- [ ] At least 5 minutes of telemetry stored in Influx without errors.
-- [ ] Grafana dashboard shows live-updating voltages and powers.
-- [ ] README updated with screenshot + run instructions.
-- [ ] Tag `v0.3.0` with CHANGELOG entry.
+- [x] At least 5 minutes of telemetry stored in Influx without errors.
+- [x] Grafana dashboard shows live-updating voltages and powers.
+- [x] README updated with screenshot + run instructions.
+- [x] Tag `v0.3.0` with CHANGELOG entry.
 
 ### Out-of-scope
 - Alerts
@@ -68,9 +67,9 @@ Not everything here will be done — items can be added, removed, or reprioritiz
 ---
 
 ## Near-term candidates
-- [ ] Add historian (InfluxDB) for telemetry storage (`v0.3.0`)
-- [ ] Build Grafana dashboard for voltages and power trends (`v0.3.0`)
-- [ ] Add `--influx` option in sim (direct or via Node-RED)
+- [x] Add historian (InfluxDB) for telemetry storage (`v0.3.0`)
+- [x] Build Grafana dashboard for voltages and power trends (`v0.3.0`)
+- [x] Add `--influx` option in sim (direct or via Node-RED)
 
 ## Medium-term
 - [ ] Add alerting logic (breaker trip if overcurrent, bus undervoltage)

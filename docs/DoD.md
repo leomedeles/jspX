@@ -6,13 +6,13 @@ Before pushing to GitHub, verify that these conditions are met:
 ---
 
 ## Code Quality
-- [ ] Code runs locally without errors
-- [ ] Linting/formatting passes (once tools like `ruff`/`black` are added)
+- [X] Code runs locally without errors
+- [-] Linting/formatting passes (once tools like `ruff`/`black` are added)
 - [ ] No secrets, passwords, or tokens in the repo
 
 ## Documentation
-- [ ] README updated if usage/behavior changed
-- [ ] CHANGELOG updated under **Unreleased** (or new version entry if tagging)
+- [x] README updated if usage/behavior changed
+- [x] CHANGELOG updated under **Unreleased** (or new version entry if tagging)
 - [ ] Backlog updated if tasks were completed or new ones discovered
 - [ ] New diagrams/screenshots added to `/docs` if relevant
 

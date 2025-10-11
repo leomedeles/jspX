@@ -1,0 +1,141 @@
+[
+    {
+        "id": "07dd741d4fedb33e",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "eea53fe7b525fcf9",
+        "type": "mqtt in",
+        "z": "07dd741d4fedb33e",
+        "name": "",
+        "topic": "telemetry/pandapower",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "32ea5bf834ca1feb",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 120,
+        "y": 260,
+        "wires": [
+            [
+                "fn-lineprotocol"
+            ]
+        ]
+    },
+    {
+        "id": "fn-lineprotocol",
+        "type": "function",
+        "z": "07dd741d4fedb33e",
+        "name": "→ Influx Line Protocol",
+        "func": "const p = msg.payload || {};\nconst t = Number.isFinite(p.ts) ? p.ts : Date.now(); // ms\nconst lines = [];\nconst url = env.get('INFLUXDB_URL')\nconst bucket = env.get('INFLUXDB_BUCKET')\nconst org = env.get('INFLUXDB_ORG')\nconst token = env.get('INFLUXDB_WRITE_TOKEN')\n\nif (Array.isArray(p.buses)) {\n  for (const b of p.buses) {\n    if (b && b.bus_idx != null && b.vm_pu != null) {\n      const tags = [\n        `bus_id=${b.bus_idx}`,\n        `name=${String(b.name).replace(/[,\\s]/g, '_')}`,\n      ]\n      const fields = [\n        `vm_pu=${Number(b.vm_pu)}`,\n        (b.va_degree != null ? [`va_deg=${Number(b.va_degree)}`] : []),\n        (b.p_mw != null ? [`p_mw=${Number(b.p_mw)}`] : []),\n        (b.q_mvar != null ? [`q_mvar=${Number(b.q_mvar)}`] : [])\n      ].join(\",\");\n      if (fields) lines.push(`bus,${tags} ${fields} ${t}`);\n    }\n  }\n}\n\nif (Array.isArray(p.lines)) {\n  for (const l of p.lines) {\n    if (!l || !l.name) continue;\n    const tags = [\n      `line_id=${l.line_idx}`,\n      `name=${String(l.name).replace(/[,\\s]/g, '_')}`,\n      `end=${String(l.end)}`,\n      `from_bus=${String(l.from_bus)}`,\n      `to_bus=${String(l.to_bus)}`,\n    ].join(\",\");\n    const fields = [\n      ...(l.p_mw != null ? [`p_mw=${Number(l.p_mw)}`] : []),\n      ...(l.pl_mw != null ? [`pl_mw=${Number(l.pl_mw)}`] : []),\n      ...(l.q_mvar != null ? [`q_mvar=${Number(l.q_mvar)}`] : []),\n      ...(l.ql_mvar != null ? [`ql_mvar=${Number(l.ql_mvar)}`] : []),\n      ...(l.i_ka != null ? [`i_ka=${Number(l.i_ka)}`] : []),\n      ...(l.vm_pu != null ? [`vm_pu=${Number(l.vm_pu)}`] : []),\n      ...(l.va_degree != null ? [`va_deg=${Number(l.va_degree)}`] : []),\n      ...(l.loading_pct != null ? [`loading_percent=${Number(l.loading_pct)}`] : [])\n    ].join(\",\");\n    if (fields) lines.push(`line,${tags} ${fields} ${t}`);\n  }\n} \n\nif (p.ext_grid && (p.ext_grid.p_mw != null || p.ext_grid.q_mvar != null)) {\n  const fields = [\n    ...(p.ext_grid.p_mw != null ? [`p_mw=${Number(p.ext_grid.p_mw)}`] : []),\n    ...(p.ext_grid.q_mvar != null ? [`q_mvar=${Number(p.ext_grid.q_mvar)}`] : [])\n  ].join(\",\");\n  lines.push(`ext_grid,site=main ${fields} ${t}`);\n}\n\nmsg.headers = {\n  Authorization: `Token ${token}`,\n  \"Content-Type\": \"text/plain\"\n};\nmsg.payload = lines.join(\"\\n\");\nmsg.url = `${url}/api/v2/write?org=${org}&bucket=${bucket}&precision=ms`;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 260,
+        "wires": [
+            [
+                "http-write",
+                "74c8cf8091896f20"
+            ]
+        ]
+    },
+    {
+        "id": "http-write",
+        "type": "http request",
+        "z": "07dd741d4fedb33e",
+        "name": "Influx v2 Write",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 620,
+        "y": 260,
+        "wires": [
+            [
+                "debug-out"
+            ]
+        ]
+    },
+    {
+        "id": "debug-out",
+        "type": "debug",
+        "z": "07dd741d4fedb33e",
+        "name": "LP lines / response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 830,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "74c8cf8091896f20",
+        "type": "debug",
+        "z": "07dd741d4fedb33e",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "32ea5bf834ca1feb",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mosquitto",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]

@@ -80,19 +80,60 @@ class ThreeBusGrid:
     def read_measurements(self) -> Dict[str, Any]:
         """Return a SCADA-like snapshot from res_bus (vm_pu, p_mw, q_mvar)."""
         rb = self.net.res_bus  # has vm_pu, va_degree, p_mw, q_mvar (bus injections)
-        out: List[Dict[str, Any]] = []
+        rl = self.net.res_line
+        rext = self.net.res_ext_grid
+        out_bus: List[Dict[str, Any]] = []
+        out_line: List[Dict[str, Any]] = []
+        out_ext_grid: Dict[str, Any] = {} #test
         for idx, row in rb.iterrows():
-            out.append({
+            out_bus.append({
                 "bus_idx": int(idx),
                 "name": self.net.bus.at[idx, "name"],
                 "vm_pu": float(row["vm_pu"]),
                 "va_degree": float(row["va_degree"]),
-                "p_mw": float(row["p_mw"]),     # sign convention: + injection, - load
-                "q_mvar": float(row["q_mvar"]), # sign convention as above
+                "p_mw": -float(row["p_mw"]),     # sign convention: + injection, - load
+                "q_mvar": -float(row["q_mvar"]), # sign convention as above
             })
+        for idx, row in rl.iterrows():
+            out_line.append({
+                "line_idx": int(idx),
+                "name": self.net.line.at[idx, "name"],
+                "end": "from",
+                "from_bus": int(self.net.line.at[idx, "from_bus"]),
+                "to_bus": int(self.net.line.at[idx, "to_bus"]),
+                "p_mw": float(row["p_from_mw"]),
+                "q_mvar": float(row["q_from_mvar"]),
+                "pl_mw": float(row["pl_mw"]),
+                "ql_mvar": float(row["ql_mvar"]),
+                "i_ka": float(row["i_from_ka"]),
+                "vm_pu": float(row["vm_from_pu"]),
+                "va_degree": float(row["va_from_degree"]),
+                "loading_percent": float(row["loading_percent"]),
+            })
+            out_line.append({
+                "line_idx": int(idx),
+                "name": self.net.line.at[idx, "name"],
+                "end": "to",
+                "from_bus": int(self.net.line.at[idx, "from_bus"]),
+                "to_bus": int(self.net.line.at[idx, "to_bus"]),
+                "p_mw": float(row["p_to_mw"]),
+                "q_mvar": float(row["q_to_mvar"]),
+                "pl_mw": float(row["pl_mw"]),
+                "ql_mvar": float(row["ql_mvar"]),
+                "i_ka": float(row["i_to_ka"]),
+                "vm_pu": float(row["vm_to_pu"]),
+                "va_degree": float(row["va_to_degree"]),
+                "loading_percent": float(row["loading_percent"]),
+            })
+        out_ext_grid = {
+            "p_mw": float(rext.at[rext.index[0], "p_mw"]),
+            "q_mvar": float(rext.at[rext.index[0], "q_mvar"])
+            } #test
         return {
             "ts": datetime.now(timezone.utc).isoformat(),
-            "buses": out
+            "buses": out_bus,
+            "lines": out_line,
+            "ext_grid": out_ext_grid
         }
 
     def step(self) -> Dict[str, Any]:

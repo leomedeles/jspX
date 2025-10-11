@@ -37,3 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     **paho-mqtt==1.6.1**
     **pandapower==3.1.2**
     **numpy==2.3.3**
+
+## [0.3.0] - 2025-10-11
+### Added
+- mosquitto container as mqtt broker
+- influxdb docker container as historian
+- nodered docker container to subscribe to mqtt broker and push to historian
+- grafana docjker container to query historian
+- `docker-compose.yml` with mosquitto + Node-RED + InfluxDB + Grafana
+
+### Changed
+- .env.example
+- ASCII diagram in README
+- README quickstart
+- node-red is now a docker container
+- dashboard is now grafana container
+- New JSON schema for physics mode from python sim:
+    `{"ts","buses":[{"bus_idx","name","vm_pu","va_degree","p_mw","q_mvar"}],"lines":[{"line_idx","name","end","from_bus","to_bus","p_mw","q_mvar","pl_mw","ql_mvar","i_ka","vm_pu","va_degree","loading_percent"}],"ext_grid":{"p_mw","q_mvar"}}`.
