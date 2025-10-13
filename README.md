@@ -6,6 +6,13 @@ A minimal, reproducible SCADA loop for a simulated power portfolio:
 - Display latest values on grafana dashboard
 - Clean structure, least privilege, and beginner-friendly
 
+flowchart TD
+    A["power_sim.py<br>JSON/1s<br>file append"] -->|"telemetry/* (MQTT topic)"| B["Node-RED mqtt in"]
+    B --> C["line protocol"]
+    C -->|"http POST to scada bucket"| D["InfluxDB Historian"]
+    D -->|"Flux query"| E["Grafana Dashboard"]
+    A --> F["data/telemetry.ndjson"]
+
 +----------------+       (MQTT topic)   +---------------------+
 | power_sim.py   |  --->  telemetry/* ->| Node-RED mqtt in    |
 |  JSON/1s       |                      +----------+----------+

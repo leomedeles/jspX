@@ -1,3 +1,76 @@
+## Sprint 4  → v0.4.0: Sim container + breaker control + basic protection
+
+**Goal:** Close the one-command loop by containerizing the simulator and add a minimal control/protection path visible in Grafana.
+
+### Scope (stories & tasks)
+- [ ] **Containerize the simulator**
+  - [ ] Dockerfile (python:slim), non-root user, healthcheck.
+  - [ ] Env-driven config: BROKER_URL, PUB_TOPIC=telemetry/*, CMD_TOPIC=cmd/breaker/main/set,
+        STATUS_TOPIC=status/breaker/main, RATE_HZ.
+  - [ ] Add `sim` service to docker-compose with `.env` wiring.
+
+- [ ] **Breaker control path**
+  - [ ] Node-RED Dashboard toggle → publish OPEN/CLOSE to `cmd/breaker/main/set`.
+  - [ ] Sim subscribes, updates breaker state, publishes `status/breaker/main` (OPEN/CLOSED, tripped boolean).
+  - [ ] Telemetry reflects effect (e.g., line current → ~0 when open).
+
+- [ ] **Basic protection**
+  - [ ] Overcurrent trip on target line at 1.20 × nominal current with 50–200 ms intentional delay (latched).
+  - [ ] Bus undervoltage alarm if Vm < 0.92 pu; clears when Vm ≥ 0.94 pu (hysteresis).
+  - [ ] Manual reset: `cmd/breaker/main/reset` clears trip latch; CLOSE ignored while `tripped=true`.
+
+- [ ] **Grafana “Ops”**
+  - [ ] Panels for breaker state + alarm banner; optional annotations on trip events.
+
+- [ ] **Docs & hygiene**
+  - [ ] README: control topics, one-command note (no local Python needed for normal use).
+  - [ ] CHANGELOG: add v0.4.0.
+  - [ ] SECURITY (stub): dev creds policy, exposed ports, note future TLS/auth hardening.
+
+### Acceptance criteria
+- [ ] `docker compose up -d` starts sim + Node-RED + InfluxDB + Grafana; stack usable with no local Python.
+- [ ] Toggling the Node-RED switch opens/closes the breaker; Grafana reflects within ~2 s.
+- [ ] Overcurrent ⇒ tripped=true (latched); undervoltage ⇒ alarm; manual reset clears trip and enables CLOSE.
+- [ ] Backlog updated; tag v0.4.0 recorded in CHANGELOG.
+
+### Out-of-scope
+- TLS/auth beyond the stub; richer alert routing and CI.
+
+---
+
+## Sprint 3 (2 weeks) → v0.3.0: Historian + Grafana
+
+**Goal:** Persist 1 Hz telemetry to a time-series DB (InfluxDB) and visualize it in Grafana.
+
+### Scope (stories & tasks)
+- [x] **Sim backend**
+  - [x] Confirm JSON schema fits Influx line protocol (or transform).
+  - [-] NOT NEEDED - Add `--influx` flag in `power_sim.py` to POST directly to Influx (optional).
+- [x] **Node-RED flow**
+  - [x] Write bus metrics into Influx (`measurement=grid`, tags: `{bus:name}`, fields: `{vm_pu,p_mw,q_mvar}`).
+  - [x] Create a basic Grafana dashboard (voltages, P, Q).
+- [x] **Containerization**
+  - [x] Create Grafana container with datasource and panels provisioning
+  - [x] Create InfluxDB container initialized with admin token
+  - [x] Creat mqtt broker container with config file
+  - [x] Create Node-RED container
+- [x] **Docs & verification**
+  - [x] Add README “Historian” section and Grafana screenshot.
+
+
+### Acceptance criteria
+- [x] At least 5 minutes of telemetry stored in Influx without errors.
+- [x] Grafana dashboard shows live-updating voltages and powers.
+- [x] README updated with screenshot + run instructions.
+- [x] Tag `v0.3.0` with CHANGELOG entry.
+
+### Out-of-scope
+- Alerts
+- AI anomaly detection
+- OPC UA / Modbus
+
+---
+
 ## Sprint 2 (2 weeks) → v0.2.0: Realistic grid via pandapower
 
 **Goal:** Replace random telemetry with a tiny pandapower 3-bus system that emits realistic SCADA-like values every 1 s (file or MQTT), visible in Node-RED.
@@ -31,34 +104,6 @@
 
 ---
 
-## Sprint 3 (2 weeks) → v0.3.0: Historian + Grafana
-
-**Goal:** Persist 1 Hz telemetry to a time-series DB (InfluxDB) and visualize it in Grafana.
-
-### Scope (stories & tasks)
-- [x] **Sim backend**
-  - [x] Confirm JSON schema fits Influx line protocol (or transform).
-  - [-] NOT NEEDED - Add `--influx` flag in `power_sim.py` to POST directly to Influx (optional).
-- [x] **Node-RED flow**
-  - [x] Write bus metrics into Influx (`measurement=grid`, tags: `{bus:name}`, fields: `{vm_pu,p_mw,q_mvar}`).
-  - [x] Create a basic Grafana dashboard (voltages, P, Q).
-- [x] **Docs & verification**
-  - [x] Add README “Historian” section and Grafana screenshot.
-  - [x] Optionally add `docker-compose.yml` with Node-RED + InfluxDB + Grafana.
-
-### Acceptance criteria
-- [x] At least 5 minutes of telemetry stored in Influx without errors.
-- [x] Grafana dashboard shows live-updating voltages and powers.
-- [x] README updated with screenshot + run instructions.
-- [x] Tag `v0.3.0` with CHANGELOG entry.
-
-### Out-of-scope
-- Alerts
-- AI anomaly detection
-- OPC UA / Modbus
-
----
-
 # Project Backlog
 
 This backlog is a living list of possible tasks, features, and improvements.  
@@ -67,14 +112,11 @@ Not everything here will be done — items can be added, removed, or reprioritiz
 ---
 
 ## Near-term candidates
-- [x] Add historian (InfluxDB) for telemetry storage (`v0.3.0`)
-- [x] Build Grafana dashboard for voltages and power trends (`v0.3.0`)
-- [x] Add `--influx` option in sim (direct or via Node-RED)
+- [ ] Add alerting logic (breaker trip if overcurrent, bus undervoltage)
+- [ ] Write SECURITY.md (list hygiene + mitigations)
 
 ## Medium-term
-- [ ] Add alerting logic (breaker trip if overcurrent, bus undervoltage)
-- [ ] Package with Docker Compose (Node-RED + sim + DB + Grafana)
-- [ ] Write SECURITY.md (list hygiene + mitigations)
+- [ ] Grafana alerts/annotations & routing for trips/alarms (post-S4 refinement)
 
 ## Longer-term / stretch
 - [ ] Add AI anomaly detection module (IsolationForest/autoencoder)
@@ -87,3 +129,4 @@ Not everything here will be done — items can be added, removed, or reprioritiz
 ## Done (closed items)
 - [x] `v0.1.0`: Hello SCADA loop (random sim + Node-RED flow)
 - [x] `v0.2.0`: 3-bus pandapower model, new JSON schema, Node-RED flow + dashboard
+- [x] `v0.3.0`: extended JSON schema, Historian + UI, Contenarized environment: [mosquito, Node-RED, InfluxDB, Grafana]
