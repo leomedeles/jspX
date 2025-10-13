@@ -114,6 +114,7 @@ Not everything here will be done — items can be added, removed, or reprioritiz
 ## Near-term candidates
 - [ ] Add alerting logic (breaker trip if overcurrent, bus undervoltage)
 - [ ] Write SECURITY.md (list hygiene + mitigations)
+- [ ] Hygene CMD/command: between compose and dockerfile
 
 ## Medium-term
 - [ ] Grafana alerts/annotations & routing for trips/alarms (post-S4 refinement)

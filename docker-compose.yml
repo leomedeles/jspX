@@ -52,6 +52,29 @@ services:
       - ./mqtt/data:/mosquitto/data
       - ./mqtt/log:/mosquitto/log
 
+  sim:
+    build:
+      context: .
+      dockerfile: dockerfile
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+    environment:
+      - BROKER_URL= ${MQTT_BROKER_URL}
+      - PUB_TOPIC= ${MQTT_PUB_TOPIC}
+      - CMD_TOPIC= ${MQTT_CMD_TOPIC}
+      - RESET_TOPIC= ${MQTT_RESET_TOPIC}
+      - STATUS_TOPIC= ${MQTT_STATUS_TOPIC}
+      - RATE_HZ= ${SIM_RATE_HZ}
+    command:
+      - python
+      - src/power_sim.py
+      - --mqtt
+      - --pandapower
+      - --host
+      - mosquitto         
+
+
 volumes:
   influxdb-data:  
   influxdb-config:
