@@ -123,6 +123,8 @@ Not everything here will be done — items can be added, removed, or reprioritiz
 - [ ] Add AI anomaly detection module (IsolationForest/autoencoder)
 - [ ] Integrate OPC UA or Modbus protocol simulation
 - [ ] Build a short demo video/gif and embed in README
+- [ ] Migrate Node-RED to a PLC environment
+- [ ] Increase Complexity/particularity of Simulation
 - [ ] Optional: add simple C++ component for protocol handling
 
 ---

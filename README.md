@@ -46,7 +46,7 @@ data/telemetry.ndjson
 - **Python 3.x**
     - paho-mqtt==1.6.1
     - pandapower==3.1.2
-    - numpy==2.3.3
+    - numpy~=1.24.3
 - **Docker Container 28.x**
 
 
