@@ -84,7 +84,7 @@ class ThreeBusGrid:
         rext = self.net.res_ext_grid
         out_bus: List[Dict[str, Any]] = []
         out_line: List[Dict[str, Any]] = []
-        out_ext_grid: Dict[str, Any] = {} #test
+        out_ext_grid: Dict[str, Any] = {}
         for idx, row in rb.iterrows():
             out_bus.append({
                 "bus_idx": int(idx),
@@ -128,7 +128,7 @@ class ThreeBusGrid:
         out_ext_grid = {
             "p_mw": float(rext.at[rext.index[0], "p_mw"]),
             "q_mvar": float(rext.at[rext.index[0], "q_mvar"])
-            } #test
+            }
         return {
             "ts": datetime.now(timezone.utc).isoformat(),
             "buses": out_bus,

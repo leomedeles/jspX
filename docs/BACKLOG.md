@@ -3,14 +3,14 @@
 **Goal:** Close the one-command loop by containerizing the simulator and add a minimal control/protection path visible in Grafana.
 
 ### Scope (stories & tasks)
-- [ ] **Containerize the simulator**
-  - [ ] Dockerfile (python:slim), non-root user, healthcheck.
-  - [ ] Env-driven config: BROKER_URL, PUB_TOPIC=telemetry/*, CMD_TOPIC=cmd/breaker/main/set,
+- [x] **Containerize the simulator**
+  - [x] Dockerfile (python:slim), non-root user, healthcheck.
+  - [x] Env-driven config: BROKER_URL, PUB_TOPIC=telemetry/*, CMD_TOPIC=cmd/breaker/main/set,
         STATUS_TOPIC=status/breaker/main, RATE_HZ.
-  - [ ] Add `sim` service to docker-compose with `.env` wiring.
+  - [x] Add `sim` service to docker-compose with `.env` wiring.
 
 - [ ] **Breaker control path**
-  - [ ] Node-RED Dashboard toggle → publish OPEN/CLOSE to `cmd/breaker/main/set`.
+  - [x] Node-RED Dashboard toggle → publish OPEN/CLOSE to `cmd/breaker/main/set`.
   - [ ] Sim subscribes, updates breaker state, publishes `status/breaker/main` (OPEN/CLOSED, tripped boolean).
   - [ ] Telemetry reflects effect (e.g., line current → ~0 when open).
 

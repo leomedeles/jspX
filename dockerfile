@@ -33,4 +33,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
   CMD python -c "import os,socket;url=os.getenv('BROKER_URL','mqtt://mosquitto:1883').split('://')[-1];h,p=url.split(':');s=socket.socket();s.settimeout(2);s.connect((h,int(p)));s.close()"
 
 # Start the sim the same way you do locally
-CMD ["python", "src/power_sim.py", "--mqtt", "--host http://mosquitto", "--pandapower"]
+CMD ["python", "src/power_sim.py", "--mqtt", "--pandapower"]
