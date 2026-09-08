@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # System deps (keep tiny; libgomp1 helps with numpy/numba stacks)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,8 +11,8 @@ RUN useradd -ms /bin/bash appuser
 WORKDIR /app
 
 # Install Python deps
-# Accept either requirements.txt or requiements.txt (typo-safe)
-COPY requirements*.txt ./requirements.txt
+# Keep the image installation identical to the documented host installation.
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # App code
@@ -20,11 +20,11 @@ COPY src ./src
 
 # Defaults (overridden by .env / compose)
 ENV BROKER_URL=mqtt://mosquitto:1883 \
-    PUB_TOPIC=telemetry/main \
+    PUB_TOPIC=telemetry/pandapower \
     CMD_TOPIC=cmd/breaker/main/set \
     RESET_TOPIC=cmd/breaker/main/reset \
     STATUS_TOPIC=status/breaker/main \
-    RATE_HZ=2
+    RATE_HZ=1
 
 USER appuser
 

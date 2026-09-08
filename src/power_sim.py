@@ -7,6 +7,7 @@ import signal
 import sys
 import time
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 try:
     import paho.mqtt.client as mqtt  # noqa: F401
@@ -38,7 +39,26 @@ def gen_sample(bus_id: int):
 
 
 def ensure_dir(path: str):
-    os.makedirs(path, exist_ok=True)
+    if path:
+        os.makedirs(path, exist_ok=True)
+
+
+def mqtt_defaults():
+    """Read container-friendly defaults while preserving CLI overrides."""
+    broker_url = os.getenv("BROKER_URL", "mqtt://127.0.0.1:1883")
+    parsed = urlparse(broker_url if "://" in broker_url else f"mqtt://{broker_url}")
+    host = parsed.hostname or "127.0.0.1"
+    port = parsed.port or 1883
+    topic = os.getenv("PUB_TOPIC", "telemetry/pandapower")
+
+    try:
+        rate_hz = float(os.getenv("RATE_HZ", "1"))
+        if rate_hz <= 0:
+            raise ValueError
+    except ValueError as exc:
+        raise SystemExit("RATE_HZ must be a positive number") from exc
+
+    return host, port, topic, 1.0 / rate_hz
 
 
 def run_file_mode(out_path: str, interval_s: float, producer):
@@ -79,13 +99,14 @@ def run_mqtt_mode(host: str, port: int, topic: str, interval_s: float, producer)
 
 
 def main():
+    default_host, default_port, default_topic, default_interval = mqtt_defaults()
     parser = argparse.ArgumentParser(description="jspX SCADA power simulator")
     parser.add_argument("--mqtt", action="store_true", help="Enable MQTT mode (default is file mode)")
-    parser.add_argument("--host", default="127.0.0.1", help="MQTT broker host")
-    parser.add_argument("--port", type=int, default=1883, help="MQTT broker port")
-    parser.add_argument("--topic", default="telemetry/power", help="MQTT topic to publish to")
+    parser.add_argument("--host", default=default_host, help="MQTT broker host")
+    parser.add_argument("--port", type=int, default=default_port, help="MQTT broker port")
+    parser.add_argument("--topic", default=default_topic, help="MQTT topic to publish to")
     parser.add_argument("--bus-id", type=int, default=1, help="Bus ID in the simulation")
-    parser.add_argument("--interval", type=float, default=1.0, help="Emit interval in seconds")
+    parser.add_argument("--interval", type=float, default=default_interval, help="Emit interval in seconds")
     parser.add_argument("--out", default=os.path.join("data", "telemetry.ndjson"),
                         help="Output file path for file mode")
     parser.add_argument("--pandapower", action="store_true",
@@ -104,9 +125,6 @@ def main():
         from power_grid import ThreeBusGrid
         grid = ThreeBusGrid.build()
         producer = grid.step  # returns dict: {"ts":..., "buses":[{...}]}
-        if args.mqtt and args.topic == "telemetry/power":
-            # Nudge to a more specific topic if user didn't set one
-            args.topic = "telemetry/pandapower"
     else:
         producer = (lambda: gen_sample(args.bus_id))
 

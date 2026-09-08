@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "node-red-dashboard": "^3.6.6"
+    "node-red-dashboard": "3.6.6"
   }
 }

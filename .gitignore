@@ -15,7 +15,8 @@ data/Notes
 
 # Node / Node-RED
 node_modules/
-nodered/data
+nodered/data/*
+!nodered/data/flows.json
 *package-lock.json
 npm-debug.log*
 .DS_Store
@@ -28,5 +29,6 @@ Thumbs.db
 
 # Containers
 mqtt/data/
+mqtt/log/
 
 *code-workspace*

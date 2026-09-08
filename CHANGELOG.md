@@ -1,6 +1,4 @@
 
-**CHANGELOG.md**
-```markdown
 # Changelog
 All notable changes to this project will be documented in this file.
 
@@ -8,6 +6,88 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.1] - 2026-09-08
+
+This patch restores a reproducible clone-to-dashboard startup path and separates
+versioned system definitions from mutable runtime state.
+
+### Fixed
+
+- Replaced the incompatible `numpy~=1.24.3` requirement. That range has no
+  supported wheel for the current host Python and caused installation to fall
+  back to a failing source build.
+- Pinned the complete tested Python dependency set in `requirements.txt`.
+  `pandas==2.3.2` is intentional: pandapower 3.1.2 fails during result
+  extraction with pandas 3.x because the target array is read-only.
+- Updated the simulator image to Python 3.12, which has wheels for the pinned
+  numerical dependencies and is supported by pandapower 3.1.2.
+- Made `BROKER_URL`, `PUB_TOPIC`, and `RATE_HZ` real simulator defaults. Compose
+  previously supplied these variables, but `power_sim.py` ignored them and
+  relied on separate CLI defaults.
+- Aligned the default publisher and subscriber on `telemetry/pandapower` at
+  1 Hz. CLI arguments still override all environment-derived defaults.
+- Allowed file-mode output names without a parent directory instead of calling
+  `os.makedirs("")`.
+- Assigned the provisioned InfluxDB datasource the UID already referenced by
+  the Grafana dashboard, so a fresh Grafana volume does not generate a
+  different datasource identity.
+- Changed Grafana's token lookup to `$INFLUXDB_READ_TOKEN`, avoiding Grafana's
+  second interpolation pass when token values contain a dollar sign.
+- Removed the misspelled `NFLUXDB_ADMIN_TOKEN` entry from `.env.example`.
+
+### Added
+
+- Added the active Node-RED definition at `nodered/data/flows.json` to version
+  control. It contains no Node-RED credential object or embedded token value.
+- Added `nodered/Dockerfile`, based on Node-RED 4.1.0, to install the exact
+  `node-red-dashboard` version required by the tracked flow at image-build
+  time. A fresh clone no longer depends on modules left in a developer's local
+  Node-RED directory.
+- Added `.dockerignore` so Git metadata, local environment files, virtual
+  environments, telemetry, caches, and service state are not sent into Docker
+  build contexts.
+
+### Changed
+
+- Reworked the Node-RED mounts: `/data` is a named volume for settings,
+  credentials, caches, and other runtime state, while only the tracked
+  `flows.json` is bind-mounted into it. Deliberate flow edits remain visible to
+  Git; simply running Node-RED does not expose its entire data directory as
+  repository changes.
+- Moved Mosquitto data and logs from repository bind mounts to named volumes.
+  InfluxDB and Grafana already used named volumes, so database and dashboard
+  runtime state remains outside Git across the whole stack.
+- Removed fixed container names so Compose can scope containers by project and
+  avoid name collisions between clones.
+- Bound all published ports to `127.0.0.1`, matching the development credential
+  defaults and avoiding accidental LAN exposure.
+- Replaced Grafana's broad `.env` import with explicit login and datasource
+  variables. The container no longer receives the InfluxDB admin/write values
+  or unrelated simulator settings.
+- Pinned `node-red-dashboard` to 3.6.6 and the Node-RED base image to 4.1.0 so
+  rebuilds do not silently select a new runtime or UI-node release.
+- Changed the simulator Dockerfile to copy exactly `requirements.txt`; wildcard
+  requirement copies could become ambiguous if another requirements file were
+  added later.
+- Updated `.gitignore` to ignore everything under `nodered/data` except
+  `flows.json`, plus Mosquitto logs. Existing rules continue to ignore `.env`,
+  virtual environments, Python caches, simulator output, Node modules, and
+  broker data.
+- Updated `.env.example` to use the actual telemetry topic and rate. Its
+  `CHANGE_ME` credentials are development placeholders; read/write tokens use
+  the bootstrap token in the quickstart and should be scoped for non-development
+  deployments.
+- Replaced the obsolete Quickstart with the supported Compose build path and
+  documented startup, inspection, shutdown, URLs, state ownership, the
+  clean-working-tree expectation, and an optional Python 3.12/3.13 host setup.
+
+### Upgrade note
+
+- v0.3.1 no longer mounts `nodered/data`, `mqtt/data`, or `mqtt/log` wholesale.
+  Files already present in those ignored directories are left untouched, but
+  new containers use Compose named volumes for mutable state. The tracked
+  `flows.json` remains the source of the Node-RED system definition.
 
 ## [0.1.0] - 2025-09-26
 ### Added
