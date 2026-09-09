@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a real source-side pandapower circuit breaker on the protected L1
+  feeder path and connected it to the existing breaker/protection controller.
+- Added strict-JSON measurement quality and energized indicators for topology
+  states where downstream electrical results are unavailable.
+
+### Changed
+
+- Pandapower mode now evaluates controller protection at 20 Hz using L1's
+  solved loading while keeping telemetry publication on its configured cadence.
+
 ## [0.3.1] - 2026-09-08
 
 This patch restores a reproducible clone-to-dashboard startup path and separates

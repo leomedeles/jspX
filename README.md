@@ -35,9 +35,16 @@ data/telemetry.ndjson
 
 20 kV feeder (3-bus minimal case)
 
-   [BUS0_SLACK] --L1(5 km)--> [BUS1_LOAD] --L2(3 km)--> [BUS2_LOAD]
-       ext_grid                    ~1.2 MW / 0.3 MVAr        ~0.8 MW / 0.2 MVAr
-       vm≈1.00 pu                  vm≈0.98–0.99 pu           vm≈0.97–0.99 pu
+   [BUS0_SLACK] --[BRK_L1_SOURCE]--L1(5 km)--> [BUS1_LOAD] --L2(3 km)--> [BUS2_LOAD]
+       ext_grid                                      ~1.2 MW / 0.3 MVAr        ~0.8 MW / 0.2 MVAr
+       vm≈1.00 pu                                    vm≈0.98–0.99 pu           vm≈0.97–0.99 pu
+
+`BRK_L1_SOURCE` is a real pandapower line switch at the BUS0 end of L1. During
+v0.4 development, the simulator applies the authoritative `BreakerController`
+state to this switch on a 50 ms control scan while retaining the configured
+SCADA publication interval. When open, L1 current/loading is zero and the two
+isolated downstream buses expose unavailable voltage/angle values as JSON
+`null`, with `energized: false` and `quality: "NOT_ENERGIZED"`.
 
 ## Getting started
 
