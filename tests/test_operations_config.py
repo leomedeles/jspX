@@ -78,6 +78,9 @@ def test_existing_dashboard_contains_influx_backed_operations_panels() -> None:
         panel = panels[title]
         assert panel["options"]["colorMode"] == "background"
         assert panel["fieldConfig"]["defaults"]["mappings"]
+        assert '|> keep(columns: ["_value"])' in panel["targets"][0][
+            "query"
+        ]
 
     history_query = panels["Recent Breaker / Protection Status"]["targets"][0][
         "query"

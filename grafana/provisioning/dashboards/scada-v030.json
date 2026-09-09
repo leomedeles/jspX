@@ -280,7 +280,7 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"state\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"state\")\n  |> last()\n  |> keep(columns: [\"_value\"]) ",
           "refId": "A"
         }
       ],
@@ -354,7 +354,7 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"tripped\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"tripped\")\n  |> last()\n  |> keep(columns: [\"_value\"]) ",
           "refId": "A"
         }
       ],
@@ -428,7 +428,7 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"undervoltage_alarm\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"undervoltage_alarm\")\n  |> last()\n  |> keep(columns: [\"_value\"]) ",
           "refId": "A"
         }
       ],
