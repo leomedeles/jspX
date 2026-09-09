@@ -14,23 +14,23 @@
   - [x] Dockerfile (python:slim), non-root user, healthcheck.
   - [x] Env-driven config and sim service in Docker Compose.
 
-- [-] **Physical breaker and electrically honest telemetry**
-  - [-] Real source-side pandapower circuit breaker BRK_L1_SOURCE protects L1.
-  - [-] Opening it isolates BUS1/BUS2; protected-line current/loading become zero.
-  - [-] Unavailable isolated-bus values are strict JSON null, with energized and quality indicators.
-  - [-] Control/protection scans run at 20 Hz while routine telemetry remains at the configured SCADA rate.
+- [x] **Physical breaker and electrically honest telemetry**
+  - [x] Real source-side pandapower circuit breaker BRK_L1_SOURCE protects L1.
+  - [x] Opening it isolates BUS1/BUS2; protected-line current/loading become zero.
+  - [x] Unavailable isolated-bus values are strict JSON null, with energized and quality indicators.
+  - [x] Control/protection scans run at 20 Hz while routine telemetry remains at the configured SCADA rate.
 
-- [-] **Basic protection**
-  - [-] L1 overcurrent pickup at 120% with a 100 ms definite-time delay; trip is latched.
-  - [-] Bus undervoltage alarm asserts below 0.92 pu and clears at or above 0.94 pu.
-  - [-] RESET clears the latch without closing; CLOSE is rejected while tripped.
+- [x] **Basic protection**
+  - [x] L1 overcurrent pickup at 120% with a 100 ms definite-time delay; trip is latched.
+  - [x] Bus undervoltage alarm asserts below 0.92 pu and clears at or above 0.94 pu.
+  - [x] RESET clears the latch without closing; CLOSE is rejected while tripped.
 
-- [-] **Simulator MQTT contract**
-  - [-] OPEN: cmd/breaker/open
-  - [-] CLOSE: cmd/breaker/close
-  - [-] RESET: cmd/breaker/reset
-  - [-] Authoritative retained status: status/breaker
-  - [-] MQTT callbacks queue commands; the control loop is the single writer of controller/grid state.
+- [x] **Simulator MQTT contract**
+  - [x] OPEN: cmd/breaker/open
+  - [x] CLOSE: cmd/breaker/close
+  - [x] RESET: cmd/breaker/reset
+  - [x] Authoritative retained status: status/breaker
+  - [x] MQTT callbacks queue commands; the control loop is the single writer of controller/grid state.
 
 - [x] **Current interface documentation**
   - [x] README documents the physical breaker and MQTT topic contract.
@@ -43,29 +43,29 @@
   - [x] Subscribe to retained status/breaker and render authoritative position, trip state, and command rejection without a status-to-command feedback loop.
   - [x] Confirm the old combined cmd/breaker/main/set / status/breaker/main controls are removed or no longer active.
 
-- [-] **Deterministic validation scenarios**
-  - [-] cmd/sim/scenario/set accepts NORMAL, OVERCURRENT, and UNDERVOLTAGE.
-  - [-] Scenarios provide repeatable evidence for trip timing, latching/reset, and UV hysteresis.
+- [x] **Deterministic validation scenarios**
+  - [x] cmd/sim/scenario/set accepts NORMAL, OVERCURRENT, and UNDERVOLTAGE.
+  - [x] Scenarios provide repeatable evidence for trip timing, latching/reset, and UV hysteresis.
 
 - [x] **Historian and Grafana Ops view**
   - [x] Store the authoritative breaker status and relevant alarms in InfluxDB.
   - [x] Add Grafana panels for breaker state and alarm/trip indication.
 
 - [ ] **Release verification and hygiene**
-  - [ ] Run and record python -m pytest -q.
-  - [ ] Run and record docker compose config, docker compose up -d --build, service status/log checks, and the end-to-end MQTT control smoke test.
-  - [ ] Add a minimal GitHub Actions workflow that runs the test suite before v0.4.0 release.
-  - [ ] Add concise SECURITY.md development-credentials/exposed-ports guidance.
+  - [x] Run and record python -m pytest -q.
+  - [x] Run and record docker compose config, docker compose up -d --build, service status/log checks, and the end-to-end MQTT control smoke test.
+  - [x] Add a minimal GitHub Actions workflow that runs the test suite before v0.4.0 release.
+  - [x] Add concise SECURITY.md development-credentials/exposed-ports guidance.
   - [ ] Update release notes, merge v040 into main, and create the v0.4.0 tag only after the acceptance criteria are verified.
 
 ### v0.4.0 acceptance criteria
 
-- [ ] Node-RED OPEN/CLOSE/RESET operates the real pandapower breaker; retained status appears promptly and never contradicts the physical topology.
-- [ ] The OVERCURRENT scenario trips within the specified timing tolerance, remains latched, rejects CLOSE, and requires RESET before a later CLOSE.
-- [ ] The UNDERVOLTAGE scenario asserts below 0.92 pu and clears only at or above 0.94 pu.
-- [ ] InfluxDB/Grafana show the resulting breaker state and alarms.
-- [ ] Automated tests and the Docker/MQTT end-to-end smoke test have recorded passing evidence.
-- [ ] CI is green for the final v0.4.0 candidate.
+- [x] Node-RED OPEN/CLOSE/RESET operates the real pandapower breaker; retained status appears promptly and never contradicts the physical topology.
+- [x] The OVERCURRENT scenario trips within the specified timing tolerance, remains latched, rejects CLOSE, and requires RESET before a later CLOSE.
+- [x] The UNDERVOLTAGE scenario asserts below 0.92 pu and clears only at or above 0.94 pu.
+- [x] InfluxDB/Grafana show the resulting breaker state and alarms.
+- [x] Automated tests and the Docker/MQTT end-to-end smoke test have recorded passing evidence.
+- [x] CI is green for the final v0.4.0 candidate.
 
 ### Out-of-scope
 
