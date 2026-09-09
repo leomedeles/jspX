@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   feeder path and connected it to the existing breaker/protection controller.
 - Added strict-JSON measurement quality and energized indicators for topology
   states where downstream electrical results are unavailable.
+- Added payload-independent MQTT commands on `cmd/breaker/open`,
+  `cmd/breaker/close`, and `cmd/breaker/reset`, with authoritative retained
+  strict-JSON status on `status/breaker`.
 
 ### Changed
 

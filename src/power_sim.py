@@ -6,7 +6,9 @@ import random
 import signal
 import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from queue import Empty, SimpleQueue
 from typing import Callable
 from urllib.parse import urlparse
 
@@ -18,6 +20,60 @@ except Exception:
 
 
 CONTROL_INTERVAL_S = 0.050
+OPEN_COMMAND_TOPIC = "cmd/breaker/open"
+CLOSE_COMMAND_TOPIC = "cmd/breaker/close"
+RESET_COMMAND_TOPIC = "cmd/breaker/reset"
+BREAKER_STATUS_TOPIC = "status/breaker"
+
+COMMAND_BY_TOPIC = {
+    OPEN_COMMAND_TOPIC: "OPEN",
+    CLOSE_COMMAND_TOPIC: "CLOSE",
+    RESET_COMMAND_TOPIC: "RESET",
+}
+
+
+@dataclass(frozen=True)
+class BreakerMqttEvent:
+    """One callback-produced event for the single-writer control loop."""
+
+    command: str | None = None
+    status_requested: bool = False
+
+
+class BreakerMqttEventQueue:
+    """Translate MQTT callbacks into thread-safe, side-effect-free events."""
+
+    def __init__(self) -> None:
+        self._events: SimpleQueue[BreakerMqttEvent] = SimpleQueue()
+
+    def on_connect(self, client, userdata, flags, rc) -> None:
+        """Subscribe on successful connection and request startup status."""
+        if rc != 0:
+            return
+        for topic in COMMAND_BY_TOPIC:
+            client.subscribe(topic, qos=0)
+        self._events.put(BreakerMqttEvent(status_requested=True))
+
+    def on_message(self, client, userdata, message) -> None:
+        """Queue a known command topic; command payloads are intentionally ignored."""
+        command = COMMAND_BY_TOPIC.get(message.topic)
+        if command is not None:
+            self._events.put(BreakerMqttEvent(command=command))
+
+    def pop(self) -> BreakerMqttEvent | None:
+        """Return the next event without blocking the control loop."""
+        try:
+            return self._events.get_nowait()
+        except Empty:
+            return None
+
+
+@dataclass(frozen=True)
+class ControlScanResult:
+    telemetry: dict[str, object]
+    status: dict[str, object] | None
+    command: str | None
+    command_accepted: bool | None
 
 
 class ControlledPandapowerSimulator:
@@ -53,6 +109,64 @@ class ControlledPandapowerSimulator:
 
         telemetry["breaker"] = self.controller.snapshot()
         return telemetry
+
+
+def breaker_status_payload(controller) -> dict[str, object]:
+    """Build authoritative status from the controller's current snapshot."""
+    return {"ts": now_iso(), **controller.snapshot()}
+
+
+def publish_breaker_status(client, status: dict[str, object]):
+    """Publish one authoritative, retained, strict-JSON status snapshot."""
+    payload = json.dumps(status, separators=(",", ":"), allow_nan=False)
+    return client.publish(
+        BREAKER_STATUS_TOPIC,
+        payload=payload,
+        qos=0,
+        retain=True,
+    )
+
+
+def apply_breaker_command(controller, command: str) -> bool:
+    """Route a command exclusively through the BreakerController API."""
+    if command == "OPEN":
+        controller.open()
+        return True
+    if command == "CLOSE":
+        return controller.close()
+    if command == "RESET":
+        controller.reset()
+        return True
+    raise ValueError(f"unsupported breaker command: {command}")
+
+
+def process_control_scan(
+    simulator: ControlledPandapowerSimulator,
+    *,
+    event: BreakerMqttEvent | None = None,
+    timestamp: float | None = None,
+    vary_load: bool = False,
+) -> ControlScanResult:
+    """Apply at most one queued command, solve the plant, and derive status."""
+    before = simulator.controller.snapshot()
+    command = event.command if event is not None else None
+    accepted = (
+        apply_breaker_command(simulator.controller, command)
+        if command is not None
+        else None
+    )
+
+    telemetry = simulator.control_step(timestamp=timestamp, vary_load=vary_load)
+    after = simulator.controller.snapshot()
+    status_requested = event.status_requested if event is not None else False
+    status_due = command is not None or status_requested or after != before
+
+    return ControlScanResult(
+        telemetry=telemetry,
+        status=breaker_status_payload(simulator.controller) if status_due else None,
+        command=command,
+        command_accepted=accepted,
+    )
 
 # # Allow importing sibling modules when running as "python src/power_sim.py"
 # HERE = os.path.dirname(__file__)
@@ -210,7 +324,10 @@ def run_controlled_mqtt_mode(
         )
         sys.exit(2)
 
+    event_queue = BreakerMqttEventQueue()
     client = mqtt.Client(client_id="", clean_session=True)
+    client.on_connect = event_queue.on_connect
+    client.on_message = event_queue.on_message
     client.connect(host, port, keepalive=60)
     client.loop_start()
     print(
@@ -218,17 +335,41 @@ def run_controlled_mqtt_mode(
         f"with {CONTROL_INTERVAL_S}s control scans (Ctrl+C to stop)"
     )
 
-    try:
-        def publish(sample: dict[str, object]) -> None:
-            line = json.dumps(sample, separators=(",", ":"), allow_nan=False)
-            print(line, flush=True)
-            client.publish(topic, payload=line, qos=0, retain=False)
+    next_control = time.monotonic()
+    next_publish = next_control
 
-        run_controlled_loop(
-            simulator,
-            publish_interval_s=interval_s,
-            publish=publish,
-        )
+    try:
+        while True:
+            now = time.monotonic()
+            if now >= next_control:
+                publish_due = now >= next_publish
+                result = process_control_scan(
+                    simulator,
+                    event=event_queue.pop(),
+                    timestamp=now,
+                    vary_load=publish_due,
+                )
+
+                if result.status is not None:
+                    publish_breaker_status(client, result.status)
+
+                if publish_due:
+                    line = json.dumps(
+                        result.telemetry,
+                        separators=(",", ":"),
+                        allow_nan=False,
+                    )
+                    print(line, flush=True)
+                    client.publish(topic, payload=line, qos=0, retain=False)
+                    next_publish += interval_s
+                    if next_publish <= now:
+                        next_publish = now + interval_s
+
+                next_control += CONTROL_INTERVAL_S
+                if next_control <= now:
+                    next_control = now + CONTROL_INTERVAL_S
+
+            time.sleep(max(0.0, next_control - time.monotonic()))
     finally:
         client.loop_stop()
         client.disconnect()

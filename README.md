@@ -46,6 +46,27 @@ SCADA publication interval. When open, L1 current/loading is zero and the two
 isolated downstream buses expose unavailable voltage/angle values as JSON
 `null`, with `energized: false` and `quality: "NOT_ENERGIZED"`.
 
+### Breaker MQTT contract
+
+Pandapower MQTT mode listens for commands on three payload-independent topics:
+
+| Purpose | Topic |
+| --- | --- |
+| Open | `cmd/breaker/open` |
+| Close | `cmd/breaker/close` |
+| Reset trip latch | `cmd/breaker/reset` |
+| Authoritative status | `status/breaker` |
+
+`status/breaker` is retained, so a newly connected HMI receives the latest
+confirmed controller state without waiting for another operation. The simulator
+publishes status only after its control loop has applied the controller state to
+the physical switch. `RESET` clears the latch without closing, and `CLOSE` is
+rejected while the latch remains active. The existing `telemetry/pandapower`
+stream remains non-retained and is not the authoritative breaker-state topic.
+The currently tracked Node-RED breaker controls still use the previous combined
+command/status topics; they remain intentionally unchanged until the dedicated
+Node-RED integration milestone.
+
 ## Getting started
 
 ### Prerequisites
