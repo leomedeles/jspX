@@ -38,10 +38,10 @@
 
 ### Remaining v0.4.0 work
 
-- [ ] **Node-RED operation and status**
-  - [ ] Update the tracked active flow to publish OPEN/CLOSE/RESET on the current three-command topic contract.
-  - [ ] Subscribe to retained status/breaker and render authoritative position, trip state, and command rejection without a status-to-command feedback loop.
-  - [ ] Confirm the old combined cmd/breaker/main/set / status/breaker/main controls are removed or no longer active.
+- [x] **Node-RED operation and status**
+  - [x] Update the tracked active flow to publish OPEN/CLOSE/RESET on the current three-command topic contract.
+  - [x] Subscribe to retained status/breaker and render authoritative position, trip state, and command rejection without a status-to-command feedback loop.
+  - [x] Confirm the old combined cmd/breaker/main/set / status/breaker/main controls are removed or no longer active.
 
 - [ ] **Deterministic validation scenarios**
   - [ ] cmd/sim/scenario/set accepts NORMAL, OVERCURRENT, and UNDERVOLTAGE.
