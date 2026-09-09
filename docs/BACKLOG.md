@@ -43,9 +43,9 @@
   - [x] Subscribe to retained status/breaker and render authoritative position, trip state, and command rejection without a status-to-command feedback loop.
   - [x] Confirm the old combined cmd/breaker/main/set / status/breaker/main controls are removed or no longer active.
 
-- [ ] **Deterministic validation scenarios**
-  - [ ] cmd/sim/scenario/set accepts NORMAL, OVERCURRENT, and UNDERVOLTAGE.
-  - [ ] Scenarios provide repeatable evidence for trip timing, latching/reset, and UV hysteresis.
+- [-] **Deterministic validation scenarios**
+  - [-] cmd/sim/scenario/set accepts NORMAL, OVERCURRENT, and UNDERVOLTAGE.
+  - [-] Scenarios provide repeatable evidence for trip timing, latching/reset, and UV hysteresis.
 
 - [ ] **Historian and Grafana Ops view**
   - [ ] Store the authoritative breaker status and relevant alarms in InfluxDB.

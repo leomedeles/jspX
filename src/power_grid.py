@@ -6,7 +6,7 @@ import math
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandapower as pp
@@ -21,12 +21,23 @@ class ThreeBusGrid:
     All buses at 20 kV. Slack at BUS0. Two loads on BUS1 & BUS2.
     Lines use rough MV parameters; goal is stable, reproducible telemetry (not planning).
     """
+    NORMAL: ClassVar[str] = "NORMAL"
+    OVERCURRENT: ClassVar[str] = "OVERCURRENT"
+    UNDERVOLTAGE: ClassVar[str] = "UNDERVOLTAGE"
+    SCENARIOS: ClassVar[frozenset[str]] = frozenset(
+        {NORMAL, OVERCURRENT, UNDERVOLTAGE}
+    )
+    NORMAL_SOURCE_VOLTAGE_PU: ClassVar[float] = 1.0
+    UNDERVOLTAGE_SOURCE_VOLTAGE_PU: ClassVar[float] = 0.90
+    OVERCURRENT_LOAD_MULTIPLIER: ClassVar[float] = 5.0
+
     net: pp.pandapowerNet
     base_p_mw: np.ndarray  # [p_bus1, p_bus2]
     base_q_mvar: np.ndarray  # [q_bus1, q_bus2]
     protected_line_idx: int
     breaker_switch_idx: int
     downstream_bus_indices: tuple[int, ...]
+    scenario: str = NORMAL
     step_count: int = 0
 
     @staticmethod
@@ -92,13 +103,49 @@ class ThreeBusGrid:
         t = self.step_count
         swing = 0.05 * np.sin(2 * np.pi * (t % 120) / 120.0)  # ±5% over ~2 minutes
         noise = np.random.normal(0.0, 0.005, size=2)          # ±0.5% jitter
-        factor = 1.0 + swing + noise
+        factor = self._scenario_load_multiplier() * (1.0 + swing + noise)
 
         # Update the two loads
         self.net.load.at[0, "p_mw"] = max(0.1, self.base_p_mw[0] * factor[0])
         self.net.load.at[0, "q_mvar"] = max(0.0, self.base_q_mvar[0] * factor[0] * 0.8)
         self.net.load.at[1, "p_mw"] = max(0.1, self.base_p_mw[1] * factor[1])
         self.net.load.at[1, "q_mvar"] = max(0.0, self.base_q_mvar[1] * factor[1] * 0.8)
+
+    def set_scenario(self, scenario: str) -> bool:
+        """Apply one validated set of physical grid conditions atomically."""
+        if scenario not in self.SCENARIOS:
+            return False
+
+        source_voltage = (
+            self.UNDERVOLTAGE_SOURCE_VOLTAGE_PU
+            if scenario == self.UNDERVOLTAGE
+            else self.NORMAL_SOURCE_VOLTAGE_PU
+        )
+        load_multiplier = (
+            self.OVERCURRENT_LOAD_MULTIPLIER
+            if scenario == self.OVERCURRENT
+            else 1.0
+        )
+
+        self.net.ext_grid.loc[:, "vm_pu"] = source_voltage
+        self._set_loads(load_multiplier)
+        self.scenario = scenario
+        return True
+
+    def _scenario_load_multiplier(self) -> float:
+        return (
+            self.OVERCURRENT_LOAD_MULTIPLIER
+            if self.scenario == self.OVERCURRENT
+            else 1.0
+        )
+
+    def _set_loads(self, multiplier: float) -> None:
+        """Set deterministic P/Q demand without changing line ratings."""
+        for load_idx, p_mw, q_mvar in zip(
+            self.net.load.index, self.base_p_mw, self.base_q_mvar
+        ):
+            self.net.load.at[load_idx, "p_mw"] = p_mw * multiplier
+            self.net.load.at[load_idx, "q_mvar"] = q_mvar * multiplier
 
     @property
     def breaker_closed(self) -> bool:

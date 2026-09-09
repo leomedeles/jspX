@@ -67,6 +67,20 @@ The currently tracked Node-RED breaker controls still use the previous combined
 command/status topics; they remain intentionally unchanged until the dedicated
 Node-RED integration milestone.
 
+### Validation scenario MQTT contract
+
+Pandapower MQTT mode subscribes to `cmd/sim/scenario/set`. Its payload must be
+exactly one of `NORMAL`, `OVERCURRENT`, or `UNDERVOLTAGE` (uppercase UTF-8 with
+no surrounding whitespace). Unknown or invalid payloads are rejected without
+changing the selected scenario or plant inputs.
+
+- `NORMAL` restores the 1.0 pu source setpoint and base downstream demand. It
+  does not reset a protection latch or operate the breaker.
+- `OVERCURRENT` applies five times the base downstream MW/MVAr demand without
+  changing L1's current rating, allowing the existing protection to trip L1.
+- `UNDERVOLTAGE` lowers the source setpoint to 0.90 pu. It asserts the existing
+  downstream undervoltage alarm but does not directly trip L1.
+
 ## Getting started
 
 ### Prerequisites

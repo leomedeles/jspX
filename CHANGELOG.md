@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added payload-independent MQTT commands on `cmd/breaker/open`,
   `cmd/breaker/close`, and `cmd/breaker/reset`, with authoritative retained
   strict-JSON status on `status/breaker`.
+- Added deterministic `NORMAL`, `OVERCURRENT`, and `UNDERVOLTAGE` plant
+  scenarios on `cmd/sim/scenario/set` for protection validation.
 
 ### Changed
 

@@ -24,6 +24,7 @@ OPEN_COMMAND_TOPIC = "cmd/breaker/open"
 CLOSE_COMMAND_TOPIC = "cmd/breaker/close"
 RESET_COMMAND_TOPIC = "cmd/breaker/reset"
 BREAKER_STATUS_TOPIC = "status/breaker"
+SCENARIO_COMMAND_TOPIC = "cmd/sim/scenario/set"
 
 COMMAND_BY_TOPIC = {
     OPEN_COMMAND_TOPIC: "OPEN",
@@ -38,6 +39,7 @@ class BreakerMqttEvent:
 
     command: str | None = None
     status_requested: bool = False
+    scenario: str | None = None
 
 
 class BreakerMqttEventQueue:
@@ -52,13 +54,20 @@ class BreakerMqttEventQueue:
             return
         for topic in COMMAND_BY_TOPIC:
             client.subscribe(topic, qos=0)
+        client.subscribe(SCENARIO_COMMAND_TOPIC, qos=0)
         self._events.put(BreakerMqttEvent(status_requested=True))
 
     def on_message(self, client, userdata, message) -> None:
-        """Queue a known command topic; command payloads are intentionally ignored."""
+        """Translate an MQTT message into queued control-loop intent."""
         command = COMMAND_BY_TOPIC.get(message.topic)
         if command is not None:
             self._events.put(BreakerMqttEvent(command=command))
+        elif message.topic == SCENARIO_COMMAND_TOPIC:
+            try:
+                scenario = bytes(message.payload).decode("utf-8")
+            except UnicodeDecodeError:
+                scenario = ""
+            self._events.put(BreakerMqttEvent(scenario=scenario))
 
     def pop(self) -> BreakerMqttEvent | None:
         """Return the next event without blocking the control loop."""
@@ -74,6 +83,8 @@ class ControlScanResult:
     status: dict[str, object] | None
     command: str | None
     command_accepted: bool | None
+    scenario: str | None = None
+    scenario_accepted: bool | None = None
 
 
 class ControlledPandapowerSimulator:
@@ -150,9 +161,15 @@ def process_control_scan(
     """Apply at most one queued command, solve the plant, and derive status."""
     before = simulator.controller.snapshot()
     command = event.command if event is not None else None
+    scenario = event.scenario if event is not None else None
     accepted = (
         apply_breaker_command(simulator.controller, command)
         if command is not None
+        else None
+    )
+    scenario_accepted = (
+        simulator.grid.set_scenario(scenario)
+        if scenario is not None
         else None
     )
 
@@ -166,6 +183,8 @@ def process_control_scan(
         status=breaker_status_payload(simulator.controller) if status_due else None,
         command=command,
         command_accepted=accepted,
+        scenario=scenario,
+        scenario_accepted=scenario_accepted,
     )
 
 # # Allow importing sibling modules when running as "python src/power_sim.py"

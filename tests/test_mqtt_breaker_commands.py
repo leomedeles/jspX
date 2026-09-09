@@ -8,6 +8,7 @@ from src.power_sim import (
     CLOSE_COMMAND_TOPIC,
     OPEN_COMMAND_TOPIC,
     RESET_COMMAND_TOPIC,
+    SCENARIO_COMMAND_TOPIC,
     BreakerMqttEventQueue,
     ControlledPandapowerSimulator,
     process_control_scan,
@@ -60,6 +61,7 @@ def test_connect_subscribes_to_contract_and_requests_initial_status() -> None:
         (OPEN_COMMAND_TOPIC, 0),
         (CLOSE_COMMAND_TOPIC, 0),
         (RESET_COMMAND_TOPIC, 0),
+        (SCENARIO_COMMAND_TOPIC, 0),
     ]
     assert BREAKER_STATUS_TOPIC == "status/breaker"
     assert result.status is not None
