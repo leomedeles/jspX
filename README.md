@@ -110,6 +110,12 @@ docker compose ps
 
 This starts the pandapower simulator, Mosquitto, Node-RED, InfluxDB, and Grafana. The simulator publishes one sample per second to `telemetry/pandapower`; the tracked Node-RED flow writes it to the `scada` bucket.
 
+Node-RED also persists each authoritative `status/breaker` update as the
+`breaker_status` measurement tagged `breaker=BRK_L1_SOURCE`. The provisioned
+Grafana dashboard's Operations section reads that history from InfluxDB and
+shows the current breaker position, trip latch, undervoltage alarm, and recent
+status transitions.
+
 Open:
 
 - Node-RED: http://localhost:1880

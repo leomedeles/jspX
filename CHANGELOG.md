@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   strict-JSON status on `status/breaker`.
 - Added deterministic `NORMAL`, `OVERCURRENT`, and `UNDERVOLTAGE` plant
   scenarios on `cmd/sim/scenario/set` for protection validation.
+- Added InfluxDB persistence for authoritative breaker/protection status and a
+  compact Grafana Operations view for current state, alarms, and recent history.
 
 ### Changed
 

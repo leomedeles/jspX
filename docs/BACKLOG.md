@@ -47,9 +47,9 @@
   - [-] cmd/sim/scenario/set accepts NORMAL, OVERCURRENT, and UNDERVOLTAGE.
   - [-] Scenarios provide repeatable evidence for trip timing, latching/reset, and UV hysteresis.
 
-- [ ] **Historian and Grafana Ops view**
-  - [ ] Store the authoritative breaker status and relevant alarms in InfluxDB.
-  - [ ] Add Grafana panels for breaker state and alarm/trip indication.
+- [x] **Historian and Grafana Ops view**
+  - [x] Store the authoritative breaker status and relevant alarms in InfluxDB.
+  - [x] Add Grafana panels for breaker state and alarm/trip indication.
 
 - [ ] **Release verification and hygiene**
   - [ ] Run and record python -m pytest -q.

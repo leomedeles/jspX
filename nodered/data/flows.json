@@ -771,7 +771,7 @@
         "type": "function",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Status → line protocol",
-        "func": "// Build LP: breaker,source=status state_code=0i,tripped=false,state_str=\"OPEN\"\nconst src = \"status\";\nconst st = String((msg.payload && msg.payload.state) || \"\").toUpperCase();\nconst tr = !!(msg.payload && msg.payload.tripped);\nconst code = st === \"CLOSED\" ? 1 : 0;\nconst lp = `breaker,source=${src} state_code=${code}i,tripped=${tr},state_str=\"${st}\"`;\n\nmsg.payload = lp;\nreturn msg;",
+        "func": "// Persist only the simulator's authoritative breaker/protection status.\nconst p = msg.payload || {};\nconst timestamp = Date.parse(p.ts);\nconst state = String(p.state || \"\").toUpperCase();\n\nif (!Number.isFinite(timestamp)) {\n    node.warn(\"Ignoring breaker status without a valid timestamp\");\n    return null;\n}\nif ((state !== \"OPEN\" && state !== \"CLOSED\") ||\n    typeof p.tripped !== \"boolean\" ||\n    typeof p.undervoltage_alarm !== \"boolean\") {\n    node.warn(\"Ignoring malformed authoritative breaker status\");\n    return null;\n}\n\nconst tripReason = p.trip_reason == null ? \"\" : String(p.trip_reason);\nconst fields = [\n    `state=${JSON.stringify(state)}`,\n    `tripped=${p.tripped}`,\n    `undervoltage_alarm=${p.undervoltage_alarm}`,\n    `trip_reason=${JSON.stringify(tripReason)}`\n];\n\nmsg.payload = `breaker_status,breaker=BRK_L1_SOURCE ${fields.join(\",\")} ${timestamp}`;\nreturn msg;",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
