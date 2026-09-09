@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.venv
+__pycache__
+*.pyc
+node_modules
+nodered/data/*
+!nodered/data/flows.json
+mqtt/data
+mqtt/log
+data
+src/data
+docs
+*.code-workspace

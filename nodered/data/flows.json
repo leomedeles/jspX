@@ -1,0 +1,1002 @@
+[
+    {
+        "id": "07dd741d4fedb33e",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "f2a7b9f2d1c64f2a",
+        "type": "tab",
+        "label": "Breaker",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "32ea5bf834ca1feb",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mosquitto",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "bkr_mqtt_broker",
+        "type": "mqtt-broker",
+        "name": "mosquitto",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "ui_tab_breaker",
+        "type": "ui_tab",
+        "name": "Breaker",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "ui_group_main",
+        "type": "ui_group",
+        "name": "Main",
+        "tab": "ui_tab_breaker",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "983cc82f6f6d38e3",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Node-RED Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "eea53fe7b525fcf9",
+        "type": "mqtt in",
+        "z": "07dd741d4fedb33e",
+        "name": "",
+        "topic": "telemetry/pandapower",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "32ea5bf834ca1feb",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 120,
+        "y": 260,
+        "wires": [
+            [
+                "7d88f8edcae91d28",
+                "74c8cf8091896f20"
+            ]
+        ]
+    },
+    {
+        "id": "fn-lineprotocol",
+        "type": "function",
+        "z": "07dd741d4fedb33e",
+        "name": "→ Influx Line Protocol",
+        "func": "const p = msg.payload || {};\nconst t = Number.isFinite(p.ts) ? p.ts : Date.now(); // ms\nconst lines = [];\n\nif (Array.isArray(p.buses)) {\n  for (const b of p.buses) {\n    if (b && b.bus_idx != null && b.vm_pu != null) {\n      const tags = [\n        `bus_id=${b.bus_idx}`,\n        `name=${String(b.name).replace(/[,\\s]/g, '_')}`,\n      ]\n      const fields = [\n        `vm_pu=${Number(b.vm_pu)}`,\n        (b.va_degree != null ? [`va_deg=${Number(b.va_degree)}`] : []),\n        (b.p_mw != null ? [`p_mw=${Number(b.p_mw)}`] : []),\n        (b.q_mvar != null ? [`q_mvar=${Number(b.q_mvar)}`] : [])\n      ].join(\",\");\n      if (fields) lines.push(`bus,${tags} ${fields} ${t}`);\n    }\n  }\n}\n\nif (Array.isArray(p.lines)) {\n  for (const l of p.lines) {\n    if (!l || !l.name) continue;\n    const tags = [\n      `line_id=${l.line_idx}`,\n      `name=${String(l.name).replace(/[,\\s]/g, '_')}`,\n      `end=${String(l.end)}`,\n      `from_bus=${String(l.from_bus)}`,\n      `to_bus=${String(l.to_bus)}`,\n    ].join(\",\");\n    const fields = [\n      ...(l.p_mw != null ? [`p_mw=${Number(l.p_mw)}`] : []),\n      ...(l.pl_mw != null ? [`pl_mw=${Number(l.pl_mw)}`] : []),\n      ...(l.q_mvar != null ? [`q_mvar=${Number(l.q_mvar)}`] : []),\n      ...(l.ql_mvar != null ? [`ql_mvar=${Number(l.ql_mvar)}`] : []),\n      ...(l.i_ka != null ? [`i_ka=${Number(l.i_ka)}`] : []),\n      ...(l.vm_pu != null ? [`vm_pu=${Number(l.vm_pu)}`] : []),\n      ...(l.va_degree != null ? [`va_deg=${Number(l.va_degree)}`] : []),\n      ...(l.loading_pct != null ? [`loading_percent=${Number(l.loading_pct)}`] : [])\n    ].join(\",\");\n    if (fields) lines.push(`line,${tags} ${fields} ${t}`);\n  }\n} \n\nif (p.ext_grid && (p.ext_grid.p_mw != null || p.ext_grid.q_mvar != null)) {\n  const fields = [\n    ...(p.ext_grid.p_mw != null ? [`p_mw=${Number(p.ext_grid.p_mw)}`] : []),\n    ...(p.ext_grid.q_mvar != null ? [`q_mvar=${Number(p.ext_grid.q_mvar)}`] : [])\n  ].join(\",\");\n  lines.push(`ext_grid,site=main ${fields} ${t}`);\n}\n\nconst url = env.get('INFLUXDB_URL')\nconst bucket = env.get('INFLUXDB_BUCKET')\nconst org = env.get('INFLUXDB_ORG')\nconst token = env.get('INFLUXDB_WRITE_TOKEN')\n\nmsg.headers = {\n  Authorization: `Token ${token}`,\n  \"Content-Type\": \"text/plain\"\n};\nmsg.payload = lines.join(\"\\n\");\nmsg.url = `${url}/api/v2/write?org=${org}&bucket=${bucket}&precision=ms`;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "http-write",
+        "type": "http request",
+        "z": "07dd741d4fedb33e",
+        "name": "Influx v2 Write",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 860,
+        "y": 260,
+        "wires": [
+            [
+                "debug-out"
+            ]
+        ]
+    },
+    {
+        "id": "debug-out",
+        "type": "debug",
+        "z": "07dd741d4fedb33e",
+        "name": "LP lines / response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 1090,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "74c8cf8091896f20",
+        "type": "debug",
+        "z": "07dd741d4fedb33e",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 360,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "7d88f8edcae91d28",
+        "type": "function",
+        "z": "07dd741d4fedb33e",
+        "name": "→ Influx Line Protocol",
+        "func": "const p = msg.payload || {};\nconst t = Number.isFinite(p.ts) ? p.ts : Date.now(); // ms\nconst lines = [];\n\nif (Array.isArray(p.buses)) {\n  for (const b of p.buses) {\n    if (b && b.bus_idx != null && b.vm_pu != null) {\n      const tags = [\n        `bus_id=${b.bus_idx}`,\n        `name=${String(b.name).replace(/[,\\s]/g, '_')}`,\n      ]\n      const fields = [\n        `vm_pu=${Number(b.vm_pu)}`,\n        (b.va_degree != null ? [`va_deg=${Number(b.va_degree)}`] : []),\n        (b.p_mw != null ? [`p_mw=${Number(b.p_mw)}`] : []),\n        (b.q_mvar != null ? [`q_mvar=${Number(b.q_mvar)}`] : [])\n      ].join(\",\");\n      if (fields) lines.push(`bus,${tags} ${fields} ${t}`);\n    }\n  }\n}\n\nif (Array.isArray(p.lines)) {\n  for (const l of p.lines) {\n    if (!l || !l.name) continue;\n    const tags = [\n      `line_id=${l.line_idx}`,\n      `name=${String(l.name).replace(/[,\\s]/g, '_')}`,\n      `end=${String(l.end)}`,\n      `from_bus=${String(l.from_bus)}`,\n      `to_bus=${String(l.to_bus)}`,\n    ].join(\",\");\n    const fields = [\n      ...(l.p_mw != null ? [`p_mw=${Number(l.p_mw)}`] : []),\n      ...(l.pl_mw != null ? [`pl_mw=${Number(l.pl_mw)}`] : []),\n      ...(l.q_mvar != null ? [`q_mvar=${Number(l.q_mvar)}`] : []),\n      ...(l.ql_mvar != null ? [`ql_mvar=${Number(l.ql_mvar)}`] : []),\n      ...(l.i_ka != null ? [`i_ka=${Number(l.i_ka)}`] : []),\n      ...(l.vm_pu != null ? [`vm_pu=${Number(l.vm_pu)}`] : []),\n      ...(l.va_degree != null ? [`va_deg=${Number(l.va_degree)}`] : []),\n      ...(l.loading_pct != null ? [`loading_percent=${Number(l.loading_pct)}`] : [])\n    ].join(\",\");\n    if (fields) lines.push(`line,${tags} ${fields} ${t}`);\n  }\n} \n\nif (p.ext_grid && (p.ext_grid.p_mw != null || p.ext_grid.q_mvar != null)) {\n  const fields = [\n    ...(p.ext_grid.p_mw != null ? [`p_mw=${Number(p.ext_grid.p_mw)}`] : []),\n    ...(p.ext_grid.q_mvar != null ? [`q_mvar=${Number(p.ext_grid.q_mvar)}`] : [])\n  ].join(\",\");\n  lines.push(`ext_grid,site=main ${fields} ${t}`);\n}\n\n\nmsg.payload = lines.join(\"\\n\");\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 260,
+        "wires": [
+            [
+                "ad39eed653b0a057"
+            ]
+        ]
+    },
+    {
+        "id": "ad39eed653b0a057",
+        "type": "function",
+        "z": "07dd741d4fedb33e",
+        "name": "→ msg.header to Influxdb",
+        "func": "const url = env.get('INFLUXDB_URL')\nconst bucket = env.get('INFLUXDB_BUCKET')\nconst org = env.get('INFLUXDB_ORG')\nconst token = env.get('INFLUXDB_WRITE_TOKEN')\n\nmsg.headers = {\n  Authorization: `Token ${token}`,\n  \"Content-Type\": \"text/plain\"\n};\nmsg.url = `${url}/api/v2/write?org=${org}&bucket=${bucket}&precision=ms`;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 260,
+        "wires": [
+            [
+                "http-write"
+            ]
+        ]
+    },
+    {
+        "id": "btn_open",
+        "type": "ui_button",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Open breaker",
+        "group": "ui_group_main",
+        "order": 1,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "OPEN",
+        "tooltip": "Request breaker OPEN",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "fa-unlock",
+        "payload": "OPEN",
+        "payloadType": "str",
+        "topic": "cmd/breaker/open",
+        "topicType": "str",
+        "x": 720,
+        "y": 660,
+        "wires": [
+            [
+                "mqtt_out_cmd"
+            ]
+        ]
+    },
+    {
+        "id": "btn_close",
+        "type": "ui_button",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Close breaker",
+        "group": "ui_group_main",
+        "order": 2,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "CLOSE",
+        "tooltip": "Request breaker CLOSE",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "fa-lock",
+        "payload": "CLOSE",
+        "payloadType": "str",
+        "topic": "cmd/breaker/close",
+        "topicType": "str",
+        "x": 720,
+        "y": 700,
+        "wires": [
+            [
+                "mqtt_out_cmd"
+            ]
+        ]
+    },
+    {
+        "id": "btn_reset",
+        "type": "ui_button",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Manual Reset",
+        "group": "ui_group_main",
+        "order": 3,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "Manual Reset",
+        "tooltip": "Clear the trip latch without closing",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "fa-refresh",
+        "payload": "RESET",
+        "payloadType": "str",
+        "topic": "cmd/breaker/reset",
+        "topicType": "str",
+        "x": 720,
+        "y": 740,
+        "wires": [
+            [
+                "mqtt_out_cmd"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out_cmd",
+        "type": "mqtt out",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "MQTT out (commands)",
+        "topic": "",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "32ea5bf834ca1feb",
+        "x": 1030,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "mqtt_in_status",
+        "type": "mqtt in",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Status subscriber",
+        "topic": "status/breaker",
+        "qos": "0",
+        "datatype": "utf8",
+        "broker": "32ea5bf834ca1feb",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 140,
+        "y": 400,
+        "wires": [
+            [
+                "json_parse"
+            ]
+        ]
+    },
+    {
+        "id": "json_parse",
+        "type": "json",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Parse JSON",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 350,
+        "y": 400,
+        "wires": [
+            [
+                "chg_state_text",
+                "chg_trip_text",
+                "chg_trip_reason",
+                "chg_undervoltage_text",
+                "fn_status_to_lp"
+            ]
+        ]
+    },
+    {
+        "id": "chg_state_text",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "msg.payload ← payload.state",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.state",
+                "tot": "msg"
+            }
+        ],
+        "x": 410,
+        "y": 400,
+        "wires": [
+            [
+                "ui_state_text"
+            ]
+        ]
+    },
+    {
+        "id": "ui_state_text",
+        "type": "ui_text",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_main",
+        "order": 4,
+        "width": 6,
+        "height": 1,
+        "name": "",
+        "label": "State",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 640,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "chg_trip_text",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "msg.payload ← TRIPPED/OK",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "$boolean(payload.tripped) ? \"TRIPPED\" : \"OK\"",
+                "tot": "jsonata"
+            }
+        ],
+        "x": 420,
+        "y": 450,
+        "wires": [
+            [
+                "ui_trip_text"
+            ]
+        ]
+    },
+    {
+        "id": "ui_trip_text",
+        "type": "ui_text",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_main",
+        "order": 5,
+        "width": 6,
+        "height": 1,
+        "name": "",
+        "label": "Protection",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 640,
+        "y": 450,
+        "wires": []
+    },
+    {
+        "id": "fn_trip_toast",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Toast on TRIPPED rising edge",
+        "func": "// Detect false→true transition of payload.tripped\nlet prev = context.get('prev')\nlet curr = !!(msg.payload && msg.payload.tripped)\ncontext.set('prev', curr)\nif (prev === false && curr === true) {\n    return { topic: \"Protection\", payload: \"Breaker TRIPPED (overcurrent)\", position: \"top right\", timeout: 3 }\n}\nreturn null",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "context.set('prev', false)",
+        "finalize": "",
+        "libs": [],
+        "x": 410,
+        "y": 360,
+        "wires": [
+            [
+                "ui_toast_trip"
+            ]
+        ]
+    },
+    {
+        "id": "ui_toast_trip",
+        "type": "ui_toast",
+        "z": "f2a7b9f2d1c64f2a",
+        "position": "top right",
+        "displayTime": "3",
+        "highlight": "",
+        "sendall": false,
+        "outputs": 0,
+        "ok": "OK",
+        "cancel": "",
+        "raw": false,
+        "className": "",
+        "topic": "",
+        "name": "Toast",
+        "x": 1070,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "map_status_to_switch",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Map status → switch payload",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "$uppercase(payload.state) = \"CLOSED\" ? \"CLOSE\" : \"OPEN\"",
+                "tot": "jsonata"
+            }
+        ],
+        "x": 380,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "gate_close_if_tripped",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Legacy interlock disconnected",
+        "func": "return null;",
+        "outputs": 3,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 640,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "cache_tripped",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "cache tripped → flow.tripped",
+        "rules": [
+            {
+                "t": "set",
+                "p": "tripped",
+                "pt": "flow",
+                "to": "$boolean(payload.tripped)",
+                "tot": "jsonata"
+            }
+        ],
+        "x": 400,
+        "y": 500,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "chg_trip_reason",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Trip reason field",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.trip_reason",
+                "tot": "msg"
+            }
+        ],
+        "x": 610,
+        "y": 500,
+        "wires": [
+            [
+                "ui_trip_reason"
+            ]
+        ]
+    },
+    {
+        "id": "ui_trip_reason",
+        "type": "ui_text",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_main",
+        "order": 6,
+        "width": 6,
+        "height": 1,
+        "name": "",
+        "label": "Trip reason",
+        "format": "{{msg.payload || '-'}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 850,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "chg_undervoltage_text",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Undervoltage ALARM/NORMAL",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "$boolean(payload.undervoltage_alarm) ? \"ALARM\" : \"NORMAL\"",
+                "tot": "jsonata"
+            }
+        ],
+        "x": 630,
+        "y": 550,
+        "wires": [
+            [
+                "ui_undervoltage_text"
+            ]
+        ]
+    },
+    {
+        "id": "ui_undervoltage_text",
+        "type": "ui_text",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_main",
+        "order": 7,
+        "width": 6,
+        "height": 1,
+        "name": "",
+        "label": "Undervoltage",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 870,
+        "y": 550,
+        "wires": []
+    },
+    {
+        "id": "http_influx_write",
+        "type": "http request",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "InfluxDB write (v2)",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1570,
+        "y": 580,
+        "wires": [
+            [
+                "dbg_influx_rc"
+            ]
+        ]
+    },
+    {
+        "id": "dbg_influx_rc",
+        "type": "debug",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Influx write statusCode",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "complete": "statusCode",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1800,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "fn_status_to_lp",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Status → line protocol",
+        "func": "// Persist only the simulator's authoritative breaker/protection status.\nconst p = msg.payload || {};\nconst timestamp = Date.parse(p.ts);\nconst state = String(p.state || \"\").toUpperCase();\n\nif (!Number.isFinite(timestamp)) {\n    node.warn(\"Ignoring breaker status without a valid timestamp\");\n    return null;\n}\nif ((state !== \"OPEN\" && state !== \"CLOSED\") ||\n    typeof p.tripped !== \"boolean\" ||\n    typeof p.undervoltage_alarm !== \"boolean\") {\n    node.warn(\"Ignoring malformed authoritative breaker status\");\n    return null;\n}\n\nconst tripReason = p.trip_reason == null ? \"\" : String(p.trip_reason);\nconst fields = [\n    `state=${JSON.stringify(state)}`,\n    `tripped=${p.tripped}`,\n    `undervoltage_alarm=${p.undervoltage_alarm}`,\n    `trip_reason=${JSON.stringify(tripReason)}`\n];\n\nmsg.payload = `breaker_status,breaker=BRK_L1_SOURCE ${fields.join(\",\")} ${timestamp}`;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 580,
+        "wires": [
+            [
+                "917c308f0b48aa53"
+            ]
+        ]
+    },
+    {
+        "id": "fn_cmd_to_lp",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Command → line protocol",
+        "func": "// Build LP for commands (OPEN/CLOSE or RESET)\nconst topic = String(msg.topic || '');\nlet action = 'UNKNOWN';\nif (topic.endsWith('/set')) action = String(msg.payload || '').toUpperCase();\nif (topic.endsWith('/reset')) action = 'RESET';\n\nconst closed = action === 'CLOSE' ? 1 : 0;\n\nconst lp = `breaker,source=command action=\"${action}\",closed=${closed}i`;\n\nmsg.payload = lp;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1030,
+        "y": 660,
+        "wires": [
+            [
+                "917c308f0b48aa53"
+            ]
+        ]
+    },
+    {
+        "id": "inj_token",
+        "type": "inject",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Set INFLUX_TOKEN (paste → click)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "PASTE_TOKEN_THEN_CLICK",
+        "payloadType": "str",
+        "x": 1380,
+        "y": 900,
+        "wires": [
+            [
+                "set_token_flow"
+            ]
+        ]
+    },
+    {
+        "id": "set_token_flow",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "flow.INFLUX_TOKEN ← msg.payload",
+        "rules": [
+            {
+                "t": "set",
+                "p": "INFLUX_TOKEN",
+                "pt": "flow",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "x": 1750,
+        "y": 900,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "mqtt_in_tele",
+        "type": "mqtt in",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Telemetry heartbeat",
+        "topic": "telemetry/pandapower",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "bkr_mqtt_broker",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 240,
+        "wires": [
+            [
+                "fn_online_pass"
+            ]
+        ]
+    },
+    {
+        "id": "fn_online_pass",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Mark ONLINE + reset timer",
+        "func": "// out1: UI update {online:true}\n// out2: raw passthrough to reset trigger\nreturn [{ payload: { online: true } }, msg];",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 240,
+        "wires": [
+            [
+                "fn_online_text_toast"
+            ],
+            [
+                "trig_offline"
+            ]
+        ]
+    },
+    {
+        "id": "trig_offline",
+        "type": "trigger",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "No data → OFFLINE (5s)",
+        "op1": "",
+        "op2": "{\"online\":false}",
+        "op1type": "nul",
+        "op2type": "json",
+        "duration": "5",
+        "extend": true,
+        "units": "s",
+        "reset": "",
+        "bytopic": "all",
+        "topic": "topic",
+        "outputs": 1,
+        "x": 570,
+        "y": 300,
+        "wires": [
+            [
+                "fn_online_text_toast"
+            ]
+        ]
+    },
+    {
+        "id": "fn_online_text_toast",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "ONLINE/OFFLINE → text + toast on change",
+        "func": "let prev = context.get('prev');\nconst online = !!(msg.payload && msg.payload.online);\nconst text = online ? 'ONLINE' : 'OFFLINE';\nconst outText = { payload: text };\nlet outToast = null;\nif (prev !== undefined && prev !== online) {\n    outToast = { topic: 'Plant', payload: online ? 'Plant ONLINE' : 'Plant OFFLINE', position: 'top right', timeout: 3 };\n}\ncontext.set('prev', online);\nreturn [outText, outToast];",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 240,
+        "wires": [
+            [
+                "ui_plant_text"
+            ],
+            [
+                "ui_toast_trip"
+            ]
+        ]
+    },
+    {
+        "id": "ui_plant_text",
+        "type": "ui_text",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_main",
+        "order": 0,
+        "width": 6,
+        "height": 1,
+        "name": "",
+        "label": "Plant",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 1070,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "917c308f0b48aa53",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "→ msg.header to Influxdb",
+        "func": "const url = env.get('INFLUXDB_URL')\nconst bucket = env.get('INFLUXDB_BUCKET')\nconst org = env.get('INFLUXDB_ORG')\nconst token = env.get('INFLUXDB_WRITE_TOKEN')\n\nmsg.headers = {\n  Authorization: `Token ${token}`,\n  \"Content-Type\": \"text/plain\"\n};\nmsg.url = `${url}/api/v2/write?org=${org}&bucket=${bucket}&precision=ms`;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1330,
+        "y": 580,
+        "wires": [
+            [
+                "http_influx_write"
+            ]
+        ]
+    },
+    {
+        "id": "6745d1caf2cb4562",
+        "type": "debug",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 640,
+        "y": 160,
+        "wires": []
+    }
+]
