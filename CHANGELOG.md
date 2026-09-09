@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Pandapower mode now evaluates controller protection at 20 Hz using L1's
   solved loading while keeping telemetry publication on its configured cadence.
+- Grafana Operations stat panels now retain the timestamp/value frame and
+  reduce explicitly on the `Value` field, preventing false `No data` displays.
 
 ## [0.3.1] - 2026-09-08
 
