@@ -1,59 +1,76 @@
-## Sprint 4  → v0.4.0: Sim container + breaker control + basic protection
+## Sprint 4 → v0.4.0: Sim container + breaker control + basic protection
 
-**Goal:** Close the one-command loop by containerizing the simulator and add a minimal control/protection path visible in Grafana.
+**Goal:** Demonstrate one complete, understandable control-and-protection loop: an operator command or protection decision changes a real simulated feeder, and the resulting state is visible through the SCADA stack.
 
-### Scope (stories & tasks)
+**Sprint dashboard legend**
+
+- [x] complete with durable evidence already recorded in the repository.
+- [-] implemented and covered by committed automated-test code; final local/stack verification is still required.
+- [ ] not yet implemented or not yet integrated.
+
+### Implemented backend slices — final stack verification pending
+
 - [x] **Containerize the simulator**
   - [x] Dockerfile (python:slim), non-root user, healthcheck.
-  - [x] Env-driven config: BROKER_URL, PUB_TOPIC=telemetry/*, CMD_TOPIC=cmd/breaker/main/set,
-        STATUS_TOPIC=status/breaker/main, RATE_HZ.
-  - [x] Add `sim` service to docker-compose with `.env` wiring.
+  - [x] Env-driven config and sim service in Docker Compose.
 
-- [ ] **Breaker control path**
-  - [x] Node-RED Dashboard toggle → publish OPEN/CLOSE to `cmd/breaker/main/set`.
-  - [ ] Sim subscribes, updates an actual pandapower switch, and publishes authoritative
-        `status/breaker/main` status (OPEN/CLOSED, tripped boolean).
-  - [ ] Telemetry reflects the physical effect: target-line current and power become
-        approximately zero when open; unavailable downstream measurements use JSON `null`
-        plus an energized/quality indication.
-  - [ ] Run protection/control evaluation at 20 Hz while retaining 1 Hz SCADA telemetry publication.
+- [-] **Physical breaker and electrically honest telemetry**
+  - [-] Real source-side pandapower circuit breaker BRK_L1_SOURCE protects L1.
+  - [-] Opening it isolates BUS1/BUS2; protected-line current/loading become zero.
+  - [-] Unavailable isolated-bus values are strict JSON null, with energized and quality indicators.
+  - [-] Control/protection scans run at 20 Hz while routine telemetry remains at the configured SCADA rate.
 
-- [ ] **Basic protection**
-  - [ ] Overcurrent trip on target line at 1.20 × nominal current with 100 ms intentional delay
-        (latched; timing tolerance of one 20 Hz control scan).
-  - [ ] Bus undervoltage alarm if Vm < 0.92 pu; clears when Vm ≥ 0.94 pu (hysteresis).
-  - [ ] Manual reset: `cmd/breaker/main/reset` clears trip latch but does not close the breaker;
-        CLOSE is rejected by the simulator/controller while `tripped=true`.
+- [-] **Basic protection**
+  - [-] L1 overcurrent pickup at 120% with a 100 ms definite-time delay; trip is latched.
+  - [-] Bus undervoltage alarm asserts below 0.92 pu and clears at or above 0.94 pu.
+  - [-] RESET clears the latch without closing; CLOSE is rejected while tripped.
+
+- [-] **Simulator MQTT contract**
+  - [-] OPEN: cmd/breaker/open
+  - [-] CLOSE: cmd/breaker/close
+  - [-] RESET: cmd/breaker/reset
+  - [-] Authoritative retained status: status/breaker
+  - [-] MQTT callbacks queue commands; the control loop is the single writer of controller/grid state.
+
+- [x] **Current interface documentation**
+  - [x] README documents the physical breaker and MQTT topic contract.
+  - [x] CHANGELOG records the unreleased backend changes.
+
+### Remaining v0.4.0 work
+
+- [ ] **Node-RED operation and status**
+  - [ ] Update the tracked active flow to publish OPEN/CLOSE/RESET on the current three-command topic contract.
+  - [ ] Subscribe to retained status/breaker and render authoritative position, trip state, and command rejection without a status-to-command feedback loop.
+  - [ ] Confirm the old combined cmd/breaker/main/set / status/breaker/main controls are removed or no longer active.
 
 - [ ] **Deterministic validation scenarios**
-  - [ ] `cmd/sim/scenario/set` accepts `NORMAL`, `OVERCURRENT`, and `UNDERVOLTAGE`.
-  - [ ] `OVERCURRENT` drives the protected line above pickup long enough to verify trip timing.
-  - [ ] `UNDERVOLTAGE` drives a monitored bus below 0.92 pu; `NORMAL` restores it to at
-        least 0.94 pu so alarm clearing can be verified.
+  - [ ] cmd/sim/scenario/set accepts NORMAL, OVERCURRENT, and UNDERVOLTAGE.
+  - [ ] Scenarios provide repeatable evidence for trip timing, latching/reset, and UV hysteresis.
 
-- [ ] **Grafana “Ops”**
-  - [ ] Panels for breaker state + alarm banner; optional annotations on trip events.
+- [ ] **Historian and Grafana Ops view**
+  - [ ] Store the authoritative breaker status and relevant alarms in InfluxDB.
+  - [ ] Add Grafana panels for breaker state and alarm/trip indication.
 
-- [ ] **Docs & hygiene**
-  - [ ] README: control topics, one-command note (no local Python needed for normal use).
-  - [ ] CHANGELOG: add v0.4.0.
-  - [ ] SECURITY (stub): dev creds policy, exposed ports, note future TLS/auth hardening.
+- [ ] **Release verification and hygiene**
+  - [ ] Run and record python -m pytest -q.
+  - [ ] Run and record docker compose config, docker compose up -d --build, service status/log checks, and the end-to-end MQTT control smoke test.
+  - [ ] Add a minimal GitHub Actions workflow that runs the test suite before v0.4.0 release.
+  - [ ] Add concise SECURITY.md development-credentials/exposed-ports guidance.
+  - [ ] Update release notes, merge v040 into main, and create the v0.4.0 tag only after the acceptance criteria are verified.
 
-### Acceptance criteria
-- [ ] `docker compose up -d` starts sim + Mosquitto + Node-RED + InfluxDB + Grafana;
-      stack usable with no local Python.
-- [ ] Toggling the Node-RED switch operates the pandapower breaker; line current becomes
-      approximately zero when open and status is visible within ~2 s.
-- [ ] The `OVERCURRENT` scenario trips after 100 ms within one control-scan tolerance;
-      `tripped=true` remains latched, CLOSE is rejected, and RESET clears the latch without closing.
-- [ ] The `UNDERVOLTAGE` scenario asserts the alarm below 0.92 pu and `NORMAL` clears it
-      only after voltage reaches at least 0.94 pu.
-- [ ] Deterministic unit tests cover breaker transitions, trip timing/latching/reset, and
-      undervoltage hysteresis; an end-to-end smoke test covers the MQTT control loop.
-- [ ] Backlog updated; tag v0.4.0 recorded in CHANGELOG.
+### v0.4.0 acceptance criteria
+
+- [ ] Node-RED OPEN/CLOSE/RESET operates the real pandapower breaker; retained status appears promptly and never contradicts the physical topology.
+- [ ] The OVERCURRENT scenario trips within the specified timing tolerance, remains latched, rejects CLOSE, and requires RESET before a later CLOSE.
+- [ ] The UNDERVOLTAGE scenario asserts below 0.92 pu and clears only at or above 0.94 pu.
+- [ ] InfluxDB/Grafana show the resulting breaker state and alarms.
+- [ ] Automated tests and the Docker/MQTT end-to-end smoke test have recorded passing evidence.
+- [ ] CI is green for the final v0.4.0 candidate.
 
 ### Out-of-scope
-- TLS/auth beyond the stub; richer alert routing and CI.
+
+- Production TLS/authentication and richer alert routing.
+- Kubernetes, new industrial protocols, AI anomaly detection, additional grid models, and large framework changes.
 
 ---
 
