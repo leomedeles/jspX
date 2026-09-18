@@ -51,12 +51,12 @@
   - [x] Store the authoritative breaker status and relevant alarms in InfluxDB.
   - [x] Add Grafana panels for breaker state and alarm/trip indication.
 
-- [ ] **Release verification and hygiene**
+- [x] **Release verification and hygiene**
   - [x] Run and record python -m pytest -q.
   - [x] Run and record docker compose config, docker compose up -d --build, service status/log checks, and the end-to-end MQTT control smoke test.
   - [x] Add a minimal GitHub Actions workflow that runs the test suite before v0.4.0 release.
   - [x] Add concise SECURITY.md development-credentials/exposed-ports guidance.
-  - [ ] Update release notes, merge v040 into main, and create the v0.4.0 tag only after the acceptance criteria are verified.
+  - [x] Update release notes, merge v040 into main, and create the v0.4.0 tag only after the acceptance criteria are verified.
 
 ### v0.4.0 acceptance criteria
 

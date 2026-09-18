@@ -11,9 +11,8 @@ Prefer a small, understandable, end-to-end system over feature count or producti
 
 ## Repository workflow
 
-- `main` is the stable/released branch.
-- `v040` is the development branch for the current v0.4.0 sprint.
-- Make v0.4.0 changes on `v040`. Do not commit directly to `main`.
+- `main` is the stable/released branch. Do not commit directly on it.
+- Inspect the current branch and working tree before changing anything; do not assume a branch name.
 - Do not create, move or delete tags, merge branches, open pull requests, or push commits unless the user explicitly requests it.
 - Keep commits focused. Conventional Commit style is preferred.
 - Do not rewrite published history.
@@ -23,55 +22,34 @@ Prefer a small, understandable, end-to-end system over feature count or producti
 Before each task, read:
 
 - `README.md`
-- `docs/BACKLOG.md`, especially the current sprint
-- `CHANGELOG.md`
-- the implementation and configuration files directly involved in the task
+- The relevant section of `docs/BACKLOG.md`, especially the current sprint.
+- `CHANGELOG.md` when release context or previously released behavior matters.
+- the implementation and configuration files directly involved in the task.
 
 Inspect the current branch, working-tree state and relevant existing behavior. Preserve unrelated user changes.
-
-## Current sprint: v0.4.0
-
-The goal is to complete one demonstrable control-and-protection loop:
-
-- containerized pandapower simulator;
-- real breaker state coupled to the simulated network topology;
-- MQTT commands for OPEN, CLOSE and RESET;
-- authoritative breaker and protection status;
-- latched overcurrent trip;
-- undervoltage alarm with hysteresis;
-- deterministic overcurrent and undervoltage scenarios;
-- Node-RED operation and status display;
-- InfluxDB history and Grafana operations panels;
-- repeatable tests and end-to-end verification.
-
-Do not expand the sprint into Kubernetes, new industrial protocols, AI anomaly detection, additional grid models, production authentication/TLS, or a large framework migration.
 
 ## Architecture and ownership
 
 - `src/power_grid.py` owns the physical pandapower model, topology and measurements.
-- `src/breaker_control.py` should own the testable breaker/protection state machine.
+- `src/breaker_control.py` owns the testable breaker/protection state machine.
 - `src/power_sim.py` owns orchestration, timing and MQTT transport.
-- The simulator/controller is authoritative for breaker state, trip latching, reset behavior and command rejection.
+- Only the authoritative control path may change breaker state, trip latching, reset behavior and command acceptance.
 - Node-RED is the HMI and integration layer. It may provide operator feedback, but it must not be the only place enforcing an interlock.
 - InfluxDB and Grafana observe the system; they do not control it.
-- `relay.py` is an unfinished prototype. Reuse useful logic, but do not add a separate relay service during v0.4.0 unless the user changes the architecture explicitly.
 
 Keep the controller and protection logic independent from MQTT so it can be tested without a broker, Docker or real-time sleeps.
 
 ## Control-system invariants
 
-- OPEN must operate a real pandapower switch and change electrical telemetry.
+- Control actions must change the authoritative plant state and the resulting telemetry.
 - CLOSE must be rejected while the trip latch is active.
-- RESET clears the latch but must not automatically close the breaker.
-- Overcurrent pickup is 120% of the configured nominal line current.
-- Intentional trip delay is 100 ms unless the sprint specification is explicitly changed.
-- Protection/control evaluation must run faster than the 1 Hz SCADA publication rate. Keep these rates separate.
+- RESET must never cause an implicit close.
+- Protection/control evaluation must run faster than the  SCADA publication rate. Keep these rates separate.
 - Use a monotonic clock for elapsed protection time and an injectable clock or explicit timestamps in unit tests.
-- Undervoltage asserts below 0.92 pu and clears only at or above 0.94 pu.
 - Fault scenarios must be deterministic and reversible.
-- Status transitions should be published immediately; routine telemetry may remain at 1 Hz.
+- Status transitions should be published immediately; routine telemetry may slower cadence.
 - Avoid invalid JSON values such as `NaN`. Represent unavailable measurements as `null` and expose a simple energized/quality indication.
-- Use one internal writer for controller state. MQTT callbacks should enqueue commands rather than mutate the plant concurrently.
+- Use one internal writer for controller state. Transport callbacks should enqueue commands rather than mutate the plant state concurrently.
 
 ## Versioned sources of truth
 
@@ -99,7 +77,9 @@ Do not mark backlog items complete solely because code was written. Completion r
 
 ## Verification
 
-Use the checks relevant to the change. The intended minimum v0.4.0 verification set is:
+Run the checks relevant to the change. Behavior changes require deterministic automated tests.
+
+For Compose, MQTT, HMI, historian, or dashboard changes, run the relevant integration checks, normally including:
 
 ```text
 python -m pytest -q
@@ -108,27 +88,19 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Also inspect relevant service logs and run the v0.4.0 end-to-end smoke test once it exists. Do not claim a command passed unless it was actually executed and its result was observed. If Docker or another dependency is unavailable, report the unverified item explicitly.
-
-End-to-end verification must cover:
-
-- OPEN changes the physical simulation and line current becomes approximately zero.
-- CLOSE restores the connected state when not tripped.
-- Overcurrent trips within the specified delay tolerance and remains latched.
-- CLOSE is rejected while tripped.
-- RESET clears the latch without closing the breaker.
-- Undervoltage asserts and clears at the specified thresholds.
-- Node-RED, InfluxDB and Grafana receive the resulting state.
+Use the acceptance criteria in the relevant backlog item for end-to-end verification. Do not claim a command passed unless its result was observed. If a dependency is unavailable, report that verification as incomplete.
 
 ## Documentation discipline
 
 Keep documentation small and authoritative:
 
-- `README.md`: system purpose, architecture and operating instructions.
-- `docs/BACKLOG.md`: current sprint contract and short roadmap.
+- `README.md`: system purpose, architecture, operating instructions, and durable model scope/simplifications.
+- `docs/BACKLOG.md`: current sprint scope, acceptance criteria, completion state, and short roadmap.
 - `CHANGELOG.md`: released behavior.
 - `SECURITY.md`: concise development-security limitations.
 - `AGENTS.md`: stable instructions for Codex.
+
+Do not duplicate current sprint scope, acceptance criteria, release status, or task-specific settings in `AGENTS.md`.
 
 Update documentation only when behavior, interfaces, operation or sprint status actually changes. Do not create extra plans, reports, prompt files or decision records unless the user requests them or the existing files cannot express an important durable decision.
 
