@@ -1,3 +1,45 @@
+## Sprint 5 → v0.5.0: Selective feeder protection with BRK_L2
+
+**Goal:** Demonstrate a second, downstream breaker as one complete operational slice: its physical feeder effect, protection decision, operator control, and historian/dashboard evidence agree.
+
+### Scope
+
+- [ ] **Physical feeder**
+  - [ ] Add BRK_L2 as a real pandapower switch between BUS1 and L2.
+  - [ ] Opening BRK_L2 isolates BUS2 while BUS1 remains energized through BRK_L1_SOURCE.
+
+- [ ] **Selective protection and control**
+  - [ ] Extend the authoritative control path to manage the two breakers without transport callbacks directly mutating plant state.
+  - [ ] Model one deterministic downstream-overcurrent case in which BRK_L2 is the primary trip and BRK_L1_SOURCE remains available as delayed backup if the condition persists.
+
+- [ ] **Operator and observability path**
+  - [ ] Define and implement the per-breaker MQTT command/status contract.
+  - [ ] Extend the tracked Node-RED HMI for authoritative status and OPEN/CLOSE/RESET control of both breakers.
+  - [ ] Persist per-breaker status and show breaker/topology outcomes in Grafana.
+
+- [ ] **Evidence**
+  - [ ] Add deterministic automated tests for topology, trip/reset interlocks, and the primary/backup scenario.
+  - [ ] Run the Compose/MQTT/HMI/Grafana end-to-end acceptance check and record the observed result.
+
+### Acceptance criteria
+
+- [ ] A downstream-overcurrent scenario opens BRK_L2 first, keeps BUS1 energized, and isolates BUS2.
+- [ ] If the downstream condition remains uncleared, the modeled delayed backup behavior opens BRK_L1_SOURCE.
+- [ ] An operator can observe and command both breakers through Node-RED; telemetry, retained status, InfluxDB, and Grafana agree with the pandapower topology.
+- [ ] Automated tests and the end-to-end stack verification pass.
+
+### Reality boundary
+
+- **Modeled:** deterministic two-breaker primary/backup behavior and the resulting feeder topology.
+- **Simplified:** protection inputs and operating conditions are scenario-driven rather than calculated electrical faults.
+- **Not modeled yet:** CT/VT behavior, protection curves/settings coordination studies, directional elements, breaker-failure protection, autoreclosing, and fault location.
+
+### Out-of-scope
+
+- Grafana notification routing, new industrial protocols, AI anomaly detection, DER/BESS models, production authentication/TLS, and large framework changes.
+
+---
+
 ## Sprint 4 → v0.4.0: Sim container + breaker control + basic protection
 
 **Goal:** Demonstrate one complete, understandable control-and-protection loop: an operator command or protection decision changes a real simulated feeder, and the resulting state is visible through the SCADA stack.
@@ -142,30 +184,33 @@
 
 # Project Backlog
 
-This backlog is a living list of possible tasks, features, and improvements.  
-Not everything here will be done — items can be added, removed, or reprioritized over time.  
+This backlog is a living list of possible capabilities and improvements. Not every candidate will be implemented.
 
 ---
 
-## Near-term candidates
-- [ ] Add alerting logic (breaker trip if overcurrent, bus undervoltage)
-- [ ] Write SECURITY.md (list hygiene + mitigations)
-- [ ] Hygene CMD/command: between compose and dockerfile
+## Candidate queue
 
-## Medium-term
-- [ ] Grafana alerts/annotations & routing for trips/alarms (post-S4 refinement)
+Priorities rank work after the active sprint. P1 is the next candidate to consider at sprint planning; it is not committed work until selected into a sprint.
 
-## Longer-term / stretch
-- [ ] Add AI anomaly detection module (IsolationForest/autoencoder)
-- [ ] Integrate OPC UA or Modbus protocol simulation
-- [ ] Build a short demo video/gif and embed in README
-- [ ] Migrate Node-RED to a PLC environment
-- [ ] Increase Complexity/particularity of Simulation
-- [ ] Optional: add simple C++ component for protocol handling
+- **P1 — Grafana alerts, annotations, and routing for breaker trips/alarms.** Revisit after the two-breaker operational slice provides meaningful events to alert on.
+- **P2 — OPC UA or Modbus protocol simulation.** Select one protocol and define a small, explicit signal contract.
+- **P3 — Short demo video or GIF embedded in the README.** Produce after the two-breaker operational story is stable.
+
+## Parked
+
+- **AI anomaly detection.** Revisit only after the simulator has credible event history and multiple operating scenarios.
+- **Node-RED migration to a PLC environment.** Revisit after defining the learning objective and target PLC/runtime; it is an architecture decision, not a small replacement task.
+- **Optional C++ protocol component.** Revisit only if a concrete protocol or performance need justifies it.
+
+## Needs definition
+
+- **“Hygene CMD/command: between compose and dockerfile”.** Retained from the prior backlog; define the actual command/configuration problem before ranking it.
 
 ---
 
-## Done (closed items)
+## Closed releases
 - [x] `v0.1.0`: Hello SCADA loop (random sim + Node-RED flow)
 - [x] `v0.2.0`: 3-bus pandapower model, new JSON schema, Node-RED flow + dashboard
 - [x] `v0.3.0`: extended JSON schema, Historian + UI, Contenarized environment: [mosquito, Node-RED, InfluxDB, Grafana]
+- [x] `v0.3.1`: reproducible clone-to-dashboard startup path and runtime-state recovery.
+- [x] `v0.4.0`: physical L1 breaker control/protection loop, Node-RED operation, historian, and Grafana evidence.
