@@ -1,4 +1,4 @@
-﻿# jspX v0.3.1 - joySCADA_Power X (Simulated Power System)
+﻿# jspX v0.4.0 - joySCADA_Power X (Simulated Power System)
 
 A minimal, reproducible SCADA loop for a simulated power portfolio:
 - Python sim emits timestamped JSON lines (buses, lines, exrt_grid) at 1 s intervals
@@ -39,8 +39,7 @@ data/telemetry.ndjson
        ext_grid                                      ~1.2 MW / 0.3 MVAr        ~0.8 MW / 0.2 MVAr
        vm≈1.00 pu                                    vm≈0.98–0.99 pu           vm≈0.97–0.99 pu
 
-`BRK_L1_SOURCE` is a real pandapower line switch at the BUS0 end of L1. During
-v0.4 development, the simulator applies the authoritative `BreakerController`
+`BRK_L1_SOURCE` is a real pandapower line switch at the BUS0 end of L1. In v0.4, the simulator applies the authoritative `BreakerController`
 state to this switch on a 50 ms control scan while retaining the configured
 SCADA publication interval. When open, L1 current/loading is zero and the two
 isolated downstream buses expose unavailable voltage/angle values as JSON
@@ -63,9 +62,9 @@ publishes status only after its control loop has applied the controller state to
 the physical switch. `RESET` clears the latch without closing, and `CLOSE` is
 rejected while the latch remains active. The existing `telemetry/pandapower`
 stream remains non-retained and is not the authoritative breaker-state topic.
-The currently tracked Node-RED breaker controls still use the previous combined
-command/status topics; they remain intentionally unchanged until the dedicated
-Node-RED integration milestone.
+The tracked Node-RED breaker HMI publishes the three command topics and subscribes
+to retained `status/breaker`. It displays the authoritative state, protection/trip
+indication and reason, and undervoltage alarm.
 
 ### Validation scenario MQTT contract
 
