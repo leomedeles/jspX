@@ -6,30 +6,14 @@ A minimal, reproducible SCADA loop for a simulated power portfolio:
 - Display latest values on grafana dashboard
 - Clean structure, least privilege, and beginner-friendly
 
+```mermaid
 flowchart TD
-    A["power_sim.py<br>JSON/1s<br>file append"] -->|"telemetry/* (MQTT topic)"| B["Node-RED mqtt in"]
-    B --> C["line protocol"]
-    C -->|"http POST to scada bucket"| D["InfluxDB Historian"]
-    D -->|"Flux query"| E["Grafana Dashboard"]
-    A --> F["data/telemetry.ndjson"]
-
-+----------------+       (MQTT topic)   +---------------------+
-| power_sim.py   |  --->  telemetry/* ->| Node-RED mqtt in    |
-|  JSON/1s       |                      +----------+----------+
-|  file append   |                            | line protocol |
-+-------+--------+                            +-------+-------+
-        |                   http POST to scada bucket | 
-        |                                             v
-        |                                 +----------------------+
-        |                                 | InfluxDB Historian   |
-        |                                 +------------+---------+
-        |                                   Flux query |  
-        |                                              v
-        |                                    +-------------------+
-        |                                    | Grafana Dashboard |
-        |                                    +-------------------+
-        v
-data/telemetry.ndjson
+    sim["power_sim.py<br/>control scans + JSON telemetry"] -->|telemetry/pandapower| mqtt["Mosquitto MQTT"]
+    sim -->|file mode| file["data/telemetry.ndjson"]
+    mqtt --> nr["Node-RED<br/>HMI + historian flow"]
+    nr -->|Influx line protocol| influx["InfluxDB historian"]
+    influx -->|Flux queries| grafana["Grafana dashboard"]
+```
 
 ## Grid Model
 
@@ -97,6 +81,118 @@ or plant inputs.
 - `DOWNSTREAM_OVERCURRENT` asserts a persistent, deterministic teaching signal.
   L2 trips first after 100 ms; if the condition remains asserted, L1 trips as
   delayed backup 100 ms later.
+
+### Data contracts
+
+These are the compact interfaces between the simulator, MQTT, Node-RED, and
+InfluxDB. JSON uses `null` for unavailable measurements; it never uses `NaN`.
+
+#### `telemetry/pandapower`
+
+The simulator publishes one object at the configured SCADA interval. The
+representative shape is:
+
+```json
+{
+  "ts": "2026-09-19T12:00:00+00:00",
+  "buses": [
+    {
+      "bus_idx": 1,
+      "name": "BUS1_LOAD",
+      "vm_pu": 0.986,
+      "va_degree": -0.4,
+      "p_mw": 1.2,
+      "q_mvar": 0.3,
+      "energized": true,
+      "quality": "GOOD"
+    }
+  ],
+  "lines": [
+    {
+      "line_idx": 1,
+      "name": "L2_3km",
+      "end": "from",
+      "from_bus": 1,
+      "to_bus": 2,
+      "p_mw": 0.8,
+      "q_mvar": 0.2,
+      "pl_mw": 0.01,
+      "ql_mvar": 0.02,
+      "i_ka": 0.03,
+      "vm_pu": 0.986,
+      "va_degree": -0.4,
+      "loading_percent": 15.0,
+      "energized": true,
+      "quality": "GOOD"
+    }
+  ],
+  "ext_grid": {
+    "p_mw": 2.0,
+    "q_mvar": 0.5
+  }
+}
+```
+
+| Object | Main fields |
+| --- | --- |
+| `buses[]` | `bus_idx`, `name`, voltage/angle, P/Q, `energized`, `quality` |
+| `lines[]` | identity/endpoints, P/Q, losses, current, voltage/angle, loading, `energized`, `quality` |
+| `ext_grid` | source P/Q |
+| `ts` | ISO-8601 observation timestamp |
+
+When a breaker isolates a section, unavailable voltage and angle values are
+`null`; the affected object reports `energized: false` and
+`quality: "NOT_ENERGIZED"`.
+
+#### Named breaker status
+
+Each retained `status/breaker/<breaker>` message has this shape:
+
+```json
+{
+  "ts": "2026-09-19T12:00:00.120Z",
+  "breaker": "BRK_L2",
+  "state": "OPEN",
+  "tripped": true,
+  "undervoltage_alarm": false,
+  "trip_reason": "overcurrent"
+}
+```
+
+`state` is `OPEN` or `CLOSED`; `tripped` is the latch state; and
+`trip_reason` is either a reason string or `null`. This status is authoritative.
+The legacy `status/breaker` topic carries the L1 compatibility status.
+
+#### Scenario command
+
+`cmd/sim/scenario/set` accepts exactly:
+
+```text
+NORMAL
+OVERCURRENT
+UNDERVOLTAGE
+DOWNSTREAM_OVERCURRENT
+```
+
+The payload is uppercase UTF-8 with no surrounding whitespace. A scenario
+changes the simulator's deterministic teaching conditions; it does not itself
+reset or operate a breaker.
+
+#### InfluxDB mapping
+
+Node-RED converts observations to Influx line protocol with millisecond
+timestamps:
+
+| Measurement | Tags | Fields |
+| --- | --- | --- |
+| `bus` | `bus_id`, `name` | `vm_pu`, `va_deg`, `p_mw`, `q_mvar`, `energized`, `quality` |
+| `line` | `line_id`, `name`, `end`, `from_bus`, `to_bus` | `p_mw`, `pl_mw`, `q_mvar`, `ql_mvar`, `i_ka`, `vm_pu`, `va_deg`, `loading_percent` when present |
+| `ext_grid` | `site=main` | `p_mw`, `q_mvar` |
+| `breaker_status` | `breaker` | `state`, `tripped`, `undervoltage_alarm`, `trip_reason` |
+
+The command audit path also writes a `breaker` measurement tagged
+`source=command`. These records describe requested actions, not authoritative
+plant state.
 
 ### Model boundary
 
