@@ -16,7 +16,7 @@ import pandapower as pp
 class ThreeBusGrid:
     """
     Minimal 3-bus MV network:
-      BUS0_SLACK --L1--> BUS1_LOAD --L2--> BUS2_LOAD
+      BUS0_SLACK --BRK_L1_SOURCE--L1--> BUS1_LOAD --BRK_L2--L2--> BUS2_LOAD
 
     All buses at 20 kV. Slack at BUS0. Two loads on BUS1 & BUS2.
     Lines use rough MV parameters; goal is stable, reproducible telemetry (not planning).
@@ -36,6 +36,8 @@ class ThreeBusGrid:
     base_q_mvar: np.ndarray  # [q_bus1, q_bus2]
     protected_line_idx: int
     breaker_switch_idx: int
+    l2_line_idx: int
+    l2_breaker_switch_idx: int
     downstream_bus_indices: tuple[int, ...]
     scenario: str = NORMAL
     step_count: int = 0
@@ -63,7 +65,7 @@ class ThreeBusGrid:
             name="L1_5km"
         )
         # L2: BUS1 -> BUS2 (3 km)
-        pp.create_line_from_parameters(
+        l2 = pp.create_line_from_parameters(
             net, from_bus=b1, to_bus=b2, length_km=3.0,
             r_ohm_per_km=0.08, x_ohm_per_km=0.30, c_nf_per_km=210.0, max_i_ka=0.20,
             name="L2_3km"
@@ -81,6 +83,18 @@ class ThreeBusGrid:
             name="BRK_L1_SOURCE",
         )
 
+        # Downstream feeder breaker at the BUS1 side of L2. This slice exposes
+        # only its physical position; controller integration remains separate.
+        l2_breaker = pp.create_switch(
+            net,
+            bus=b1,
+            element=l2,
+            et="l",
+            closed=True,
+            type="CB",
+            name="BRK_L2",
+        )
+
         # Base loads
         base_p = np.array([1.20, 0.80])  # MW at BUS1, BUS2
         base_q = np.array([0.30, 0.20])  # Mvar at BUS1, BUS2
@@ -95,6 +109,8 @@ class ThreeBusGrid:
             base_q_mvar=base_q,
             protected_line_idx=l1,
             breaker_switch_idx=breaker,
+            l2_line_idx=l2,
+            l2_breaker_switch_idx=l2_breaker,
             downstream_bus_indices=(b1, b2),
         )
 
@@ -156,6 +172,15 @@ class ThreeBusGrid:
         """Apply a controller position to the real pandapower line switch."""
         self.net.switch.at[self.breaker_switch_idx, "closed"] = bool(closed)
 
+    @property
+    def l2_breaker_closed(self) -> bool:
+        """Return the physical position of the BUS1-side L2 switch."""
+        return bool(self.net.switch.at[self.l2_breaker_switch_idx, "closed"])
+
+    def set_l2_breaker_closed(self, closed: bool) -> None:
+        """Set the physical position of the BUS1-side L2 switch."""
+        self.net.switch.at[self.l2_breaker_switch_idx, "closed"] = bool(closed)
+
     def solve(self, *, vary_load: bool = False) -> dict[str, Any]:
         """Solve the currently selected topology and return safe telemetry."""
         if vary_load:
@@ -192,6 +217,15 @@ class ThreeBusGrid:
     def _quality(energized: bool) -> str:
         return "GOOD" if energized else "NOT_ENERGIZED"
 
+    def _line_switch_open(self, line_idx: int) -> bool:
+        """Return whether any pandapower line switch for this line is open."""
+        switches = self.net.switch
+        line_switches = switches.loc[
+            (switches["et"] == "l") & (switches["element"] == line_idx),
+            "closed",
+        ]
+        return any(not bool(closed) for closed in line_switches)
+
     def read_measurements(self) -> dict[str, Any]:
         """Return a SCADA-like snapshot from res_bus (vm_pu, p_mw, q_mvar)."""
         rb = self.net.res_bus  # has vm_pu, va_degree, p_mw, q_mvar (bus injections)
@@ -213,23 +247,21 @@ class ThreeBusGrid:
                 "quality": self._quality(energized),
             })
         for idx, row in rl.iterrows():
-            protected_line_open = (
-                idx == self.protected_line_idx and not self.breaker_closed
-            )
+            line_switch_open = self._line_switch_open(idx)
             for end in ("from", "to"):
                 vm_pu = self._json_number(row[f"vm_{end}_pu"])
-                energized = vm_pu is not None and not protected_line_open
+                energized = vm_pu is not None and not line_switch_open
                 # pandapower reports NaN current/loading for a line disconnected
                 # by an open switch. The open circuit makes through-current and
                 # loading exactly zero; voltages remain unavailable and become null.
                 i_ka = (
                     0.0
-                    if protected_line_open
+                    if line_switch_open
                     else self._json_number(row[f"i_{end}_ka"])
                 )
                 loading_percent = (
                     0.0
-                    if protected_line_open
+                    if line_switch_open
                     else self._json_number(row["loading_percent"])
                 )
                 out_line.append({

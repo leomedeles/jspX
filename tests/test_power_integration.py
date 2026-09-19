@@ -21,6 +21,14 @@ def protected_line_ends(
     ]
 
 
+def line_ends(
+    payload: dict[str, object], line_idx: int
+) -> list[dict[str, object]]:
+    return [
+        line for line in payload["lines"] if line["line_idx"] == line_idx
+    ]
+
+
 def test_default_closed_breaker_energizes_downstream_section() -> None:
     grid = ThreeBusGrid.build(seed=1)
 
@@ -36,6 +44,42 @@ def test_default_closed_breaker_energizes_downstream_section() -> None:
     assert bus_by_name(payload, "BUS1_LOAD")["energized"] is True
     assert bus_by_name(payload, "BUS2_LOAD")["energized"] is True
     assert grid.protected_line_loading_percent() > 0.0
+
+
+def test_open_l2_breaker_isolates_only_bus2() -> None:
+    grid = ThreeBusGrid.build(seed=1)
+
+    switch = grid.net.switch.loc[grid.l2_breaker_switch_idx]
+    assert switch["name"] == "BRK_L2"
+    assert switch["et"] == "l"
+    assert int(switch["bus"]) == int(
+        grid.net.line.at[grid.l2_line_idx, "from_bus"]
+    )
+    assert int(switch["element"]) == grid.l2_line_idx
+    assert grid.breaker_closed is True
+    assert grid.l2_breaker_closed is True
+
+    grid.set_l2_breaker_closed(False)
+    payload = grid.solve()
+
+    assert grid.breaker_closed is True
+    assert grid.l2_breaker_closed is False
+    assert bus_by_name(payload, "BUS1_LOAD")["energized"] is True
+    l1_ends = protected_line_ends(grid, payload)
+    assert all(line["i_ka"] > 0.0 for line in l1_ends)
+    assert all(line["loading_percent"] > 0.0 for line in l1_ends)
+
+    bus2 = bus_by_name(payload, "BUS2_LOAD")
+    assert bus2["vm_pu"] is None
+    assert bus2["energized"] is False
+    assert bus2["quality"] == "NOT_ENERGIZED"
+    for line in line_ends(payload, grid.l2_line_idx):
+        assert line["i_ka"] == pytest.approx(0.0, abs=1e-12)
+        assert line["loading_percent"] == pytest.approx(0.0, abs=1e-12)
+        assert line["energized"] is False
+        assert line["quality"] == "NOT_ENERGIZED"
+
+    json.dumps(payload, allow_nan=False)
 
 
 def test_open_breaker_operates_switch_and_isolates_protected_path() -> None:

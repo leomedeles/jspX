@@ -35,7 +35,7 @@ data/telemetry.ndjson
 
 20 kV feeder (3-bus minimal case)
 
-   [BUS0_SLACK] --[BRK_L1_SOURCE]--L1(5 km)--> [BUS1_LOAD] --L2(3 km)--> [BUS2_LOAD]
+   [BUS0_SLACK] --[BRK_L1_SOURCE]--L1(5 km)--> [BUS1_LOAD] --[BRK_L2]--L2(3 km)--> [BUS2_LOAD]
        ext_grid                                      ~1.2 MW / 0.3 MVAr        ~0.8 MW / 0.2 MVAr
        vm≈1.00 pu                                    vm≈0.98–0.99 pu           vm≈0.97–0.99 pu
 
@@ -44,6 +44,10 @@ state to this switch on a 50 ms control scan while retaining the configured
 SCADA publication interval. When open, L1 current/loading is zero and the two
 isolated downstream buses expose unavailable voltage/angle values as JSON
 `null`, with `energized: false` and `quality: "NOT_ENERGIZED"`.
+
+`BRK_L2` is a real pandapower line switch at the BUS1 end of L2. Opening only
+this switch leaves BUS1 supplied through L1 while BUS2 and L2 report the
+downstream section as not energized.
 
 ### Breaker MQTT contract
 
