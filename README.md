@@ -1,7 +1,7 @@
 ﻿# jspX v0.5.0 - joySCADA_Power X (Simulated Power System)
 
 A minimal, reproducible SCADA loop for a simulated power portfolio:
-- Python sim emits timestamped JSON lines (buses, lines, exrt_grid) at 1 s intervals
+- Python sim emits timestamped JSON lines (buses, lines, ext_grid) at 1 s intervals
 - Node-red ingest via MQTT **or** file tail into historian InfluxDB
 - Display latest values on grafana dashboard
 - Clean structure, least privilege, and beginner-friendly
