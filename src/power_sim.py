@@ -12,6 +12,11 @@ from queue import Empty, SimpleQueue
 from typing import Callable
 from urllib.parse import urlparse
 
+if __package__:
+    from .breaker_control import BreakerController
+else:
+    from breaker_control import BreakerController
+
 try:
     import paho.mqtt.client as mqtt  # noqa: F401
     HAVE_MQTT = True
@@ -25,6 +30,8 @@ CLOSE_COMMAND_TOPIC = "cmd/breaker/close"
 RESET_COMMAND_TOPIC = "cmd/breaker/reset"
 BREAKER_STATUS_TOPIC = "status/breaker"
 SCENARIO_COMMAND_TOPIC = "cmd/sim/scenario/set"
+BRK_L1_SOURCE = "BRK_L1_SOURCE"
+BRK_L2 = "BRK_L2"
 
 COMMAND_BY_TOPIC = {
     OPEN_COMMAND_TOPIC: "OPEN",
@@ -88,11 +95,41 @@ class ControlScanResult:
 
 
 class ControlledPandapowerSimulator:
-    """Coordinate one controller with one physical pandapower grid."""
+    """Coordinate authoritative breaker controllers with the physical grid."""
 
-    def __init__(self, grid, controller) -> None:
+    def __init__(
+        self,
+        grid,
+        controller: BreakerController,
+        *,
+        l2_controller: BreakerController | None = None,
+    ) -> None:
         self.grid = grid
-        self.controller = controller
+        self.controllers = {
+            BRK_L1_SOURCE: controller,
+            BRK_L2: l2_controller or BreakerController(),
+        }
+        # Preserve the existing L1-focused simulator and MQTT API.
+        self.controller = self.controllers[BRK_L1_SOURCE]
+
+    def command_breaker(self, breaker_name: str, command: str) -> bool:
+        """Apply a local command to one controller, not the physical switch."""
+        try:
+            controller = self.controllers[breaker_name]
+        except KeyError as exc:
+            raise ValueError(f"unknown breaker: {breaker_name}") from exc
+        return apply_breaker_command(controller, command)
+
+    def _apply_controller_states(self) -> None:
+        """Write both authoritative controller positions to the plant model."""
+        l1_controller = self.controllers[BRK_L1_SOURCE]
+        l2_controller = self.controllers[BRK_L2]
+        self.grid.set_breaker_closed(
+            l1_controller.state == l1_controller.CLOSED
+        )
+        self.grid.set_l2_breaker_closed(
+            l2_controller.state == l2_controller.CLOSED
+        )
 
     def control_step(
         self, *, timestamp: float | None = None, vary_load: bool = False
@@ -100,11 +137,10 @@ class ControlledPandapowerSimulator:
         """Run one solve/protection scan and return the resulting topology."""
         now = time.monotonic() if timestamp is None else timestamp
 
-        self.grid.set_breaker_closed(
-            self.controller.state == self.controller.CLOSED
-        )
+        self._apply_controller_states()
         telemetry = self.grid.solve(vary_load=vary_load)
 
+        # Protection remains intentionally L1-only in this slice.
         applied_state = self.controller.state
         self.controller.evaluate(
             current_percent=self.grid.protected_line_loading_percent(),
@@ -113,9 +149,7 @@ class ControlledPandapowerSimulator:
         )
 
         if self.controller.state != applied_state:
-            self.grid.set_breaker_closed(
-                self.controller.state == self.controller.CLOSED
-            )
+            self._apply_controller_states()
             telemetry = self.grid.solve()
 
         telemetry["breaker"] = self.controller.snapshot()
@@ -162,8 +196,9 @@ def process_control_scan(
     before = simulator.controller.snapshot()
     command = event.command if event is not None else None
     scenario = event.scenario if event is not None else None
+    # The existing single-breaker MQTT contract remains addressed to L1.
     accepted = (
-        apply_breaker_command(simulator.controller, command)
+        simulator.command_breaker(BRK_L1_SOURCE, command)
         if command is not None
         else None
     )
@@ -418,7 +453,6 @@ def main():
 
     # Choose producer: RNG (legacy) or pandapower grid
     if args.pandapower:
-        from breaker_control import BreakerController
         from power_grid import ThreeBusGrid
 
         simulator = ControlledPandapowerSimulator(

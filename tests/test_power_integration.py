@@ -82,6 +82,47 @@ def test_open_l2_breaker_isolates_only_bus2() -> None:
     json.dumps(payload, allow_nan=False)
 
 
+def test_l2_local_commands_are_applied_only_during_control_steps() -> None:
+    grid = ThreeBusGrid.build(seed=1)
+    simulator = ControlledPandapowerSimulator(grid, BreakerController())
+
+    assert simulator.controllers["BRK_L1_SOURCE"] is simulator.controller
+    l2_controller = simulator.controllers["BRK_L2"]
+    assert simulator.controller.state == BreakerController.CLOSED
+    assert l2_controller.state == BreakerController.CLOSED
+    assert grid.breaker_closed is True
+    assert grid.l2_breaker_closed is True
+
+    assert simulator.command_breaker("BRK_L2", "OPEN") is True
+    assert l2_controller.state == BreakerController.OPEN
+    assert grid.l2_breaker_closed is True
+
+    opened = simulator.control_step(timestamp=0.00)
+
+    assert simulator.controller.state == BreakerController.CLOSED
+    assert grid.breaker_closed is True
+    assert grid.l2_breaker_closed is False
+    assert bus_by_name(opened, "BUS1_LOAD")["energized"] is True
+    assert bus_by_name(opened, "BUS2_LOAD")["vm_pu"] is None
+    assert bus_by_name(opened, "BUS2_LOAD")["energized"] is False
+    assert bus_by_name(opened, "BUS2_LOAD")["quality"] == "NOT_ENERGIZED"
+    json.dumps(opened, allow_nan=False)
+
+    assert simulator.command_breaker("BRK_L2", "CLOSE") is True
+    assert l2_controller.state == BreakerController.CLOSED
+    assert grid.l2_breaker_closed is False
+
+    closed = simulator.control_step(timestamp=0.05)
+
+    assert grid.breaker_closed is True
+    assert grid.l2_breaker_closed is True
+    assert bus_by_name(closed, "BUS1_LOAD")["energized"] is True
+    assert bus_by_name(closed, "BUS2_LOAD")["vm_pu"] is not None
+    assert bus_by_name(closed, "BUS2_LOAD")["energized"] is True
+    assert bus_by_name(closed, "BUS2_LOAD")["quality"] == "GOOD"
+    json.dumps(closed, allow_nan=False)
+
+
 def test_open_breaker_operates_switch_and_isolates_protected_path() -> None:
     grid = ThreeBusGrid.build(seed=1)
     controller = BreakerController()
