@@ -4,7 +4,7 @@ import pytest
 
 from src.breaker_control import BreakerController
 from src.power_grid import ThreeBusGrid
-from src.power_sim import ControlledPandapowerSimulator
+from src.power_sim import BRK_L1_SOURCE, BRK_L2, ControlledPandapowerSimulator
 
 
 def bus_by_name(payload: dict[str, object], name: str) -> dict[str, object]:
@@ -86,14 +86,19 @@ def test_l2_local_commands_are_applied_only_during_control_steps() -> None:
     grid = ThreeBusGrid.build(seed=1)
     simulator = ControlledPandapowerSimulator(grid, BreakerController())
 
-    assert simulator.controllers["BRK_L1_SOURCE"] is simulator.controller
-    l2_controller = simulator.controllers["BRK_L2"]
+    assert tuple(simulator.controllers) == (BRK_L1_SOURCE, BRK_L2)
+    assert tuple(simulator._physical_switch_setters) == (
+        BRK_L1_SOURCE,
+        BRK_L2,
+    )
+    assert simulator.controllers[BRK_L1_SOURCE] is simulator.controller
+    l2_controller = simulator.controllers[BRK_L2]
     assert simulator.controller.state == BreakerController.CLOSED
     assert l2_controller.state == BreakerController.CLOSED
     assert grid.breaker_closed is True
     assert grid.l2_breaker_closed is True
 
-    assert simulator.command_breaker("BRK_L2", "OPEN") is True
+    assert simulator.command_breaker(BRK_L2, "OPEN") is True
     assert l2_controller.state == BreakerController.OPEN
     assert grid.l2_breaker_closed is True
 
@@ -108,7 +113,7 @@ def test_l2_local_commands_are_applied_only_during_control_steps() -> None:
     assert bus_by_name(opened, "BUS2_LOAD")["quality"] == "NOT_ENERGIZED"
     json.dumps(opened, allow_nan=False)
 
-    assert simulator.command_breaker("BRK_L2", "CLOSE") is True
+    assert simulator.command_breaker(BRK_L2, "CLOSE") is True
     assert l2_controller.state == BreakerController.CLOSED
     assert grid.l2_breaker_closed is False
 

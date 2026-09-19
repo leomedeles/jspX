@@ -107,7 +107,15 @@ class ControlledPandapowerSimulator:
         self.grid = grid
         self.controllers = {
             BRK_L1_SOURCE: controller,
-            BRK_L2: l2_controller or BreakerController(),
+            BRK_L2: (
+                l2_controller
+                if l2_controller is not None
+                else BreakerController()
+            ),
+        }
+        self._physical_switch_setters = {
+            BRK_L1_SOURCE: self.grid.set_breaker_closed,
+            BRK_L2: self.grid.set_l2_breaker_closed,
         }
         # Preserve the existing L1-focused simulator and MQTT API.
         self.controller = self.controllers[BRK_L1_SOURCE]
@@ -122,14 +130,9 @@ class ControlledPandapowerSimulator:
 
     def _apply_controller_states(self) -> None:
         """Write both authoritative controller positions to the plant model."""
-        l1_controller = self.controllers[BRK_L1_SOURCE]
-        l2_controller = self.controllers[BRK_L2]
-        self.grid.set_breaker_closed(
-            l1_controller.state == l1_controller.CLOSED
-        )
-        self.grid.set_l2_breaker_closed(
-            l2_controller.state == l2_controller.CLOSED
-        )
+        for breaker_name, controller in self.controllers.items():
+            set_closed = self._physical_switch_setters[breaker_name]
+            set_closed(controller.state == controller.CLOSED)
 
     def control_step(
         self, *, timestamp: float | None = None, vary_load: bool = False
