@@ -24,8 +24,9 @@ class ThreeBusGrid:
     NORMAL: ClassVar[str] = "NORMAL"
     OVERCURRENT: ClassVar[str] = "OVERCURRENT"
     UNDERVOLTAGE: ClassVar[str] = "UNDERVOLTAGE"
+    DOWNSTREAM_OVERCURRENT: ClassVar[str] = "DOWNSTREAM_OVERCURRENT"
     SCENARIOS: ClassVar[frozenset[str]] = frozenset(
-        {NORMAL, OVERCURRENT, UNDERVOLTAGE}
+        {NORMAL, OVERCURRENT, UNDERVOLTAGE, DOWNSTREAM_OVERCURRENT}
     )
     NORMAL_SOURCE_VOLTAGE_PU: ClassVar[float] = 1.0
     UNDERVOLTAGE_SOURCE_VOLTAGE_PU: ClassVar[float] = 0.90
@@ -142,6 +143,10 @@ class ThreeBusGrid:
             if scenario == self.OVERCURRENT
             else 1.0
         )
+
+        # DOWNSTREAM_OVERCURRENT is an explicit protection teaching signal,
+        # not a calculated electrical fault. Its persistent condition is read
+        # by the simulator while the solved load flow remains at base demand.
 
         self.net.ext_grid.loc[:, "vm_pu"] = source_voltage
         self._set_loads(load_multiplier)

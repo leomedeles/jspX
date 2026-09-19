@@ -32,6 +32,7 @@ BREAKER_STATUS_TOPIC = "status/breaker"
 SCENARIO_COMMAND_TOPIC = "cmd/sim/scenario/set"
 BRK_L1_SOURCE = "BRK_L1_SOURCE"
 BRK_L2 = "BRK_L2"
+DOWNSTREAM_OVERCURRENT_PERCENT = 150.0
 
 COMMAND_BY_TOPIC = {
     OPEN_COMMAND_TOPIC: "OPEN",
@@ -134,6 +135,46 @@ class ControlledPandapowerSimulator:
             set_closed = self._physical_switch_setters[breaker_name]
             set_closed(controller.state == controller.CLOSED)
 
+    def _evaluate_protection(self, timestamp: float) -> None:
+        """Evaluate the fixed feeder's normal or downstream protection path."""
+        l1_controller = self.controllers[BRK_L1_SOURCE]
+        l2_controller = self.controllers[BRK_L2]
+        downstream_overcurrent = (
+            self.grid.scenario == self.grid.DOWNSTREAM_OVERCURRENT
+        )
+
+        if downstream_overcurrent:
+            # This fixed percentage is a deterministic teaching input. It is
+            # not a calculated short-circuit current or coordination study.
+            l2_controller.evaluate(
+                current_percent=DOWNSTREAM_OVERCURRENT_PERCENT,
+                voltages_pu=(),
+                timestamp=timestamp,
+            )
+            l1_controller.evaluate(
+                current_percent=(
+                    DOWNSTREAM_OVERCURRENT_PERCENT
+                    if l2_controller.tripped
+                    else None
+                ),
+                voltages_pu=self.grid.downstream_voltages_pu(),
+                timestamp=timestamp,
+            )
+            return
+
+        # Preserve the v0.4 L1 measurement-driven protection behavior. A
+        # cleared downstream scenario also resets any unfinished L2 timer.
+        l2_controller.evaluate(
+            current_percent=None,
+            voltages_pu=(),
+            timestamp=timestamp,
+        )
+        l1_controller.evaluate(
+            current_percent=self.grid.protected_line_loading_percent(),
+            voltages_pu=self.grid.downstream_voltages_pu(),
+            timestamp=timestamp,
+        )
+
     def control_step(
         self, *, timestamp: float | None = None, vary_load: bool = False
     ) -> dict[str, object]:
@@ -143,15 +184,16 @@ class ControlledPandapowerSimulator:
         self._apply_controller_states()
         telemetry = self.grid.solve(vary_load=vary_load)
 
-        # Protection remains intentionally L1-only in this slice.
-        applied_state = self.controller.state
-        self.controller.evaluate(
-            current_percent=self.grid.protected_line_loading_percent(),
-            voltages_pu=self.grid.downstream_voltages_pu(),
-            timestamp=now,
-        )
+        applied_states = {
+            name: controller.state
+            for name, controller in self.controllers.items()
+        }
+        self._evaluate_protection(now)
 
-        if self.controller.state != applied_state:
+        if any(
+            controller.state != applied_states[name]
+            for name, controller in self.controllers.items()
+        ):
             self._apply_controller_states()
             telemetry = self.grid.solve()
 

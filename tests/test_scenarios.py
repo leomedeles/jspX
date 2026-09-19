@@ -38,6 +38,7 @@ def queue_scenario(events: BreakerMqttEventQueue, payload: bytes) -> None:
         (ThreeBusGrid.NORMAL, 1.0, 1.0),
         (ThreeBusGrid.OVERCURRENT, 1.0, 5.0),
         (ThreeBusGrid.UNDERVOLTAGE, 0.90, 1.0),
+        (ThreeBusGrid.DOWNSTREAM_OVERCURRENT, 1.0, 1.0),
     ],
 )
 def test_valid_scenario_is_accepted_and_applied_on_control_scan(
