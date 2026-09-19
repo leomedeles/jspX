@@ -14,7 +14,6 @@ def load_json(path: Path):
     with path.open(encoding="utf-8") as source:
         return json.load(source)
 
-
 def test_authoritative_status_is_written_with_required_influx_schema() -> None:
     flow = load_json(FLOW_PATH)
     nodes = {node["id"]: node for node in flow}
@@ -106,7 +105,9 @@ def test_existing_telemetry_influx_path_is_preserved() -> None:
     assert "`quality=${JSON.stringify(b.quality)}`" in function
     assert "`energized=${!!l.energized}`" in function
     assert "`quality=${JSON.stringify(l.quality)}`" in function
-    assert "l.loading_percent" in function
+    assert "l.loading_percent != null" in function
+    assert "Number(l.loading_percent)" in function
+    assert "l.loading_pct" not in function
     assert nodes["7d88f8edcae91d28"]["wires"] == [["ad39eed653b0a057"]]
     assert nodes["ad39eed653b0a057"]["wires"] == [["http-write"]]
 
