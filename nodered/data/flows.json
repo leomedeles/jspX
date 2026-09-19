@@ -77,9 +77,19 @@
     {
         "id": "ui_group_main",
         "type": "ui_group",
-        "name": "Main",
+        "name": "BRK_L1_SOURCE",
         "tab": "ui_tab_breaker",
         "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "ui_group_l2",
+        "type": "ui_group",
+        "name": "BRK_L2",
+        "tab": "ui_tab_breaker",
+        "order": 2,
         "disp": true,
         "width": "6",
         "collapse": false
@@ -336,7 +346,7 @@
         "icon": "fa-unlock",
         "payload": "OPEN",
         "payloadType": "str",
-        "topic": "cmd/breaker/open",
+        "topic": "cmd/breaker/BRK_L1_SOURCE/open",
         "topicType": "str",
         "x": 720,
         "y": 660,
@@ -364,7 +374,7 @@
         "icon": "fa-lock",
         "payload": "CLOSE",
         "payloadType": "str",
-        "topic": "cmd/breaker/close",
+        "topic": "cmd/breaker/BRK_L1_SOURCE/close",
         "topicType": "str",
         "x": 720,
         "y": 700,
@@ -392,7 +402,7 @@
         "icon": "fa-refresh",
         "payload": "RESET",
         "payloadType": "str",
-        "topic": "cmd/breaker/reset",
+        "topic": "cmd/breaker/BRK_L1_SOURCE/reset",
         "topicType": "str",
         "x": 720,
         "y": 740,
@@ -425,7 +435,7 @@
         "type": "mqtt in",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Status subscriber",
-        "topic": "status/breaker",
+        "topic": "status/breaker/BRK_L1_SOURCE",
         "qos": "0",
         "datatype": "utf8",
         "broker": "32ea5bf834ca1feb",
@@ -982,6 +992,192 @@
                 "http_influx_write"
             ]
         ]
+    },
+    {
+        "id": "btn_open_l2",
+        "type": "ui_button",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Open BRK_L2",
+        "group": "ui_group_l2",
+        "order": 1,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "OPEN",
+        "tooltip": "Request BRK_L2 OPEN",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "fa-unlock",
+        "payload": "OPEN",
+        "payloadType": "str",
+        "topic": "cmd/breaker/BRK_L2/open",
+        "topicType": "str",
+        "x": 720,
+        "y": 860,
+        "wires": [
+            [
+                "mqtt_out_cmd"
+            ]
+        ]
+    },
+    {
+        "id": "btn_close_l2",
+        "type": "ui_button",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Close BRK_L2",
+        "group": "ui_group_l2",
+        "order": 2,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "CLOSE",
+        "tooltip": "Request BRK_L2 CLOSE",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "fa-lock",
+        "payload": "CLOSE",
+        "payloadType": "str",
+        "topic": "cmd/breaker/BRK_L2/close",
+        "topicType": "str",
+        "x": 720,
+        "y": 900,
+        "wires": [
+            [
+                "mqtt_out_cmd"
+            ]
+        ]
+    },
+    {
+        "id": "btn_reset_l2",
+        "type": "ui_button",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Reset BRK_L2",
+        "group": "ui_group_l2",
+        "order": 3,
+        "width": 2,
+        "height": 1,
+        "passthru": false,
+        "label": "Manual Reset",
+        "tooltip": "Clear BRK_L2 trip latch without closing",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "fa-refresh",
+        "payload": "RESET",
+        "payloadType": "str",
+        "topic": "cmd/breaker/BRK_L2/reset",
+        "topicType": "str",
+        "x": 720,
+        "y": 940,
+        "wires": [
+            [
+                "mqtt_out_cmd"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_in_status_l2",
+        "type": "mqtt in",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "BRK_L2 status subscriber",
+        "topic": "status/breaker/BRK_L2",
+        "qos": "0",
+        "datatype": "utf8",
+        "broker": "32ea5bf834ca1feb",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 140,
+        "y": 860,
+        "wires": [
+            [
+                "json_parse_l2"
+            ]
+        ]
+    },
+    {
+        "id": "json_parse_l2",
+        "type": "json",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Parse BRK_L2 JSON",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 380,
+        "y": 860,
+        "wires": [
+            [
+                "ui_state_text_l2",
+                "ui_trip_text_l2",
+                "ui_trip_reason_l2"
+            ]
+        ]
+    },
+    {
+        "id": "ui_state_text_l2",
+        "type": "ui_text",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_l2",
+        "order": 4,
+        "width": 6,
+        "height": 1,
+        "name": "",
+        "label": "State",
+        "format": "{{msg.payload.state}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 650,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "ui_trip_text_l2",
+        "type": "ui_text",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_l2",
+        "order": 5,
+        "width": 6,
+        "height": 1,
+        "name": "",
+        "label": "Trip latch",
+        "format": "{{msg.payload.tripped ? 'TRIPPED' : 'OK'}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 650,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "ui_trip_reason_l2",
+        "type": "ui_text",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_l2",
+        "order": 6,
+        "width": 6,
+        "height": 1,
+        "name": "",
+        "label": "Trip reason",
+        "format": "{{msg.payload.trip_reason || '-'}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 660,
+        "y": 900,
+        "wires": []
     },
     {
         "id": "6745d1caf2cb4562",

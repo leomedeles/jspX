@@ -19,7 +19,9 @@ def test_authoritative_status_is_written_with_required_influx_schema() -> None:
     flow = load_json(FLOW_PATH)
     nodes = {node["id"]: node for node in flow}
 
-    assert nodes["mqtt_in_status"]["topic"] == "status/breaker"
+    assert nodes["mqtt_in_status"]["topic"] == (
+        "status/breaker/BRK_L1_SOURCE"
+    )
     assert "fn_status_to_lp" in nodes["json_parse"]["wires"][0]
 
     transform = nodes["fn_status_to_lp"]
@@ -31,6 +33,58 @@ def test_authoritative_status_is_written_with_required_influx_schema() -> None:
     assert transform["wires"] == [["917c308f0b48aa53"]]
     assert nodes["917c308f0b48aa53"]["wires"] == [["http_influx_write"]]
     assert nodes["http_influx_write"]["method"] == "POST"
+
+
+def test_hmi_operates_and_displays_both_named_breakers() -> None:
+    flow = load_json(FLOW_PATH)
+    nodes = {node["id"]: node for node in flow}
+
+    expected = {
+        "l1": {
+            "group": "ui_group_main",
+            "breaker": "BRK_L1_SOURCE",
+            "buttons": ("btn_open", "btn_close", "btn_reset"),
+            "status": "mqtt_in_status",
+            "parser": "json_parse",
+            "display": ("ui_state_text", "ui_trip_text", "ui_trip_reason"),
+        },
+        "l2": {
+            "group": "ui_group_l2",
+            "breaker": "BRK_L2",
+            "buttons": ("btn_open_l2", "btn_close_l2", "btn_reset_l2"),
+            "status": "mqtt_in_status_l2",
+            "parser": "json_parse_l2",
+            "display": (
+                "ui_state_text_l2",
+                "ui_trip_text_l2",
+                "ui_trip_reason_l2",
+            ),
+        },
+    }
+    actions = ("open", "close", "reset")
+
+    for definition in expected.values():
+        group = definition["group"]
+        breaker = definition["breaker"]
+        assert nodes[group]["name"] == breaker
+        for button_id, action in zip(definition["buttons"], actions):
+            button = nodes[button_id]
+            assert button["group"] == group
+            assert button["topic"] == f"cmd/breaker/{breaker}/{action}"
+            assert button["wires"] == [["mqtt_out_cmd"]]
+
+        status = nodes[definition["status"]]
+        assert status["topic"] == f"status/breaker/{breaker}"
+        assert status["rh"] == 0
+        assert status["wires"] == [[definition["parser"]]]
+        parser_outputs = nodes[definition["parser"]]["wires"][0]
+        for display_id in definition["display"]:
+            assert nodes[display_id]["group"] == group
+            assert display_id in parser_outputs or any(
+                display_id in nodes[node_id]["wires"][0]
+                for node_id in parser_outputs
+                if nodes[node_id]["wires"]
+            )
 
 
 def test_existing_telemetry_influx_path_is_preserved() -> None:
