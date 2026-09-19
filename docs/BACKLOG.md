@@ -17,6 +17,11 @@
   - [x] Extend the tracked Node-RED HMI for authoritative status and OPEN/CLOSE/RESET control of both breakers.
   - [ ] Persist per-breaker status and show breaker/topology outcomes in Grafana.
 
+- [ ] **Documentation contracts and architecture**
+  - [x] Replace the README raw flowchart text with a rendered Mermaid architecture diagram.
+  - [x] Document telemetry, named breaker status, scenario commands, and InfluxDB measurement/tag/field mappings in README.
+  - [ ] Verify the documented contracts against the Compose/MQTT/Node-RED/Grafana acceptance run.
+
 - [ ] **Evidence**
   - [x] Add deterministic automated tests for topology, trip/reset interlocks, and the primary/backup scenario.
   - [ ] Run the Compose/MQTT/HMI/Grafana end-to-end acceptance check and record the observed result.
