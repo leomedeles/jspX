@@ -6,7 +6,7 @@ import random
 import signal
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from queue import Empty, SimpleQueue
 from typing import Callable
@@ -34,10 +34,25 @@ BRK_L1_SOURCE = "BRK_L1_SOURCE"
 BRK_L2 = "BRK_L2"
 DOWNSTREAM_OVERCURRENT_PERCENT = 150.0
 
+NAMED_COMMAND_TOPICS = {
+    (breaker_name, command): (
+        f"cmd/breaker/{breaker_name}/{command.lower()}"
+    )
+    for breaker_name in (BRK_L1_SOURCE, BRK_L2)
+    for command in ("OPEN", "CLOSE", "RESET")
+}
+NAMED_STATUS_TOPICS = {
+    breaker_name: f"status/breaker/{breaker_name}"
+    for breaker_name in (BRK_L1_SOURCE, BRK_L2)
+}
 COMMAND_BY_TOPIC = {
-    OPEN_COMMAND_TOPIC: "OPEN",
-    CLOSE_COMMAND_TOPIC: "CLOSE",
-    RESET_COMMAND_TOPIC: "RESET",
+    OPEN_COMMAND_TOPIC: (BRK_L1_SOURCE, "OPEN"),
+    CLOSE_COMMAND_TOPIC: (BRK_L1_SOURCE, "CLOSE"),
+    RESET_COMMAND_TOPIC: (BRK_L1_SOURCE, "RESET"),
+    **{
+        topic: breaker_and_command
+        for breaker_and_command, topic in NAMED_COMMAND_TOPICS.items()
+    },
 }
 
 
@@ -46,6 +61,7 @@ class BreakerMqttEvent:
     """One callback-produced event for the single-writer control loop."""
 
     command: str | None = None
+    breaker_name: str | None = None
     status_requested: bool = False
     scenario: str | None = None
 
@@ -67,9 +83,15 @@ class BreakerMqttEventQueue:
 
     def on_message(self, client, userdata, message) -> None:
         """Translate an MQTT message into queued control-loop intent."""
-        command = COMMAND_BY_TOPIC.get(message.topic)
-        if command is not None:
-            self._events.put(BreakerMqttEvent(command=command))
+        breaker_command = COMMAND_BY_TOPIC.get(message.topic)
+        if breaker_command is not None:
+            breaker_name, command = breaker_command
+            self._events.put(
+                BreakerMqttEvent(
+                    command=command,
+                    breaker_name=breaker_name,
+                )
+            )
         elif message.topic == SCENARIO_COMMAND_TOPIC:
             try:
                 scenario = bytes(message.payload).decode("utf-8")
@@ -93,6 +115,8 @@ class ControlScanResult:
     command_accepted: bool | None
     scenario: str | None = None
     scenario_accepted: bool | None = None
+    breaker_name: str | None = None
+    statuses: dict[str, dict[str, object]] = field(default_factory=dict)
 
 
 class ControlledPandapowerSimulator:
@@ -201,16 +225,29 @@ class ControlledPandapowerSimulator:
         return telemetry
 
 
-def breaker_status_payload(controller) -> dict[str, object]:
+def breaker_status_payload(
+    controller, breaker_name: str | None = None
+) -> dict[str, object]:
     """Build authoritative status from the controller's current snapshot."""
-    return {"ts": now_iso(), **controller.snapshot()}
+    identity = {"breaker": breaker_name} if breaker_name is not None else {}
+    return {"ts": now_iso(), **identity, **controller.snapshot()}
 
 
-def publish_breaker_status(client, status: dict[str, object]):
+def publish_breaker_status(
+    client,
+    status: dict[str, object],
+    *,
+    breaker_name: str | None = None,
+):
     """Publish one authoritative, retained, strict-JSON status snapshot."""
     payload = json.dumps(status, separators=(",", ":"), allow_nan=False)
+    topic = (
+        BREAKER_STATUS_TOPIC
+        if breaker_name is None
+        else NAMED_STATUS_TOPICS[breaker_name]
+    )
     return client.publish(
-        BREAKER_STATUS_TOPIC,
+        topic,
         payload=payload,
         qos=0,
         retain=True,
@@ -238,12 +275,19 @@ def process_control_scan(
     vary_load: bool = False,
 ) -> ControlScanResult:
     """Apply at most one queued command, solve the plant, and derive status."""
-    before = simulator.controller.snapshot()
+    before = {
+        name: controller.snapshot()
+        for name, controller in simulator.controllers.items()
+    }
     command = event.command if event is not None else None
+    breaker_name = (
+        event.breaker_name or BRK_L1_SOURCE
+        if event is not None and command is not None
+        else None
+    )
     scenario = event.scenario if event is not None else None
-    # The existing single-breaker MQTT contract remains addressed to L1.
     accepted = (
-        simulator.command_breaker(BRK_L1_SOURCE, command)
+        simulator.command_breaker(breaker_name, command)
         if command is not None
         else None
     )
@@ -254,17 +298,40 @@ def process_control_scan(
     )
 
     telemetry = simulator.control_step(timestamp=timestamp, vary_load=vary_load)
-    after = simulator.controller.snapshot()
+    after = {
+        name: controller.snapshot()
+        for name, controller in simulator.controllers.items()
+    }
     status_requested = event.status_requested if event is not None else False
-    status_due = command is not None or status_requested or after != before
+    status_due = {
+        name
+        for name in simulator.controllers
+        if status_requested
+        or name == breaker_name
+        or after[name] != before[name]
+    }
+    statuses = {
+        name: breaker_status_payload(
+            simulator.controllers[name], breaker_name=name
+        )
+        for name in simulator.controllers
+        if name in status_due
+    }
+    legacy_status = (
+        breaker_status_payload(simulator.controller)
+        if BRK_L1_SOURCE in status_due
+        else None
+    )
 
     return ControlScanResult(
         telemetry=telemetry,
-        status=breaker_status_payload(simulator.controller) if status_due else None,
+        status=legacy_status,
         command=command,
         command_accepted=accepted,
         scenario=scenario,
         scenario_accepted=scenario_accepted,
+        breaker_name=breaker_name,
+        statuses=statuses,
     )
 
 # # Allow importing sibling modules when running as "python src/power_sim.py"
@@ -451,6 +518,12 @@ def run_controlled_mqtt_mode(
 
                 if result.status is not None:
                     publish_breaker_status(client, result.status)
+                for breaker_name, status in result.statuses.items():
+                    publish_breaker_status(
+                        client,
+                        status,
+                        breaker_name=breaker_name,
+                    )
 
                 if publish_due:
                     line = json.dumps(
