@@ -4,27 +4,27 @@
 
 ### Scope
 
-- [ ] **Physical feeder**
-  - [ ] Add BRK_L2 as a real pandapower switch between BUS1 and L2.
-  - [ ] Opening BRK_L2 isolates BUS2 while BUS1 remains energized through BRK_L1_SOURCE.
+- [x] **Physical feeder**
+  - [x] Add BRK_L2 as a real pandapower switch between BUS1 and L2.
+  - [x] Opening BRK_L2 isolates BUS2 while BUS1 remains energized through BRK_L1_SOURCE.
 
-- [ ] **Selective protection and control**
-  - [ ] Extend the authoritative control path to manage the two breakers without transport callbacks directly mutating plant state.
-  - [ ] Model one deterministic downstream-overcurrent case in which BRK_L2 is the primary trip and BRK_L1_SOURCE remains available as delayed backup if the condition persists.
+- [x] **Selective protection and control**
+  - [x] Extend the authoritative control path to manage the two breakers without transport callbacks directly mutating plant state.
+  - [x] Model one deterministic downstream-overcurrent case in which BRK_L2 is the primary trip and BRK_L1_SOURCE remains available as delayed backup if the condition persists.
 
 - [ ] **Operator and observability path**
-  - [ ] Define and implement the per-breaker MQTT command/status contract.
-  - [ ] Extend the tracked Node-RED HMI for authoritative status and OPEN/CLOSE/RESET control of both breakers.
+  - [x] Define and implement the per-breaker MQTT command/status contract.
+  - [x] Extend the tracked Node-RED HMI for authoritative status and OPEN/CLOSE/RESET control of both breakers.
   - [ ] Persist per-breaker status and show breaker/topology outcomes in Grafana.
 
 - [ ] **Evidence**
-  - [ ] Add deterministic automated tests for topology, trip/reset interlocks, and the primary/backup scenario.
+  - [x] Add deterministic automated tests for topology, trip/reset interlocks, and the primary/backup scenario.
   - [ ] Run the Compose/MQTT/HMI/Grafana end-to-end acceptance check and record the observed result.
 
 ### Acceptance criteria
 
-- [ ] A downstream-overcurrent scenario opens BRK_L2 first, keeps BUS1 energized, and isolates BUS2.
-- [ ] If the downstream condition remains uncleared, the modeled delayed backup behavior opens BRK_L1_SOURCE.
+- [x] A downstream-overcurrent scenario opens BRK_L2 first, keeps BUS1 energized, and isolates BUS2.
+- [x] If the downstream condition remains uncleared, the modeled delayed backup behavior opens BRK_L1_SOURCE.
 - [ ] An operator can observe and command both breakers through Node-RED; telemetry, retained status, InfluxDB, and Grafana agree with the pandapower topology.
 - [ ] Automated tests and the end-to-end stack verification pass.
 

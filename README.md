@@ -1,4 +1,4 @@
-﻿# jspX v0.4.0 - joySCADA_Power X (Simulated Power System)
+﻿# jspX v0.5.0 - joySCADA_Power X (Simulated Power System)
 
 A minimal, reproducible SCADA loop for a simulated power portfolio:
 - Python sim emits timestamped JSON lines (buses, lines, exrt_grid) at 1 s intervals
@@ -39,11 +39,15 @@ data/telemetry.ndjson
        ext_grid                                      ~1.2 MW / 0.3 MVAr        ~0.8 MW / 0.2 MVAr
        vm≈1.00 pu                                    vm≈0.98–0.99 pu           vm≈0.97–0.99 pu
 
-`BRK_L1_SOURCE` is a real pandapower line switch at the BUS0 end of L1. In v0.4, the simulator applies the authoritative `BreakerController`
-state to this switch on a 50 ms control scan while retaining the configured
-SCADA publication interval. When open, L1 current/loading is zero and the two
-isolated downstream buses expose unavailable voltage/angle values as JSON
-`null`, with `energized: false` and `quality: "NOT_ENERGIZED"`.
+Both breakers are real pandapower line switches with independent authoritative
+`BreakerController` state. The simulator applies controller positions during
+its 50 ms control scan while retaining the configured SCADA publication
+interval. MQTT callbacks and the HMI only enqueue commands; they never write
+the physical switches directly.
+
+When `BRK_L1_SOURCE` opens, L1 current/loading is zero and both downstream buses
+are isolated. Unavailable voltage/angle values are JSON `null`, with
+`energized: false` and `quality: "NOT_ENERGIZED"`.
 
 `BRK_L2` is a real pandapower line switch at the BUS1 end of L2. Opening only
 this switch leaves BUS1 supplied through L1 while BUS2 and L2 report the
@@ -51,31 +55,38 @@ downstream section as not energized.
 
 ### Breaker MQTT contract
 
-Pandapower MQTT mode listens for commands on three payload-independent topics:
+Pandapower MQTT mode uses payload-independent named command topics and retained
+authoritative status for each breaker:
 
-| Purpose | Topic |
-| --- | --- |
-| Open | `cmd/breaker/open` |
-| Close | `cmd/breaker/close` |
-| Reset trip latch | `cmd/breaker/reset` |
-| Authoritative status | `status/breaker` |
+| Breaker | Open | Close | Reset | Retained status |
+| --- | --- | --- | --- | --- |
+| `BRK_L1_SOURCE` | `cmd/breaker/BRK_L1_SOURCE/open` | `cmd/breaker/BRK_L1_SOURCE/close` | `cmd/breaker/BRK_L1_SOURCE/reset` | `status/breaker/BRK_L1_SOURCE` |
+| `BRK_L2` | `cmd/breaker/BRK_L2/open` | `cmd/breaker/BRK_L2/close` | `cmd/breaker/BRK_L2/reset` | `status/breaker/BRK_L2` |
 
-`status/breaker` is retained, so a newly connected HMI receives the latest
-confirmed controller state without waiting for another operation. The simulator
-publishes status only after its control loop has applied the controller state to
-the physical switch. `RESET` clears the latch without closing, and `CLOSE` is
-rejected while the latch remains active. The existing `telemetry/pandapower`
-stream remains non-retained and is not the authoritative breaker-state topic.
-The tracked Node-RED breaker HMI publishes the three command topics and subscribes
-to retained `status/breaker`. It displays the authoritative state, protection/trip
-indication and reason, and undervoltage alarm.
+For v0.4 compatibility, `cmd/breaker/open`, `cmd/breaker/close`,
+`cmd/breaker/reset`, and retained `status/breaker` remain L1 aliases; they do
+not address L2. Named status includes `breaker`, timestamp, state, trip latch,
+trip reason, and undervoltage alarm. The simulator publishes status after the
+control scan applies a command or protection transition. `RESET` clears the
+latch without closing, and `CLOSE` is rejected while that breaker's latch is
+active. `telemetry/pandapower` remains non-retained and is not authoritative
+breaker state.
+
+The tracked Node-RED HMI publishes named commands and displays retained named
+status for both breakers. For example, from the repository directory:
+
+```powershell
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_L2/open -n
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_L2/close -n
+```
 
 ### Validation scenario MQTT contract
 
 Pandapower MQTT mode subscribes to `cmd/sim/scenario/set`. Its payload must be
-exactly one of `NORMAL`, `OVERCURRENT`, or `UNDERVOLTAGE` (uppercase UTF-8 with
-no surrounding whitespace). Unknown or invalid payloads are rejected without
-changing the selected scenario or plant inputs.
+exactly one of `NORMAL`, `OVERCURRENT`, `UNDERVOLTAGE`, or
+`DOWNSTREAM_OVERCURRENT` (uppercase UTF-8 with no surrounding whitespace).
+Unknown or invalid payloads are rejected without changing the selected scenario
+or plant inputs.
 
 - `NORMAL` restores the 1.0 pu source setpoint and base downstream demand. It
   does not reset a protection latch or operate the breaker.
@@ -83,6 +94,20 @@ changing the selected scenario or plant inputs.
   changing L1's current rating, allowing the existing protection to trip L1.
 - `UNDERVOLTAGE` lowers the source setpoint to 0.90 pu. It asserts the existing
   downstream undervoltage alarm but does not directly trip L1.
+- `DOWNSTREAM_OVERCURRENT` asserts a persistent, deterministic teaching signal.
+  L2 trips first after 100 ms; if the condition remains asserted, L1 trips as
+  delayed backup 100 ms later.
+
+### Model boundary
+
+- **Modeled:** a fixed three-bus feeder, two real line switches, authoritative
+  controller/interlock state, and a deterministic L2-primary/L1-backup outcome.
+- **Simplified:** the downstream-overcurrent input is scenario-driven and the
+  primary/backup delays are a teaching sequence, not calculated fault current
+  or coordinated relay settings.
+- **Not modeled yet:** CT/VT behavior, relay curves and coordination studies,
+  directional elements, breaker-failure protection, autoreclosing, and fault
+  location.
 
 ## Getting started
 
@@ -113,11 +138,10 @@ docker compose ps
 
 This starts the pandapower simulator, Mosquitto, Node-RED, InfluxDB, and Grafana. The simulator publishes one sample per second to `telemetry/pandapower`; the tracked Node-RED flow writes it to the `scada` bucket.
 
-Node-RED also persists each authoritative `status/breaker` update as the
-`breaker_status` measurement tagged `breaker=BRK_L1_SOURCE`. The provisioned
-Grafana dashboard's Operations section reads that history from InfluxDB and
-shows the current breaker position, trip latch, undervoltage alarm, and recent
-status transitions.
+Node-RED persists each named authoritative status as `breaker_status` tagged by
+breaker identity. It also stores bus/line energized and quality fields. The
+provisioned Grafana Operations section shows both breaker states and latches,
+recent primary/backup transitions, and feeder topology energization.
 
 Open:
 
