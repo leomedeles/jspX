@@ -23,11 +23,14 @@ def test_authoritative_status_is_written_with_required_influx_schema() -> None:
         "status/breaker/BRK_L1_SOURCE"
     )
     assert "fn_status_to_lp" in nodes["json_parse"]["wires"][0]
+    assert "fn_status_to_lp" in nodes["json_parse_l2"]["wires"][0]
 
     transform = nodes["fn_status_to_lp"]
     function = transform["func"]
     assert "Date.parse(p.ts)" in function
-    assert "breaker_status,breaker=BRK_L1_SOURCE" in function
+    assert 'p.breaker' in function
+    assert '"BRK_L1_SOURCE", "BRK_L2"' in function
+    assert "breaker_status,breaker=${breaker}" in function
     for field in ("state", "tripped", "undervoltage_alarm", "trip_reason"):
         assert field in function
     assert transform["wires"] == [["917c308f0b48aa53"]]
@@ -99,6 +102,11 @@ def test_existing_telemetry_influx_path_is_preserved() -> None:
     assert "`bus,${tags}" in function
     assert "`line,${tags}" in function
     assert "`ext_grid,site=main" in function
+    assert "`energized=${!!b.energized}`" in function
+    assert "`quality=${JSON.stringify(b.quality)}`" in function
+    assert "`energized=${!!l.energized}`" in function
+    assert "`quality=${JSON.stringify(l.quality)}`" in function
+    assert "l.loading_percent" in function
     assert nodes["7d88f8edcae91d28"]["wires"] == [["ad39eed653b0a057"]]
     assert nodes["ad39eed653b0a057"]["wires"] == [["http-write"]]
 
@@ -114,21 +122,22 @@ def test_existing_dashboard_contains_influx_backed_operations_panels() -> None:
     assert panels["Bus Voltages (p.u.)"]["type"] == "timeseries"
     assert panels["Line Active Power P (MW)"]["type"] == "timeseries"
 
-    expected_types = {
-        "Breaker State": "stat",
-        "Trip Latch": "stat",
-        "Undervoltage Alarm": "stat",
-        "Recent Breaker / Protection Status": "table",
+    breaker_panels = {
+        "BRK_L1_SOURCE State": ("stat", "BRK_L1_SOURCE"),
+        "BRK_L1_SOURCE Trip Latch": ("stat", "BRK_L1_SOURCE"),
+        "BRK_L2 State": ("stat", "BRK_L2"),
+        "BRK_L2 Trip Latch": ("stat", "BRK_L2"),
+        "L1 Undervoltage Alarm": ("stat", "BRK_L1_SOURCE"),
     }
-    for title, panel_type in expected_types.items():
+    for title, (panel_type, breaker_name) in breaker_panels.items():
         panel = panels[title]
         assert panel["type"] == panel_type
         assert panel["datasource"]["uid"] == DATASOURCE_UID
         query = panel["targets"][0]["query"]
         assert 'r._measurement == "breaker_status"' in query
-        assert 'r.breaker == "BRK_L1_SOURCE"' in query
+        assert f'r.breaker == "{breaker_name}"' in query
 
-    for title in ("Breaker State", "Trip Latch", "Undervoltage Alarm"):
+    for title in breaker_panels:
         panel = panels[title]
         assert panel["options"]["colorMode"] == "background"
         assert panel["fieldConfig"]["defaults"]["mappings"]
@@ -141,5 +150,17 @@ def test_existing_dashboard_contains_influx_backed_operations_panels() -> None:
         "query"
     ]
     assert "pivot(" in history_query
+    assert 'rowKey: ["_time", "breaker"]' in history_query
     for field in ("state", "tripped", "undervoltage_alarm", "trip_reason"):
         assert field in history_query
+
+    topology = panels["Feeder Topology Energization"]
+    assert topology["type"] == "table"
+    assert topology["datasource"]["uid"] == DATASOURCE_UID
+    topology_query = topology["targets"][0]["query"]
+    assert 'r._measurement == "bus" or r._measurement == "line"' in (
+        topology_query
+    )
+    assert 'r._field == "energized"' in topology_query
+    for asset in ("BUS1_LOAD", "BUS2_LOAD", "L1_5km", "L2_3km"):
+        assert asset in topology_query
