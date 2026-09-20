@@ -1,4 +1,4 @@
-## Sprint 5 → v0.5.0: Selective feeder protection with BRK_L2
+## Sprint 5 → v0.5.0: Selective feeder protection with BRK_L2 (released)
 
 **Goal:** Demonstrate a second, downstream breaker as one complete operational slice: its physical feeder effect, protection decision, operator control, and historian/dashboard evidence agree.
 
@@ -229,3 +229,5 @@ Priorities rank work after the active sprint. P1 is the next candidate to consid
 - [x] `v0.3.0`: extended JSON schema, Historian + UI, Contenarized environment: [mosquito, Node-RED, InfluxDB, Grafana]
 - [x] `v0.3.1`: reproducible clone-to-dashboard startup path and runtime-state recovery.
 - [x] `v0.4.0`: physical L1 breaker control/protection loop, Node-RED operation, historian, and Grafana evidence.
+- [x] `v0.5.0`: two-breaker selective feeder protection with BRK_L2 primary and BRK_L1_SOURCE delayed backup, named MQTT control/status, Node-RED and Grafana observability, and documented acceptance evidence.
+
