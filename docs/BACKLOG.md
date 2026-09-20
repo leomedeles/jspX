@@ -12,26 +12,36 @@
   - [x] Extend the authoritative control path to manage the two breakers without transport callbacks directly mutating plant state.
   - [x] Model one deterministic downstream-overcurrent case in which BRK_L2 is the primary trip and BRK_L1_SOURCE remains available as delayed backup if the condition persists.
 
-- [ ] **Operator and observability path**
+- [x] **Operator and observability path**
   - [x] Define and implement the per-breaker MQTT command/status contract.
   - [x] Extend the tracked Node-RED HMI for authoritative status and OPEN/CLOSE/RESET control of both breakers.
-  - [ ] Persist per-breaker status and show breaker/topology outcomes in Grafana.
+  - [x] Persist per-breaker status and show breaker/topology outcomes in Grafana.
 
-- [ ] **Documentation contracts and architecture**
+- [x] **Documentation contracts and architecture**
   - [x] Replace the README raw flowchart text with a rendered Mermaid architecture diagram.
   - [x] Document telemetry, named breaker status, scenario commands, and InfluxDB measurement/tag/field mappings in README.
-  - [ ] Verify the documented contracts against the Compose/MQTT/Node-RED/Grafana acceptance run.
+  - [x] Verify the documented contracts against the Compose/MQTT/Node-RED/Grafana acceptance run.
 
-- [ ] **Evidence**
+- [x] **Evidence**
   - [x] Add deterministic automated tests for topology, trip/reset interlocks, and the primary/backup scenario.
-  - [ ] Run the Compose/MQTT/HMI/Grafana end-to-end acceptance check and record the observed result.
+  - [x] Run the Compose/MQTT/HMI/Grafana end-to-end acceptance check and record the observed result.
 
 ### Acceptance criteria
 
 - [x] A downstream-overcurrent scenario opens BRK_L2 first, keeps BUS1 energized, and isolates BUS2.
 - [x] If the downstream condition remains uncleared, the modeled delayed backup behavior opens BRK_L1_SOURCE.
-- [ ] An operator can observe and command both breakers through Node-RED; telemetry, retained status, InfluxDB, and Grafana agree with the pandapower topology.
-- [ ] Automated tests and the end-to-end stack verification pass.
+- [x] An operator can observe and command both breakers through Node-RED; telemetry, retained status, InfluxDB, and Grafana agree with the pandapower topology.
+- [x] Automated tests and the end-to-end stack verification pass.
+
+### Runtime acceptance evidence — 2026-09-20
+
+- **Automated/configuration:** `python -m pytest -q` passed; `docker compose config --quiet` passed.
+- **Stack health:** `docker compose up -d --build` started `sim`, Mosquitto, Node-RED, InfluxDB, and Grafana healthy.
+- **Normal operation:** raw `telemetry/pandapower` contained strict JSON with BUS1/BUS2 energized and `loading_percent`; retained named L1/L2 statuses were `CLOSED` and not tripped.
+- **Operator path:** MQTT and Node-RED OPEN/CLOSE of BRK_L2 changed the solved feeder topology; Node-RED and Grafana displayed the resulting status/topology.
+- **Selective protection:** `DOWNSTREAM_OVERCURRENT` tripped BRK_L2 first, then BRK_L1_SOURCE as delayed backup while the scenario persisted.
+- **Interlock and recovery:** CLOSE was rejected while trip-latched; RESET cleared each latch without closing; staged L1 then L2 CLOSE restored BUS1 and BUS2.
+- **Result:** MQTT status, pandapower topology, Node-RED, InfluxDB-backed Grafana, automated tests, and Compose configuration agreed with the Sprint 5 acceptance criteria.
 
 ### Reality boundary
 

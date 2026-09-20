@@ -163,6 +163,18 @@ Each retained `status/breaker/<breaker>` message has this shape:
 `trip_reason` is either a reason string or `null`. This status is authoritative.
 The legacy `status/breaker` topic carries the L1 compatibility status.
 
+#### Legacy L1 telemetry compatibility
+
+Controlled `telemetry/pandapower` messages also include a `breaker` object
+containing the L1 controller snapshot: `state`, `tripped`,
+`undervoltage_alarm`, and `trip_reason`. It is retained for v0.4
+compatibility and has no breaker identity, so it represents
+`BRK_L1_SOURCE` only.
+
+Use retained named `status/breaker/<breaker>` messages for operational breaker
+state. They identify both L1 and L2 and are the authoritative HMI/status
+contract.
+
 #### Scenario command
 
 `cmd/sim/scenario/set` accepts exactly:
