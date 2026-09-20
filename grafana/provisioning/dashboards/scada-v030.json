@@ -284,7 +284,7 @@
           "refId": "A"
         }
       ],
-      "title": "Breaker State",
+      "title": "BRK_L1_SOURCE State",
       "type": "stat"
     },
     {
@@ -358,7 +358,7 @@
           "refId": "A"
         }
       ],
-      "title": "Trip Latch",
+      "title": "BRK_L1_SOURCE Trip Latch",
       "type": "stat"
     },
     {
@@ -432,7 +432,7 @@
           "refId": "A"
         }
       ],
-      "title": "Undervoltage Alarm",
+      "title": "L1 Undervoltage Alarm",
       "type": "stat"
     },
     {
@@ -515,11 +515,209 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\")\n  |> filter(fn: (r) => contains(value: r._field, set: [\"state\", \"tripped\", \"undervoltage_alarm\", \"trip_reason\"]))\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> keep(columns: [\"_time\", \"state\", \"tripped\", \"undervoltage_alarm\", \"trip_reason\"])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 100)",
+          "query": "from(bucket: \"scada\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\")\n  |> filter(fn: (r) => contains(value: r._field, set: [\"state\", \"tripped\", \"undervoltage_alarm\", \"trip_reason\"]))\n  |> pivot(rowKey: [\"_time\", \"breaker\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> keep(columns: [\"_time\", \"breaker\", \"state\", \"tripped\", \"undervoltage_alarm\", \"trip_reason\"])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 100)",
           "refId": "A"
         }
       ],
       "title": "Recent Breaker / Protection Status",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "CLOSED": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "CLOSED"
+                },
+                "OPEN": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "OPEN"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "Value",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "P951FEA4DE68E13C5"
+          },
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L2\" and r._field == \"state\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "BRK_L2 State",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "false": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "CLEAR"
+                },
+                "true": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "TRIPPED"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "Value",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "P951FEA4DE68E13C5"
+          },
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L2\" and r._field == \"tripped\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "BRK_L2 Trip Latch",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 10,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "P951FEA4DE68E13C5"
+          },
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"bus\" or r._measurement == \"line\")\n  |> filter(fn: (r) => r._field == \"energized\")\n  |> filter(fn: (r) => contains(value: r.name, set: [\"BUS1_LOAD\", \"BUS2_LOAD\", \"L1_5km\", \"L2_3km\"]))\n  |> group(columns: [\"_measurement\", \"name\"])\n  |> last()\n  |> group()\n  |> keep(columns: [\"_time\", \"_measurement\", \"name\", \"_value\"])\n  |> sort(columns: [\"_measurement\", \"name\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Feeder Topology Energization",
       "type": "table"
     }
   ],
@@ -537,6 +735,6 @@
   "timezone": "",
   "title": "SCADA v0.4.0 — Power & Operations",
   "uid": "scada-v030",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }
