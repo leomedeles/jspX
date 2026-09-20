@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-20
+
+### Added
+
+* Added BRK_L2 as a real downstream pandapower switch, allowing BUS2 to be isolated while BUS1 remains energized through BRK_L1_SOURCE.
+* Added named per-breaker MQTT OPEN, CLOSE, and RESET commands with retained authoritative status for BRK_L1_SOURCE and BRK_L2.
+* Added the deterministic `DOWNSTREAM_OVERCURRENT` scenario: BRK_L2 trips as the primary breaker, while BRK_L1_SOURCE acts as delayed backup if the condition persists.
+* Added two-breaker Node-RED operation, InfluxDB status persistence, and Grafana visibility for breaker and topology outcomes.
+* Added deterministic topology, command/interlock, and selective-protection tests.
+* Added durable MQTT, telemetry, historian, architecture, and Python-reference documentation.
+
+### Changed
+
+* Preserved the v0.4 L1 MQTT command/status aliases and the legacy L1-only `breaker` telemetry snapshot for compatibility.
+
+### Fixed
+
+* Preserved line `loading_percent` telemetry through the Node-RED historian transform.
+
 ## [0.4.0] - 2026-09-09
 
 ### Added
