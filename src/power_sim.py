@@ -25,10 +25,6 @@ except Exception:
 
 
 CONTROL_INTERVAL_S = 0.050
-OPEN_COMMAND_TOPIC = "cmd/breaker/open"
-CLOSE_COMMAND_TOPIC = "cmd/breaker/close"
-RESET_COMMAND_TOPIC = "cmd/breaker/reset"
-BREAKER_STATUS_TOPIC = "status/breaker"
 SCENARIO_COMMAND_TOPIC = "cmd/sim/scenario/set"
 BRK_F1 = "BRK_F1"
 BRK_R1 = "BRK_R1"
@@ -48,13 +44,8 @@ NAMED_STATUS_TOPICS = {
     for breaker_name in (BRK_F1, BRK_R1)
 }
 COMMAND_BY_TOPIC = {
-    OPEN_COMMAND_TOPIC: (BRK_F1, "OPEN"),
-    CLOSE_COMMAND_TOPIC: (BRK_F1, "CLOSE"),
-    RESET_COMMAND_TOPIC: (BRK_F1, "RESET"),
-    **{
-        topic: breaker_and_command
-        for breaker_and_command, topic in NAMED_COMMAND_TOPICS.items()
-    },
+    topic: breaker_and_command
+    for breaker_and_command, topic in NAMED_COMMAND_TOPICS.items()
 }
 
 
@@ -112,7 +103,6 @@ class BreakerMqttEventQueue:
 @dataclass(frozen=True)
 class ControlScanResult:
     telemetry: dict[str, object]
-    status: dict[str, object] | None
     command: str | None
     command_accepted: bool | None
     scenario: str | None = None
@@ -127,15 +117,15 @@ class ControlledPandapowerSimulator:
     def __init__(
         self,
         grid,
-        controller: BreakerController | None = None,
+        f1_controller: BreakerController | None = None,
         *,
         r1_controller: BreakerController | None = None,
     ) -> None:
         self.grid = grid
         self.controllers = {
             BRK_F1: (
-                controller
-                if controller is not None
+                f1_controller
+                if f1_controller is not None
                 else BreakerController(
                     pickup_ka=OVERCURRENT_PICKUP_KA,
                     trip_delay_s=F1_TRIP_DELAY_S,
@@ -150,7 +140,6 @@ class ControlledPandapowerSimulator:
                 )
             ),
         }
-        self.controller = self.controllers[BRK_F1]
 
     def command_breaker(self, breaker_name: str, command: str) -> bool:
         """Apply a local command to one controller, not the physical switch."""
@@ -204,31 +193,29 @@ class ControlledPandapowerSimulator:
             self._apply_controller_states()
             telemetry = self.grid.solve()
 
-        telemetry["breaker"] = self.controller.snapshot()
         return telemetry
 
 
-def breaker_status_payload(
-    controller, breaker_name: str | None = None
-) -> dict[str, object]:
+def breaker_status_payload(controller, breaker_name: str) -> dict[str, object]:
     """Build authoritative status from the controller's current snapshot."""
-    identity = {"breaker": breaker_name} if breaker_name is not None else {}
-    return {"ts": now_iso(), **identity, **controller.snapshot()}
+    return {
+        "ts": now_iso(),
+        "breaker": breaker_name,
+        **controller.snapshot(),
+    }
 
 
 def publish_breaker_status(
     client,
     status: dict[str, object],
-    *,
-    breaker_name: str | None = None,
 ):
     """Publish one authoritative, retained, strict-JSON status snapshot."""
     payload = json.dumps(status, separators=(",", ":"), allow_nan=False)
-    topic = (
-        BREAKER_STATUS_TOPIC
-        if breaker_name is None
-        else NAMED_STATUS_TOPICS[breaker_name]
-    )
+    breaker_name = str(status["breaker"])
+    try:
+        topic = NAMED_STATUS_TOPICS[breaker_name]
+    except KeyError as exc:
+        raise ValueError(f"unknown breaker: {breaker_name}") from exc
     return client.publish(
         topic,
         payload=payload,
@@ -264,7 +251,7 @@ def process_control_scan(
     }
     command = event.command if event is not None else None
     breaker_name = (
-        event.breaker_name or BRK_F1
+        event.breaker_name
         if event is not None and command is not None
         else None
     )
@@ -294,21 +281,13 @@ def process_control_scan(
         or after[name] != before[name]
     }
     statuses = {
-        name: breaker_status_payload(
-            simulator.controllers[name], breaker_name=name
-        )
+        name: breaker_status_payload(simulator.controllers[name], name)
         for name in simulator.controllers
         if name in status_due
     }
-    legacy_status = (
-        breaker_status_payload(simulator.controller)
-        if BRK_F1 in status_due
-        else None
-    )
 
     return ControlScanResult(
         telemetry=telemetry,
-        status=legacy_status,
         command=command,
         command_accepted=accepted,
         scenario=scenario,
@@ -499,14 +478,8 @@ def run_controlled_mqtt_mode(
                     vary_load=publish_due,
                 )
 
-                if result.status is not None:
-                    publish_breaker_status(client, result.status)
-                for breaker_name, status in result.statuses.items():
-                    publish_breaker_status(
-                        client,
-                        status,
-                        breaker_name=breaker_name,
-                    )
+                for status in result.statuses.values():
+                    publish_breaker_status(client, status)
 
                 if publish_due:
                     line = json.dumps(

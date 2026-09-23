@@ -14,13 +14,12 @@ def load_json(path: Path):
     with path.open(encoding="utf-8") as source:
         return json.load(source)
 
+
 def test_authoritative_status_is_written_with_required_influx_schema() -> None:
     flow = load_json(FLOW_PATH)
     nodes = {node["id"]: node for node in flow}
 
-    assert nodes["mqtt_in_status"]["topic"] == (
-        "status/breaker/BRK_L1_SOURCE"
-    )
+    assert nodes["mqtt_in_status"]["topic"] == "status/breaker/BRK_F1"
     assert "fn_status_to_lp" in nodes["json_parse"]["wires"][0]
     assert "fn_status_to_lp" in nodes["json_parse_l2"]["wires"][0]
 
@@ -28,7 +27,7 @@ def test_authoritative_status_is_written_with_required_influx_schema() -> None:
     function = transform["func"]
     assert "Date.parse(p.ts)" in function
     assert 'p.breaker' in function
-    assert '"BRK_L1_SOURCE", "BRK_L2"' in function
+    assert '"BRK_F1", "BRK_R1"' in function
     assert "breaker_status,breaker=${breaker}" in function
     for field in ("state", "tripped", "undervoltage_alarm", "trip_reason"):
         assert field in function
@@ -36,23 +35,27 @@ def test_authoritative_status_is_written_with_required_influx_schema() -> None:
     assert nodes["917c308f0b48aa53"]["wires"] == [["http_influx_write"]]
     assert nodes["http_influx_write"]["method"] == "POST"
 
+    serialized = json.dumps(flow)
+    for old_identity in ("BRK_L1_SOURCE", "BRK_L2"):
+        assert old_identity not in serialized
+
 
 def test_hmi_operates_and_displays_both_named_breakers() -> None:
     flow = load_json(FLOW_PATH)
     nodes = {node["id"]: node for node in flow}
 
     expected = {
-        "l1": {
+        "f1": {
             "group": "ui_group_main",
-            "breaker": "BRK_L1_SOURCE",
+            "breaker": "BRK_F1",
             "buttons": ("btn_open", "btn_close", "btn_reset"),
             "status": "mqtt_in_status",
             "parser": "json_parse",
             "display": ("ui_state_text", "ui_trip_text", "ui_trip_reason"),
         },
-        "l2": {
+        "r1": {
             "group": "ui_group_l2",
-            "breaker": "BRK_L2",
+            "breaker": "BRK_R1",
             "buttons": ("btn_open_l2", "btn_close_l2", "btn_reset_l2"),
             "status": "mqtt_in_status_l2",
             "parser": "json_parse_l2",
@@ -100,7 +103,17 @@ def test_existing_telemetry_influx_path_is_preserved() -> None:
     function = nodes["7d88f8edcae91d28"]["func"]
     assert "`bus,${tags}" in function
     assert "`line,${tags}" in function
-    assert "`ext_grid,site=main" in function
+    assert "Date.parse(p.ts)" in function
+    assert "Array.isArray(p.transformers)" in function
+    assert "`transformer,${tags}" in function
+    assert "transformer_id=${tr.transformer_idx}" in function
+    assert "name=${String(tr.name)" in function
+    assert "hv_bus=${String(tr.hv_bus)}" in function
+    assert "lv_bus=${String(tr.lv_bus)}" in function
+    assert "tr.loading_percent != null" in function
+    assert "`energized=${!!tr.energized}`" in function
+    assert "`quality=${JSON.stringify(tr.quality)}`" in function
+    assert "`ext_grid,${tags}" in function
     assert "`energized=${!!b.energized}`" in function
     assert "`quality=${JSON.stringify(b.quality)}`" in function
     assert "`energized=${!!l.energized}`" in function
@@ -124,11 +137,11 @@ def test_existing_dashboard_contains_influx_backed_operations_panels() -> None:
     assert panels["Line Active Power P (MW)"]["type"] == "timeseries"
 
     breaker_panels = {
-        "BRK_L1_SOURCE State": ("stat", "BRK_L1_SOURCE"),
-        "BRK_L1_SOURCE Trip Latch": ("stat", "BRK_L1_SOURCE"),
-        "BRK_L2 State": ("stat", "BRK_L2"),
-        "BRK_L2 Trip Latch": ("stat", "BRK_L2"),
-        "L1 Undervoltage Alarm": ("stat", "BRK_L1_SOURCE"),
+        "BRK_F1 State": ("stat", "BRK_F1"),
+        "BRK_F1 Trip Latch": ("stat", "BRK_F1"),
+        "BRK_R1 State": ("stat", "BRK_R1"),
+        "BRK_R1 Trip Latch": ("stat", "BRK_R1"),
+        "F1 Source-MV Undervoltage Alarm": ("stat", "BRK_F1"),
     }
     for title, (panel_type, breaker_name) in breaker_panels.items():
         panel = panels[title]
@@ -162,6 +175,24 @@ def test_existing_dashboard_contains_influx_backed_operations_panels() -> None:
     assert 'r._measurement == "bus" or r._measurement == "line"' in (
         topology_query
     )
+    assert 'r._measurement == "transformer"' in topology_query
     assert 'r._field == "energized"' in topology_query
-    for asset in ("BUS1_LOAD", "BUS2_LOAD", "L1_5km", "L2_3km"):
+    for asset in (
+        "BUS_MV_SOURCE",
+        "BUS_R1_REMOTE",
+        "BUS_SS1_MV",
+        "BUS_SS1_LV",
+        "L1_FEEDER_HEAD",
+        "L2_FEEDER_TAIL",
+        "T1_PRIMARY",
+        "T2_SS1",
+    ):
         assert asset in topology_query
+
+    transformer_loading = panels["Transformer Loading (%)"]
+    assert transformer_loading["type"] == "timeseries"
+    assert transformer_loading["datasource"]["uid"] == DATASOURCE_UID
+    loading_query = transformer_loading["targets"][0]["query"]
+    assert 'r._measurement == "transformer"' in loading_query
+    assert 'r._field == "loading_percent"' in loading_query
+    assert 'group(columns: ["name"])' in loading_query

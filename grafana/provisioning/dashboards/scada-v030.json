@@ -210,7 +210,7 @@
       },
       "id": 3,
       "panels": [],
-      "title": "Operations — BRK_L1_SOURCE",
+      "title": "Operations — BRK_F1",
       "type": "row"
     },
     {
@@ -280,11 +280,11 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"state\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_F1\" and r._field == \"state\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
           "refId": "A"
         }
       ],
-      "title": "BRK_L1_SOURCE State",
+      "title": "BRK_F1 State",
       "type": "stat"
     },
     {
@@ -354,11 +354,11 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"tripped\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_F1\" and r._field == \"tripped\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
           "refId": "A"
         }
       ],
-      "title": "BRK_L1_SOURCE Trip Latch",
+      "title": "BRK_F1 Trip Latch",
       "type": "stat"
     },
     {
@@ -428,11 +428,11 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L1_SOURCE\" and r._field == \"undervoltage_alarm\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_F1\" and r._field == \"undervoltage_alarm\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
           "refId": "A"
         }
       ],
-      "title": "L1 Undervoltage Alarm",
+      "title": "F1 Source-MV Undervoltage Alarm",
       "type": "stat"
     },
     {
@@ -589,11 +589,11 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L2\" and r._field == \"state\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_R1\" and r._field == \"state\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
           "refId": "A"
         }
       ],
-      "title": "BRK_L2 State",
+      "title": "BRK_R1 State",
       "type": "stat"
     },
     {
@@ -663,11 +663,11 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_L2\" and r._field == \"tripped\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"breaker_status\" and r.breaker == \"BRK_R1\" and r._field == \"tripped\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])",
           "refId": "A"
         }
       ],
-      "title": "BRK_L2 Trip Latch",
+      "title": "BRK_R1 Trip Latch",
       "type": "stat"
     },
     {
@@ -713,12 +713,61 @@
             "type": "influxdb",
             "uid": "P951FEA4DE68E13C5"
           },
-          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"bus\" or r._measurement == \"line\")\n  |> filter(fn: (r) => r._field == \"energized\")\n  |> filter(fn: (r) => contains(value: r.name, set: [\"BUS1_LOAD\", \"BUS2_LOAD\", \"L1_5km\", \"L2_3km\"]))\n  |> group(columns: [\"_measurement\", \"name\"])\n  |> last()\n  |> group()\n  |> keep(columns: [\"_time\", \"_measurement\", \"name\", \"_value\"])\n  |> sort(columns: [\"_measurement\", \"name\"])",
+          "query": "from(bucket: \"scada\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"bus\" or r._measurement == \"line\" or r._measurement == \"transformer\")\n  |> filter(fn: (r) => r._field == \"energized\")\n  |> filter(fn: (r) => contains(value: r.name, set: [\"BUS_MV_SOURCE\", \"BUS_R1_REMOTE\", \"BUS_SS1_MV\", \"BUS_SS1_LV\", \"L1_FEEDER_HEAD\", \"L2_FEEDER_TAIL\", \"T1_PRIMARY\", \"T2_SS1\"]))\n  |> group(columns: [\"_measurement\", \"name\"])\n  |> last()\n  |> group()\n  |> keep(columns: [\"_time\", \"_measurement\", \"name\", \"_value\"])\n  |> sort(columns: [\"_measurement\", \"name\"])",
           "refId": "A"
         }
       ],
       "title": "Feeder Topology Energization",
       "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "P951FEA4DE68E13C5"
+          },
+          "query": "from(bucket: \"scada\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"transformer\" and r._field == \"loading_percent\")\n  |> keep(columns: [\"_time\", \"_value\", \"name\"])\n  |> group(columns: [\"name\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Transformer Loading (%)",
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",
@@ -733,8 +782,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "SCADA v0.4.0 — Power & Operations",
+  "title": "SCADA v0.6.0 — Reference Feeder Operations",
   "uid": "scada-v030",
-  "version": 4,
+  "version": 6,
   "weekStart": ""
 }
