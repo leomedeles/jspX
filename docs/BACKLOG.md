@@ -1,3 +1,48 @@
+## Sprint 6 → v0.6.0: Reference-feeder vertical migration (planned)
+
+**Goal:** Replace the anonymous three-bus feeder with the v1 reference feeder while preserving a working operator-to-plant-to-historian SCADA loop.
+
+### Scope
+
+- [ ] **Reference plant**
+  - [ ] Replace the 20 kV three-bus plant with the accepted radial chain: 110 kV upstream grid → T1 110/20 kV → 20 kV source bus → F1 → L1 → R1 → L2 → T2 20/0.4 kV → aggregate LV demand.
+  - [ ] Rename the grid model to reflect the reference feeder and create the canonical v1 asset names: `BRK_F1`, `BRK_R1`, `BUS_MV_SOURCE`, `BUS_R1_REMOTE`, and SS1 assets.
+  - [ ] Replace per-breaker plant setters with identity-based physical-breaker access.
+  - [ ] Publish bus, line, transformer, and topology/quality telemetry for the new plant.
+
+- [ ] **Protection semantics required by the new topology**
+  - [ ] Replace `OVERCURRENT` with `TAIL_OVERCURRENT_TEST`: fivefold demand behind T2 must produce solved tail current and give R1 the 100 ms primary trip opportunity.
+  - [ ] F1 remains a 300 ms upstream backup and remains closed after R1 clears the tail current.
+  - [ ] Replace `UNDERVOLTAGE` with `LOW_SOURCE_VOLTAGE`, with F1's existing undervoltage alarm observing the source MV bus.
+  - [ ] Remove the synthetic `DOWNSTREAM_OVERCURRENT` scenario; do not describe a scenario input as a calculated fault.
+
+- [ ] **Operational path**
+  - [ ] Migrate named MQTT commands and retained status to `BRK_F1` and `BRK_R1`; remove the unqualified L1 aliases and identity-less breaker telemetry object.
+  - [ ] Update the tracked Node-RED HMI, Influx mappings, and existing Grafana operations view so commands, authoritative status, and topology evidence use the canonical identities.
+  - [ ] Make transformer loading observable. No new scenario control is added to the HMI.
+
+- [ ] **Evidence and documentation**
+  - [ ] Add deterministic tests for normal supply, F1 isolation, R1 isolation, tail-overcurrent selectivity, MQTT command/status, and telemetry quality.
+  - [ ] Update README’s single-line diagram, MQTT contract, data mapping, operating walkthrough, and modeled/simplified/not-modeled boundary.
+  - [ ] Run the relevant Compose, MQTT, HMI, historian, and dashboard acceptance check. Record evidence before marking this sprint complete.
+
+### Acceptance criteria
+
+- [ ] Normal operation supplies the aggregate LV demand through closed F1 and R1.
+- [ ] Opening F1 de-energizes the remote point and SS1; opening R1 leaves the remote point energized but de-energizes SS1.
+- [ ] `TAIL_OVERCURRENT_TEST` opens R1 first and leaves F1 closed once tail current disappears.
+- [ ] Node-RED OPEN/CLOSE/RESET, retained MQTT status, pandapower topology, InfluxDB, and Grafana agree for F1 and R1.
+- [ ] Transformer loading is visible and isolated values remain strict JSON `null` with the existing energized/quality meaning.
+- [ ] Automated tests, `docker compose config --quiet`, and recorded end-to-end stack verification pass.
+
+### Out-of-scope
+
+- IED extraction/refactor from `power_sim.py`.
+- `R1_OPENING_FAILURE_TEST`, `F1_ZONE_TEST`, calculated faults, and breaker-failure protection.
+- CT/VT modelling, protection curves/coordination study, autoreclosing, RTU/gateway service, IEC 61850, extra feeders, ring supply, DER, or production-security work.
+
+---
+
 ## Sprint 5 → v0.5.0: Selective feeder protection with BRK_L2 (released)
 
 **Goal:** Demonstrate a second, downstream breaker as one complete operational slice: its physical feeder effect, protection decision, operator control, and historian/dashboard evidence agree.
