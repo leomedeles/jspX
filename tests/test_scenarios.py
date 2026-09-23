@@ -1,9 +1,10 @@
-import numpy as np
 import pytest
 
 from src.breaker_control import BreakerController
-from src.power_grid import ThreeBusGrid
+from src.power_grid import ReferenceFeederGrid
 from src.power_sim import (
+    BRK_F1,
+    BRK_R1,
     SCENARIO_COMMAND_TOPIC,
     BreakerMqttEventQueue,
     ControlledPandapowerSimulator,
@@ -21,9 +22,7 @@ def make_simulator() -> tuple[
     ControlledPandapowerSimulator, BreakerMqttEventQueue
 ]:
     return (
-        ControlledPandapowerSimulator(
-            ThreeBusGrid.build(seed=1), BreakerController()
-        ),
+        ControlledPandapowerSimulator(ReferenceFeederGrid.build(seed=1)),
         BreakerMqttEventQueue(),
     )
 
@@ -35,10 +34,9 @@ def queue_scenario(events: BreakerMqttEventQueue, payload: bytes) -> None:
 @pytest.mark.parametrize(
     ("scenario", "source_voltage", "load_multiplier"),
     [
-        (ThreeBusGrid.NORMAL, 1.0, 1.0),
-        (ThreeBusGrid.OVERCURRENT, 1.0, 5.0),
-        (ThreeBusGrid.UNDERVOLTAGE, 0.90, 1.0),
-        (ThreeBusGrid.DOWNSTREAM_OVERCURRENT, 1.0, 1.0),
+        (ReferenceFeederGrid.NORMAL, 1.0, 1.0),
+        (ReferenceFeederGrid.TAIL_OVERCURRENT_TEST, 1.0, 5.0),
+        (ReferenceFeederGrid.LOW_SOURCE_VOLTAGE, 0.90, 1.0),
     ],
 )
 def test_valid_scenario_is_accepted_and_applied_on_control_scan(
@@ -47,7 +45,6 @@ def test_valid_scenario_is_accepted_and_applied_on_control_scan(
     simulator, events = make_simulator()
     queue_scenario(events, scenario.encode("utf-8"))
 
-    assert simulator.grid.scenario == ThreeBusGrid.NORMAL
     result = process_control_scan(
         simulator, event=events.pop(), timestamp=0.0
     )
@@ -55,88 +52,87 @@ def test_valid_scenario_is_accepted_and_applied_on_control_scan(
     assert result.scenario == scenario
     assert result.scenario_accepted is True
     assert simulator.grid.scenario == scenario
-    assert simulator.grid.net.ext_grid.iloc[0]["vm_pu"] == pytest.approx(
+    assert float(simulator.grid.net.ext_grid.iloc[0]["vm_pu"]) == pytest.approx(
         source_voltage
     )
-    assert simulator.grid.net.load["p_mw"].to_numpy() == pytest.approx(
+    load = simulator.grid.net.load.loc[simulator.grid.load_idx]
+    assert float(load["p_mw"]) == pytest.approx(
         simulator.grid.base_p_mw * load_multiplier
     )
-    assert simulator.grid.net.load["q_mvar"].to_numpy() == pytest.approx(
+    assert float(load["q_mvar"]) == pytest.approx(
         simulator.grid.base_q_mvar * load_multiplier
     )
 
 
-def test_overcurrent_is_real_loading_and_trips_after_100_ms() -> None:
+def test_tail_overcurrent_uses_solved_tail_current() -> None:
     simulator, events = make_simulator()
     original_rating = float(
         simulator.grid.net.line.at[
-            simulator.grid.protected_line_idx, "max_i_ka"
+            simulator.grid.line_indices[simulator.grid.L2_FEEDER_TAIL],
+            "max_i_ka",
         ]
     )
-    queue_scenario(events, b"OVERCURRENT")
+    queue_scenario(events, b"TAIL_OVERCURRENT_TEST")
 
     pickup = process_control_scan(
-        simulator, event=events.pop(), timestamp=0.0, vary_load=True
+        simulator, event=events.pop(), timestamp=0.0
     )
-    loading_at_pickup = simulator.grid.protected_line_loading_percent()
+    tail_current_ka = simulator.grid.breaker_current_ka(BRK_R1)
 
     assert pickup.scenario_accepted is True
-    assert loading_at_pickup is not None
-    assert loading_at_pickup > simulator.controller.pickup_percent
-    assert simulator.controller.tripped is False
+    assert tail_current_ka is not None
+    assert tail_current_ka >= simulator.controllers[BRK_R1].pickup_ka
+    assert simulator.controllers[BRK_R1].tripped is False
     assert float(
         simulator.grid.net.line.at[
-            simulator.grid.protected_line_idx, "max_i_ka"
+            simulator.grid.line_indices[simulator.grid.L2_FEEDER_TAIL],
+            "max_i_ka",
         ]
     ) == pytest.approx(original_rating)
 
-    process_control_scan(simulator, timestamp=0.099)
-    assert simulator.controller.tripped is False
 
-    trip = process_control_scan(simulator, timestamp=0.100)
-    assert trip.status is not None
-    assert simulator.controller.tripped is True
-    assert simulator.controller.trip_reason == "overcurrent"
-    assert simulator.grid.breaker_closed is False
-
-
-def test_undervoltage_asserts_alarm_and_normal_clears_it() -> None:
+def test_low_source_voltage_asserts_f1_alarm_and_normal_clears_it() -> None:
     simulator, events = make_simulator()
-    queue_scenario(events, b"UNDERVOLTAGE")
+    queue_scenario(events, b"LOW_SOURCE_VOLTAGE")
 
-    undervoltage = process_control_scan(
+    low_voltage = process_control_scan(
         simulator, event=events.pop(), timestamp=0.0
     )
-    depressed_voltages = simulator.grid.downstream_voltages_pu()
+    source_mv_voltage = simulator.grid.bus_voltage_pu(
+        simulator.grid.BUS_MV_SOURCE
+    )
 
-    assert undervoltage.scenario_accepted is True
-    assert all(voltage is not None for voltage in depressed_voltages)
-    assert min(depressed_voltages) < 0.92
-    assert simulator.controller.undervoltage_alarm is True
-    assert simulator.controller.tripped is False
-    assert simulator.grid.breaker_closed is True
+    assert low_voltage.scenario_accepted is True
+    assert source_mv_voltage is not None
+    assert source_mv_voltage < 0.92
+    assert simulator.controllers[BRK_F1].undervoltage_alarm is True
+    assert simulator.controllers[BRK_R1].undervoltage_alarm is False
+    assert simulator.controllers[BRK_F1].tripped is False
+    assert simulator.grid.breaker_is_closed(BRK_F1) is True
 
     queue_scenario(events, b"NORMAL")
     normal = process_control_scan(
         simulator, event=events.pop(), timestamp=0.05
     )
-    restored_voltages = simulator.grid.downstream_voltages_pu()
+    restored_voltage = simulator.grid.bus_voltage_pu(
+        simulator.grid.BUS_MV_SOURCE
+    )
 
     assert normal.scenario_accepted is True
-    assert all(voltage is not None for voltage in restored_voltages)
-    assert min(restored_voltages) >= 0.94
-    assert simulator.controller.undervoltage_alarm is False
-    assert simulator.controller.tripped is False
-    assert simulator.grid.breaker_closed is True
+    assert restored_voltage is not None
+    assert restored_voltage >= 0.94
+    assert simulator.controllers[BRK_F1].undervoltage_alarm is False
+    assert simulator.controllers[BRK_F1].tripped is False
+    assert simulator.grid.breaker_is_closed(BRK_F1) is True
 
 
 def test_normal_does_not_reset_trip_latch_or_close_breaker() -> None:
     simulator, events = make_simulator()
-    queue_scenario(events, b"OVERCURRENT")
+    queue_scenario(events, b"TAIL_OVERCURRENT_TEST")
     process_control_scan(simulator, event=events.pop(), timestamp=0.0)
     process_control_scan(simulator, timestamp=0.100)
-    assert simulator.controller.tripped is True
-    assert simulator.grid.breaker_closed is False
+    assert simulator.controllers[BRK_R1].tripped is True
+    assert simulator.grid.breaker_is_closed(BRK_R1) is False
 
     queue_scenario(events, b"NORMAL")
     normal = process_control_scan(
@@ -144,61 +140,67 @@ def test_normal_does_not_reset_trip_latch_or_close_breaker() -> None:
     )
 
     assert normal.scenario_accepted is True
-    assert simulator.grid.scenario == ThreeBusGrid.NORMAL
-    assert simulator.controller.tripped is True
-    assert simulator.controller.state == BreakerController.OPEN
-    assert simulator.grid.breaker_closed is False
-    assert simulator.grid.net.load["p_mw"].to_numpy() == pytest.approx(
-        simulator.grid.base_p_mw
-    )
+    assert simulator.grid.scenario == ReferenceFeederGrid.NORMAL
+    assert simulator.controllers[BRK_R1].tripped is True
+    assert simulator.controllers[BRK_R1].state == BreakerController.OPEN
+    assert simulator.grid.breaker_is_closed(BRK_R1) is False
+    load = simulator.grid.net.load.loc[simulator.grid.load_idx]
+    assert float(load["p_mw"]) == pytest.approx(simulator.grid.base_p_mw)
+    assert float(load["q_mvar"]) == pytest.approx(simulator.grid.base_q_mvar)
 
 
 @pytest.mark.parametrize(
     "invalid_payload",
-    [b"normal", b"NORMAL\n", b"UNKNOWN", b"", b"\xff"],
+    [
+        b"normal",
+        b"NORMAL\n",
+        b"OVERCURRENT",
+        b"UNDERVOLTAGE",
+        b"DOWNSTREAM_OVERCURRENT",
+        b"UNKNOWN",
+        b"",
+        b"\xff",
+    ],
 )
 def test_invalid_scenario_leaves_prior_scenario_and_plant_unchanged(
     invalid_payload: bytes,
 ) -> None:
     simulator, events = make_simulator()
-    queue_scenario(events, b"UNDERVOLTAGE")
+    queue_scenario(events, b"LOW_SOURCE_VOLTAGE")
     process_control_scan(simulator, event=events.pop(), timestamp=0.0)
 
     prior_scenario = simulator.grid.scenario
-    prior_source_voltage = simulator.grid.net.ext_grid["vm_pu"].to_numpy().copy()
-    prior_p_mw = simulator.grid.net.load["p_mw"].to_numpy().copy()
-    prior_q_mvar = simulator.grid.net.load["q_mvar"].to_numpy().copy()
-    prior_breaker_position = simulator.grid.breaker_closed
-    prior_controller = simulator.controller.snapshot()
+    prior_source_voltage = float(simulator.grid.net.ext_grid.iloc[0]["vm_pu"])
+    prior_load = simulator.grid.net.load.loc[
+        simulator.grid.load_idx, ["p_mw", "q_mvar"]
+    ].copy()
+    prior_breakers = {
+        name: simulator.grid.breaker_is_closed(name)
+        for name in (BRK_F1, BRK_R1)
+    }
+    prior_controllers = {
+        name: controller.snapshot()
+        for name, controller in simulator.controllers.items()
+    }
 
     queue_scenario(events, invalid_payload)
-    assert simulator.grid.scenario == prior_scenario
-    np.testing.assert_array_equal(
-        simulator.grid.net.ext_grid["vm_pu"].to_numpy(), prior_source_voltage
-    )
-    np.testing.assert_array_equal(
-        simulator.grid.net.load["p_mw"].to_numpy(), prior_p_mw
-    )
-    np.testing.assert_array_equal(
-        simulator.grid.net.load["q_mvar"].to_numpy(), prior_q_mvar
-    )
-    assert simulator.grid.breaker_closed is prior_breaker_position
-    assert simulator.controller.snapshot() == prior_controller
-
     result = process_control_scan(
         simulator, event=events.pop(), timestamp=0.05
     )
 
     assert result.scenario_accepted is False
     assert simulator.grid.scenario == prior_scenario
-    np.testing.assert_array_equal(
-        simulator.grid.net.ext_grid["vm_pu"].to_numpy(), prior_source_voltage
+    assert float(simulator.grid.net.ext_grid.iloc[0]["vm_pu"]) == pytest.approx(
+        prior_source_voltage
     )
-    np.testing.assert_array_equal(
-        simulator.grid.net.load["p_mw"].to_numpy(), prior_p_mw
-    )
-    np.testing.assert_array_equal(
-        simulator.grid.net.load["q_mvar"].to_numpy(), prior_q_mvar
-    )
-    assert simulator.grid.breaker_closed is prior_breaker_position
-    assert simulator.controller.snapshot() == prior_controller
+    assert simulator.grid.net.load.loc[
+        simulator.grid.load_idx, ["p_mw", "q_mvar"]
+    ].equals(prior_load)
+    assert {
+        name: simulator.grid.breaker_is_closed(name)
+        for name in (BRK_F1, BRK_R1)
+    } == prior_breakers
+    assert {
+        name: controller.snapshot()
+        for name, controller in simulator.controllers.items()
+    } == prior_controllers

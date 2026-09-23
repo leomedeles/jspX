@@ -16,15 +16,15 @@ class BreakerController:
         self,
         *,
         initial_state: str = CLOSED,
-        pickup_percent: float = 120.0,
+        pickup_ka: float = 0.20,
         trip_delay_s: float = 0.100,
         undervoltage_assert_pu: float = 0.92,
         undervoltage_clear_pu: float = 0.94,
     ) -> None:
         if initial_state not in (self.OPEN, self.CLOSED):
             raise ValueError("initial_state must be OPEN or CLOSED")
-        if pickup_percent <= 0:
-            raise ValueError("pickup_percent must be positive")
+        if pickup_ka <= 0:
+            raise ValueError("pickup_ka must be positive")
         if trip_delay_s < 0:
             raise ValueError("trip_delay_s must not be negative")
         if undervoltage_assert_pu >= undervoltage_clear_pu:
@@ -32,7 +32,7 @@ class BreakerController:
                 "undervoltage_assert_pu must be below undervoltage_clear_pu"
             )
 
-        self.pickup_percent = float(pickup_percent)
+        self.pickup_ka = float(pickup_ka)
         self.trip_delay_s = float(trip_delay_s)
         self.undervoltage_assert_pu = float(undervoltage_assert_pu)
         self.undervoltage_clear_pu = float(undervoltage_clear_pu)
@@ -64,7 +64,7 @@ class BreakerController:
     def evaluate(
         self,
         *,
-        current_percent: float | None,
+        current_ka: float | None,
         voltages_pu: Iterable[float | None],
         timestamp: float,
     ) -> dict[str, object]:
@@ -74,7 +74,7 @@ class BreakerController:
             raise ValueError("timestamp must be finite")
 
         self._evaluate_undervoltage(voltages_pu)
-        self._evaluate_overcurrent(current_percent, now)
+        self._evaluate_overcurrent(current_ka, now)
         return self.snapshot()
 
     def snapshot(self) -> dict[str, object]:
@@ -87,15 +87,15 @@ class BreakerController:
         }
 
     def _evaluate_overcurrent(
-        self, current_percent: float | None, timestamp: float
+        self, current_ka: float | None, timestamp: float
     ) -> None:
-        current = self._valid_measurement(current_percent)
+        current = self._valid_measurement(current_ka)
         protection_enabled = self.state == self.CLOSED and not self.tripped
 
         if (
             not protection_enabled
             or current is None
-            or current < self.pickup_percent
+            or current < self.pickup_ka
         ):
             self._overcurrent_started_at = None
             return

@@ -2,7 +2,6 @@ import json
 
 import pytest
 
-from src.breaker_control import BreakerController
 from src.power_grid import ReferenceFeederGrid
 from src.power_sim import BRK_F1, BRK_R1, ControlledPandapowerSimulator
 
@@ -63,6 +62,7 @@ def test_reference_feeder_uses_canonical_assets_and_reference_values() -> None:
     load = grid.net.load.loc[grid.load_idx]
     assert float(load["p_mw"]) == pytest.approx(2.0)
     assert float(load["q_mvar"]) == pytest.approx(0.5)
+    assert float(load["const_i_percent"]) == pytest.approx(50.0)
 
 
 def test_normal_supply_energizes_aggregate_load_through_real_line_switches() -> None:
@@ -194,7 +194,7 @@ def test_transformer_telemetry_has_identity_endpoints_and_quality() -> None:
 
 def test_commands_change_physical_breakers_only_on_control_scan() -> None:
     grid = ReferenceFeederGrid.build(seed=1)
-    simulator = ControlledPandapowerSimulator(grid, BreakerController())
+    simulator = ControlledPandapowerSimulator(grid)
 
     assert tuple(simulator.controllers) == (BRK_F1, BRK_R1)
     assert simulator.command_breaker(BRK_R1, "OPEN") is True

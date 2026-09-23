@@ -149,6 +149,9 @@ class ReferenceFeederGrid:
             bus=ss1_lv_bus,
             p_mw=2.0,
             q_mvar=0.5,
+            # A 50/50 constant-power/current aggregate remains solvable when
+            # the teaching scenario raises its nominal demand fivefold.
+            const_i_percent=50.0,
             name=ReferenceFeederGrid.LOAD_SS1_AGGREGATE,
         )
 
@@ -273,7 +276,13 @@ class ReferenceFeederGrid:
         if vary_load:
             self._apply_variation()
             self.step_count += 1
-        pp.runpp(self.net, algorithm="nr", tolerance_mva=1e-6, numba=False)
+        pp.runpp(
+            self.net,
+            algorithm="nr",
+            tolerance_mva=1e-6,
+            max_iteration=30,
+            numba=False,
+        )
         return self.read_measurements()
 
     @staticmethod

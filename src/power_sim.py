@@ -32,6 +32,9 @@ BREAKER_STATUS_TOPIC = "status/breaker"
 SCENARIO_COMMAND_TOPIC = "cmd/sim/scenario/set"
 BRK_F1 = "BRK_F1"
 BRK_R1 = "BRK_R1"
+OVERCURRENT_PICKUP_KA = 0.20
+F1_TRIP_DELAY_S = 0.300
+R1_TRIP_DELAY_S = 0.100
 
 NAMED_COMMAND_TOPICS = {
     (breaker_name, command): (
@@ -124,17 +127,27 @@ class ControlledPandapowerSimulator:
     def __init__(
         self,
         grid,
-        controller: BreakerController,
+        controller: BreakerController | None = None,
         *,
         r1_controller: BreakerController | None = None,
     ) -> None:
         self.grid = grid
         self.controllers = {
-            BRK_F1: controller,
+            BRK_F1: (
+                controller
+                if controller is not None
+                else BreakerController(
+                    pickup_ka=OVERCURRENT_PICKUP_KA,
+                    trip_delay_s=F1_TRIP_DELAY_S,
+                )
+            ),
             BRK_R1: (
                 r1_controller
                 if r1_controller is not None
-                else BreakerController()
+                else BreakerController(
+                    pickup_ka=OVERCURRENT_PICKUP_KA,
+                    trip_delay_s=R1_TRIP_DELAY_S,
+                )
             ),
         }
         self.controller = self.controllers[BRK_F1]
@@ -155,14 +168,14 @@ class ControlledPandapowerSimulator:
             )
 
     def _evaluate_protection(self, timestamp: float) -> None:
-        """Keep controller state evaluation independent from MQTT transport."""
+        """Evaluate both breakers from solved plant measurements."""
         self.controllers[BRK_R1].evaluate(
-            current_percent=None,
+            current_ka=self.grid.breaker_current_ka(BRK_R1),
             voltages_pu=(),
             timestamp=timestamp,
         )
         self.controllers[BRK_F1].evaluate(
-            current_percent=None,
+            current_ka=self.grid.breaker_current_ka(BRK_F1),
             voltages_pu=(
                 self.grid.bus_voltage_pu(self.grid.BUS_MV_SOURCE),
             ),
@@ -544,7 +557,7 @@ def main():
         from power_grid import ReferenceFeederGrid
 
         simulator = ControlledPandapowerSimulator(
-            ReferenceFeederGrid.build(), BreakerController()
+            ReferenceFeederGrid.build()
         )
         if args.mqtt:
             run_controlled_mqtt_mode(
