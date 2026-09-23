@@ -27,6 +27,17 @@ plant state.
 `ReferenceFeederGrid.build()` creates the fixed 110/20/0.4 kV radial feeder
 documented in the README. Stored mappings make access identity-based:
 
+```text
+GRID_110KV -- T1_PRIMARY -- BUS_MV_SOURCE -- BRK_F1 --
+L1_FEEDER_HEAD -- BUS_R1_REMOTE -- BRK_R1 -- L2_FEEDER_TAIL --
+BUS_SS1_MV -- T2_SS1 -- BUS_SS1_LV -- LOAD_SS1_AGGREGATE
+```
+
+`BRK_F1` is the line switch at the source end of `L1_FEEDER_HEAD`; `BRK_R1`
+is the line switch at the remote end of `L2_FEEDER_TAIL`. Opening F1 therefore
+isolates the remote point and SS1, while opening R1 leaves the remote point
+energized and isolates only SS1.
+
 | Mapping | Purpose |
 | --- | --- |
 | `bus_indices` | Canonical bus name to pandapower index |
@@ -39,7 +50,7 @@ Important public methods are:
 
 | Method | Result |
 | --- | --- |
-| `set_scenario(name)` | Atomically accepts `NORMAL`, `TAIL_OVERCURRENT_TEST`, or `LOW_SOURCE_VOLTAGE` and applies source/load inputs |
+| `set_scenario(name)` | Returns `True` and applies `NORMAL`, `TAIL_OVERCURRENT_TEST`, or `LOW_SOURCE_VOLTAGE`; returns `False` without changing inputs for another name |
 | `set_breaker_closed(name, closed)` | Changes a physical switch by canonical breaker identity |
 | `breaker_is_closed(name)` | Reads a physical switch by identity |
 | `breaker_current_ka(name)` | Returns the largest finite solved terminal current for the breaker's line |
@@ -60,6 +71,23 @@ Measurement conversion follows one rule set:
 - an open line switch makes through-current and line loading exactly zero;
 - isolated transformer electrical values remain unavailable rather than being
   invented as zeros.
+
+The returned telemetry shape is deliberately small and stable:
+
+```text
+{
+  "ts": ISO-8601 UTC timestamp,
+  "buses": [{name, vm_pu, va_degree, p_mw, q_mvar, energized, quality, ...}],
+  "lines": [{name, end, i_ka, loading_percent, energized, quality, ...}],
+  "transformers": [{name, loading_percent, energized, quality, ...}],
+  "ext_grid": {name, p_mw, q_mvar, ...}
+}
+```
+
+`buses`, `lines`, and `transformers` use canonical names and pandapower
+indices. A line has one record for each `from` and `to` terminal. This routine
+telemetry intentionally does not contain a breaker-state object; that state is
+published separately from the controller.
 
 ## `BreakerController`
 
@@ -119,6 +147,20 @@ and returns `ControlScanResult`. The `statuses` mapping contains only identified
 snapshots that are due because of startup, an addressed command, or a state
 transition. `publish_breaker_status()` publishes those snapshots retained on
 `status/breaker/BRK_F1` or `status/breaker/BRK_R1` with strict JSON.
+
+`ControlScanResult.command_accepted` is `False` when a latched breaker rejects
+`CLOSE`; `scenario_accepted` is `False` for an unsupported scenario. In both
+cases the following solve and telemetry still report the unchanged authoritative
+plant state. A retained status payload contains `ts`, `breaker`, `state`,
+`tripped`, `undervoltage_alarm`, and `trip_reason`.
+
+The complete command set is:
+
+| Intent | Topic | Payload |
+| --- | --- | --- |
+| F1 operation | `cmd/breaker/BRK_F1/open`, `/close`, or `/reset` | ignored |
+| R1 operation | `cmd/breaker/BRK_R1/open`, `/close`, or `/reset` | ignored |
+| Scenario selection | `cmd/sim/scenario/set` | One exact scenario name |
 
 Routine telemetry has no embedded breaker object. The retained identified
 status is authoritative for operator state.
