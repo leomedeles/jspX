@@ -30,25 +30,24 @@ CLOSE_COMMAND_TOPIC = "cmd/breaker/close"
 RESET_COMMAND_TOPIC = "cmd/breaker/reset"
 BREAKER_STATUS_TOPIC = "status/breaker"
 SCENARIO_COMMAND_TOPIC = "cmd/sim/scenario/set"
-BRK_L1_SOURCE = "BRK_L1_SOURCE"
-BRK_L2 = "BRK_L2"
-DOWNSTREAM_OVERCURRENT_PERCENT = 150.0
+BRK_F1 = "BRK_F1"
+BRK_R1 = "BRK_R1"
 
 NAMED_COMMAND_TOPICS = {
     (breaker_name, command): (
         f"cmd/breaker/{breaker_name}/{command.lower()}"
     )
-    for breaker_name in (BRK_L1_SOURCE, BRK_L2)
+    for breaker_name in (BRK_F1, BRK_R1)
     for command in ("OPEN", "CLOSE", "RESET")
 }
 NAMED_STATUS_TOPICS = {
     breaker_name: f"status/breaker/{breaker_name}"
-    for breaker_name in (BRK_L1_SOURCE, BRK_L2)
+    for breaker_name in (BRK_F1, BRK_R1)
 }
 COMMAND_BY_TOPIC = {
-    OPEN_COMMAND_TOPIC: (BRK_L1_SOURCE, "OPEN"),
-    CLOSE_COMMAND_TOPIC: (BRK_L1_SOURCE, "CLOSE"),
-    RESET_COMMAND_TOPIC: (BRK_L1_SOURCE, "RESET"),
+    OPEN_COMMAND_TOPIC: (BRK_F1, "OPEN"),
+    CLOSE_COMMAND_TOPIC: (BRK_F1, "CLOSE"),
+    RESET_COMMAND_TOPIC: (BRK_F1, "RESET"),
     **{
         topic: breaker_and_command
         for breaker_and_command, topic in NAMED_COMMAND_TOPICS.items()
@@ -127,23 +126,18 @@ class ControlledPandapowerSimulator:
         grid,
         controller: BreakerController,
         *,
-        l2_controller: BreakerController | None = None,
+        r1_controller: BreakerController | None = None,
     ) -> None:
         self.grid = grid
         self.controllers = {
-            BRK_L1_SOURCE: controller,
-            BRK_L2: (
-                l2_controller
-                if l2_controller is not None
+            BRK_F1: controller,
+            BRK_R1: (
+                r1_controller
+                if r1_controller is not None
                 else BreakerController()
             ),
         }
-        self._physical_switch_setters = {
-            BRK_L1_SOURCE: self.grid.set_breaker_closed,
-            BRK_L2: self.grid.set_l2_breaker_closed,
-        }
-        # Preserve the existing L1-focused simulator and MQTT API.
-        self.controller = self.controllers[BRK_L1_SOURCE]
+        self.controller = self.controllers[BRK_F1]
 
     def command_breaker(self, breaker_name: str, command: str) -> bool:
         """Apply a local command to one controller, not the physical switch."""
@@ -156,46 +150,22 @@ class ControlledPandapowerSimulator:
     def _apply_controller_states(self) -> None:
         """Write both authoritative controller positions to the plant model."""
         for breaker_name, controller in self.controllers.items():
-            set_closed = self._physical_switch_setters[breaker_name]
-            set_closed(controller.state == controller.CLOSED)
+            self.grid.set_breaker_closed(
+                breaker_name, controller.state == controller.CLOSED
+            )
 
     def _evaluate_protection(self, timestamp: float) -> None:
-        """Evaluate the fixed feeder's normal or downstream protection path."""
-        l1_controller = self.controllers[BRK_L1_SOURCE]
-        l2_controller = self.controllers[BRK_L2]
-        downstream_overcurrent = (
-            self.grid.scenario == self.grid.DOWNSTREAM_OVERCURRENT
-        )
-
-        if downstream_overcurrent:
-            # This fixed percentage is a deterministic teaching input. It is
-            # not a calculated short-circuit current or coordination study.
-            l2_controller.evaluate(
-                current_percent=DOWNSTREAM_OVERCURRENT_PERCENT,
-                voltages_pu=(),
-                timestamp=timestamp,
-            )
-            l1_controller.evaluate(
-                current_percent=(
-                    DOWNSTREAM_OVERCURRENT_PERCENT
-                    if l2_controller.tripped
-                    else None
-                ),
-                voltages_pu=self.grid.downstream_voltages_pu(),
-                timestamp=timestamp,
-            )
-            return
-
-        # Preserve the v0.4 L1 measurement-driven protection behavior. A
-        # cleared downstream scenario also resets any unfinished L2 timer.
-        l2_controller.evaluate(
+        """Keep controller state evaluation independent from MQTT transport."""
+        self.controllers[BRK_R1].evaluate(
             current_percent=None,
             voltages_pu=(),
             timestamp=timestamp,
         )
-        l1_controller.evaluate(
-            current_percent=self.grid.protected_line_loading_percent(),
-            voltages_pu=self.grid.downstream_voltages_pu(),
+        self.controllers[BRK_F1].evaluate(
+            current_percent=None,
+            voltages_pu=(
+                self.grid.bus_voltage_pu(self.grid.BUS_MV_SOURCE),
+            ),
             timestamp=timestamp,
         )
 
@@ -281,7 +251,7 @@ def process_control_scan(
     }
     command = event.command if event is not None else None
     breaker_name = (
-        event.breaker_name or BRK_L1_SOURCE
+        event.breaker_name or BRK_F1
         if event is not None and command is not None
         else None
     )
@@ -319,7 +289,7 @@ def process_control_scan(
     }
     legacy_status = (
         breaker_status_payload(simulator.controller)
-        if BRK_L1_SOURCE in status_due
+        if BRK_F1 in status_due
         else None
     )
 
@@ -559,7 +529,7 @@ def main():
     parser.add_argument("--out", default=os.path.join("data", "telemetry.ndjson"),
                         help="Output file path for file mode")
     parser.add_argument("--pandapower", action="store_true",
-                        help="Use the pandapower 3-bus model (emits {'ts', 'buses':[...]} schema)")
+                        help="Use the pandapower reference feeder model")
     args = parser.parse_args()
 
     # Graceful Ctrl+C
@@ -571,10 +541,10 @@ def main():
 
     # Choose producer: RNG (legacy) or pandapower grid
     if args.pandapower:
-        from power_grid import ThreeBusGrid
+        from power_grid import ReferenceFeederGrid
 
         simulator = ControlledPandapowerSimulator(
-            ThreeBusGrid.build(), BreakerController()
+            ReferenceFeederGrid.build(), BreakerController()
         )
         if args.mqtt:
             run_controlled_mqtt_mode(

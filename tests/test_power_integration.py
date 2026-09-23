@@ -3,180 +3,207 @@ import json
 import pytest
 
 from src.breaker_control import BreakerController
-from src.power_grid import ThreeBusGrid
-from src.power_sim import BRK_L1_SOURCE, BRK_L2, ControlledPandapowerSimulator
+from src.power_grid import ReferenceFeederGrid
+from src.power_sim import BRK_F1, BRK_R1, ControlledPandapowerSimulator
 
 
-def bus_by_name(payload: dict[str, object], name: str) -> dict[str, object]:
-    return next(bus for bus in payload["buses"] if bus["name"] == name)
-
-
-def protected_line_ends(
-    grid: ThreeBusGrid, payload: dict[str, object]
-) -> list[dict[str, object]]:
-    return [
-        line
-        for line in payload["lines"]
-        if line["line_idx"] == grid.protected_line_idx
-    ]
+def by_name(items: list[dict[str, object]], name: str) -> dict[str, object]:
+    return next(item for item in items if item["name"] == name)
 
 
 def line_ends(
-    payload: dict[str, object], line_idx: int
+    payload: dict[str, object], name: str
 ) -> list[dict[str, object]]:
-    return [
-        line for line in payload["lines"] if line["line_idx"] == line_idx
-    ]
+    return [line for line in payload["lines"] if line["name"] == name]
 
 
-def test_default_closed_breaker_energizes_downstream_section() -> None:
-    grid = ThreeBusGrid.build(seed=1)
+def test_reference_feeder_uses_canonical_assets_and_reference_values() -> None:
+    grid = ReferenceFeederGrid.build(seed=1)
+
+    assert set(grid.net.bus["name"]) == {
+        "GRID_110KV",
+        "BUS_MV_SOURCE",
+        "BUS_R1_REMOTE",
+        "BUS_SS1_MV",
+        "BUS_SS1_LV",
+    }
+    assert list(grid.net.ext_grid["name"]) == ["GRID_110KV"]
+    assert set(grid.net.line["name"]) == {
+        "L1_FEEDER_HEAD",
+        "L2_FEEDER_TAIL",
+    }
+    assert set(grid.net.trafo["name"]) == {"T1_PRIMARY", "T2_SS1"}
+    assert list(grid.net.load["name"]) == ["LOAD_SS1_AGGREGATE"]
+    assert set(grid.net.switch["name"]) == {"BRK_F1", "BRK_R1"}
+
+    t1 = grid.net.trafo.loc[grid.transformer_indices[grid.T1_PRIMARY]]
+    assert t1["std_type"] == "25 MVA 110/20 kV"
+    assert float(t1["sn_mva"]) == pytest.approx(25.0)
+    assert float(t1["vn_hv_kv"]) == pytest.approx(110.0)
+    assert float(t1["vn_lv_kv"]) == pytest.approx(20.0)
+
+    t2 = grid.net.trafo.loc[grid.transformer_indices[grid.T2_SS1]]
+    assert float(t2["sn_mva"]) == pytest.approx(2.5)
+    assert float(t2["vn_hv_kv"]) == pytest.approx(20.0)
+    assert float(t2["vn_lv_kv"]) == pytest.approx(0.4)
+    assert float(t2["vk_percent"]) == pytest.approx(6.0)
+    assert float(t2["vkr_percent"]) == pytest.approx(1.0)
+    assert float(t2["pfe_kw"]) == pytest.approx(6.0)
+    assert float(t2["i0_percent"]) == pytest.approx(0.25)
+    assert float(t2["shift_degree"]) == pytest.approx(150.0)
+
+    for name, length in ((grid.L1_FEEDER_HEAD, 5.0), (grid.L2_FEEDER_TAIL, 3.0)):
+        line = grid.net.line.loc[grid.line_indices[name]]
+        assert float(line["length_km"]) == pytest.approx(length)
+        assert float(line["r_ohm_per_km"]) == pytest.approx(0.5939)
+        assert float(line["x_ohm_per_km"]) == pytest.approx(0.372)
+        assert float(line["c_nf_per_km"]) == pytest.approx(9.5)
+        assert float(line["max_i_ka"]) == pytest.approx(0.21)
+
+    load = grid.net.load.loc[grid.load_idx]
+    assert float(load["p_mw"]) == pytest.approx(2.0)
+    assert float(load["q_mvar"]) == pytest.approx(0.5)
+
+
+def test_normal_supply_energizes_aggregate_load_through_real_line_switches() -> None:
+    grid = ReferenceFeederGrid.build(seed=1)
 
     payload = grid.solve()
 
-    switch = grid.net.switch.loc[grid.breaker_switch_idx]
-    assert bool(switch["closed"]) is True
-    assert switch["et"] == "l"
-    assert int(switch["bus"]) == int(
-        grid.net.line.at[grid.protected_line_idx, "from_bus"]
-    )
-    assert int(switch["element"]) == grid.protected_line_idx
-    assert bus_by_name(payload, "BUS1_LOAD")["energized"] is True
-    assert bus_by_name(payload, "BUS2_LOAD")["energized"] is True
-    assert grid.protected_line_loading_percent() > 0.0
+    assert grid.breaker_is_closed(BRK_F1) is True
+    assert grid.breaker_is_closed(BRK_R1) is True
+    for breaker_name in (BRK_F1, BRK_R1):
+        switch = grid.net.switch.loc[grid.breaker_switch_indices[breaker_name]]
+        assert switch["name"] == breaker_name
+        assert switch["et"] == "l"
+        assert int(switch["element"]) == grid.breaker_line_indices[breaker_name]
+        assert grid.breaker_current_ka(breaker_name) > 0.0
 
-
-def test_open_l2_breaker_isolates_only_bus2() -> None:
-    grid = ThreeBusGrid.build(seed=1)
-
-    switch = grid.net.switch.loc[grid.l2_breaker_switch_idx]
-    assert switch["name"] == "BRK_L2"
-    assert switch["et"] == "l"
-    assert int(switch["bus"]) == int(
-        grid.net.line.at[grid.l2_line_idx, "from_bus"]
-    )
-    assert int(switch["element"]) == grid.l2_line_idx
-    assert grid.breaker_closed is True
-    assert grid.l2_breaker_closed is True
-
-    grid.set_l2_breaker_closed(False)
-    payload = grid.solve()
-
-    assert grid.breaker_closed is True
-    assert grid.l2_breaker_closed is False
-    assert bus_by_name(payload, "BUS1_LOAD")["energized"] is True
-    l1_ends = protected_line_ends(grid, payload)
-    assert all(line["i_ka"] > 0.0 for line in l1_ends)
-    assert all(line["loading_percent"] > 0.0 for line in l1_ends)
-
-    bus2 = bus_by_name(payload, "BUS2_LOAD")
-    assert bus2["vm_pu"] is None
-    assert bus2["energized"] is False
-    assert bus2["quality"] == "NOT_ENERGIZED"
-    for line in line_ends(payload, grid.l2_line_idx):
-        assert line["i_ka"] == pytest.approx(0.0, abs=1e-12)
-        assert line["loading_percent"] == pytest.approx(0.0, abs=1e-12)
-        assert line["energized"] is False
-        assert line["quality"] == "NOT_ENERGIZED"
-
+    for bus in payload["buses"]:
+        assert bus["energized"] is True
+        assert bus["quality"] == "GOOD"
+    assert by_name(payload["transformers"], grid.T2_SS1)[
+        "loading_percent"
+    ] > 0.0
+    assert payload["ext_grid"]["name"] == grid.GRID_110KV
     json.dumps(payload, allow_nan=False)
 
 
-def test_l2_local_commands_are_applied_only_during_control_steps() -> None:
-    grid = ThreeBusGrid.build(seed=1)
-    simulator = ControlledPandapowerSimulator(grid, BreakerController())
+def test_open_f1_deenergizes_remote_point_and_ss1() -> None:
+    grid = ReferenceFeederGrid.build(seed=1)
+    grid.set_breaker_closed(BRK_F1, False)
 
-    assert tuple(simulator.controllers) == (BRK_L1_SOURCE, BRK_L2)
-    assert tuple(simulator._physical_switch_setters) == (
-        BRK_L1_SOURCE,
-        BRK_L2,
+    payload = grid.solve()
+
+    assert grid.breaker_is_closed(BRK_F1) is False
+    assert grid.breaker_is_closed(BRK_R1) is True
+    assert by_name(payload["buses"], grid.BUS_MV_SOURCE)["energized"] is True
+    for bus_name in (
+        grid.BUS_R1_REMOTE,
+        grid.BUS_SS1_MV,
+        grid.BUS_SS1_LV,
+    ):
+        bus = by_name(payload["buses"], bus_name)
+        assert bus["vm_pu"] is None
+        assert bus["energized"] is False
+        assert bus["quality"] == "NOT_ENERGIZED"
+    for line in line_ends(payload, grid.L1_FEEDER_HEAD):
+        assert line["i_ka"] == pytest.approx(0.0, abs=1e-12)
+        assert line["loading_percent"] == pytest.approx(0.0, abs=1e-12)
+        assert line["energized"] is False
+    t2 = by_name(payload["transformers"], grid.T2_SS1)
+    assert t2["loading_percent"] is None
+    assert t2["energized"] is False
+    assert t2["quality"] == "NOT_ENERGIZED"
+    json.dumps(payload, allow_nan=False)
+
+
+def test_open_r1_keeps_remote_point_energized_but_deenergizes_ss1() -> None:
+    grid = ReferenceFeederGrid.build(seed=1)
+    grid.set_breaker_closed(BRK_R1, False)
+
+    payload = grid.solve()
+
+    assert grid.breaker_is_closed(BRK_F1) is True
+    assert grid.breaker_is_closed(BRK_R1) is False
+    assert by_name(payload["buses"], grid.BUS_R1_REMOTE)["energized"] is True
+    for bus_name in (grid.BUS_SS1_MV, grid.BUS_SS1_LV):
+        bus = by_name(payload["buses"], bus_name)
+        assert bus["vm_pu"] is None
+        assert bus["energized"] is False
+        assert bus["quality"] == "NOT_ENERGIZED"
+    assert all(
+        line["i_ka"] > 0.0
+        for line in line_ends(payload, grid.L1_FEEDER_HEAD)
     )
-    assert simulator.controllers[BRK_L1_SOURCE] is simulator.controller
-    l2_controller = simulator.controllers[BRK_L2]
-    assert simulator.controller.state == BreakerController.CLOSED
-    assert l2_controller.state == BreakerController.CLOSED
-    assert grid.breaker_closed is True
-    assert grid.l2_breaker_closed is True
-
-    assert simulator.command_breaker(BRK_L2, "OPEN") is True
-    assert l2_controller.state == BreakerController.OPEN
-    assert grid.l2_breaker_closed is True
-
-    opened = simulator.control_step(timestamp=0.00)
-
-    assert simulator.controller.state == BreakerController.CLOSED
-    assert grid.breaker_closed is True
-    assert grid.l2_breaker_closed is False
-    assert bus_by_name(opened, "BUS1_LOAD")["energized"] is True
-    assert bus_by_name(opened, "BUS2_LOAD")["vm_pu"] is None
-    assert bus_by_name(opened, "BUS2_LOAD")["energized"] is False
-    assert bus_by_name(opened, "BUS2_LOAD")["quality"] == "NOT_ENERGIZED"
-    json.dumps(opened, allow_nan=False)
-
-    assert simulator.command_breaker(BRK_L2, "CLOSE") is True
-    assert l2_controller.state == BreakerController.CLOSED
-    assert grid.l2_breaker_closed is False
-
-    closed = simulator.control_step(timestamp=0.05)
-
-    assert grid.breaker_closed is True
-    assert grid.l2_breaker_closed is True
-    assert bus_by_name(closed, "BUS1_LOAD")["energized"] is True
-    assert bus_by_name(closed, "BUS2_LOAD")["vm_pu"] is not None
-    assert bus_by_name(closed, "BUS2_LOAD")["energized"] is True
-    assert bus_by_name(closed, "BUS2_LOAD")["quality"] == "GOOD"
-    json.dumps(closed, allow_nan=False)
-
-
-def test_open_breaker_operates_switch_and_isolates_protected_path() -> None:
-    grid = ThreeBusGrid.build(seed=1)
-    controller = BreakerController()
-    simulator = ControlledPandapowerSimulator(grid, controller)
-    controller.open()
-
-    payload = simulator.control_step(timestamp=0.0)
-
-    assert grid.breaker_closed is False
-    assert bus_by_name(payload, "BUS0_SLACK")["energized"] is True
-    for line in protected_line_ends(grid, payload):
-        assert line["p_mw"] == pytest.approx(0.0, abs=1e-12)
+    for line in line_ends(payload, grid.L2_FEEDER_TAIL):
         assert line["i_ka"] == pytest.approx(0.0, abs=1e-12)
         assert line["loading_percent"] == pytest.approx(0.0, abs=1e-12)
         assert line["energized"] is False
         assert line["quality"] == "NOT_ENERGIZED"
-    for bus_name in ("BUS1_LOAD", "BUS2_LOAD"):
-        bus = bus_by_name(payload, bus_name)
-        assert bus["vm_pu"] is None
-        assert bus["energized"] is False
-        assert bus["quality"] == "NOT_ENERGIZED"
+    t2 = by_name(payload["transformers"], grid.T2_SS1)
+    assert t2["vm_hv_pu"] is None
+    assert t2["vm_lv_pu"] is None
+    assert t2["energized"] is False
+    json.dumps(payload, allow_nan=False)
 
 
-def test_protection_trip_opens_physical_switch_in_same_control_step() -> None:
-    grid = ThreeBusGrid.build(seed=1)
-    grid.net.line.at[grid.protected_line_idx, "max_i_ka"] = 0.02
-    controller = BreakerController()
-    simulator = ControlledPandapowerSimulator(grid, controller)
+def test_breaker_access_is_generic_and_rejects_unknown_identity() -> None:
+    grid = ReferenceFeederGrid.build(seed=1)
 
-    simulator.control_step(timestamp=0.00)
-    payload = simulator.control_step(timestamp=0.10)
+    for breaker_name in (BRK_F1, BRK_R1):
+        grid.set_breaker_closed(breaker_name, False)
+        assert grid.breaker_is_closed(breaker_name) is False
+        grid.set_breaker_closed(breaker_name, True)
+        assert grid.breaker_is_closed(breaker_name) is True
 
-    assert controller.tripped is True
-    assert controller.state == controller.OPEN
-    assert grid.breaker_closed is False
-    assert payload["breaker"]["tripped"] is True
-    assert all(
-        line["loading_percent"] == pytest.approx(0.0, abs=1e-12)
-        for line in protected_line_ends(grid, payload)
-    )
+    with pytest.raises(ValueError, match="unknown breaker: UNKNOWN"):
+        grid.set_breaker_closed("UNKNOWN", False)
+    with pytest.raises(ValueError, match="unknown breaker: UNKNOWN"):
+        grid.breaker_is_closed("UNKNOWN")
 
 
-def test_disconnected_telemetry_is_strict_json() -> None:
-    grid = ThreeBusGrid.build(seed=1)
-    grid.set_breaker_closed(False)
+def test_transformer_telemetry_has_identity_endpoints_and_quality() -> None:
+    grid = ReferenceFeederGrid.build(seed=1)
 
     payload = grid.solve()
 
-    encoded = json.dumps(payload, allow_nan=False)
-    assert '"vm_pu": null' in encoded
-    assert bus_by_name(payload, "BUS1_LOAD")["vm_pu"] is None
-    assert bus_by_name(payload, "BUS2_LOAD")["vm_pu"] is None
+    for transformer_name in (grid.T1_PRIMARY, grid.T2_SS1):
+        transformer = by_name(payload["transformers"], transformer_name)
+        assert transformer["transformer_idx"] == grid.transformer_indices[
+            transformer_name
+        ]
+        assert isinstance(transformer["hv_bus"], int)
+        assert isinstance(transformer["lv_bus"], int)
+        for field in (
+            "p_hv_mw",
+            "q_hv_mvar",
+            "p_lv_mw",
+            "q_lv_mvar",
+            "i_hv_ka",
+            "i_lv_ka",
+            "vm_hv_pu",
+            "vm_lv_pu",
+            "loading_percent",
+        ):
+            assert transformer[field] is not None
+        assert transformer["energized"] is True
+        assert transformer["quality"] == "GOOD"
+    json.dumps(payload, allow_nan=False)
+
+
+def test_commands_change_physical_breakers_only_on_control_scan() -> None:
+    grid = ReferenceFeederGrid.build(seed=1)
+    simulator = ControlledPandapowerSimulator(grid, BreakerController())
+
+    assert tuple(simulator.controllers) == (BRK_F1, BRK_R1)
+    assert simulator.command_breaker(BRK_R1, "OPEN") is True
+    assert grid.breaker_is_closed(BRK_R1) is True
+
+    opened = simulator.control_step(timestamp=0.0)
+
+    assert grid.breaker_is_closed(BRK_F1) is True
+    assert grid.breaker_is_closed(BRK_R1) is False
+    assert by_name(opened["buses"], grid.BUS_R1_REMOTE)["energized"] is True
+    assert by_name(opened["buses"], grid.BUS_SS1_LV)["energized"] is False
+    json.dumps(opened, allow_nan=False)
