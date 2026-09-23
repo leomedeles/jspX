@@ -1,39 +1,51 @@
-## Sprint 6 → v0.6.0: Reference-feeder vertical migration (planned)
+## Sprint 6 → v0.6.0: Reference-feeder vertical migration (acceptance verified; release pending)
 
 **Goal:** Replace the anonymous three-bus feeder with the v1 reference feeder while preserving a working operator-to-plant-to-historian SCADA loop.
 
 ### Scope
 
-- [ ] **Reference plant**
-  - [ ] Replace the 20 kV three-bus plant with the accepted radial chain: 110 kV upstream grid → T1 110/20 kV → 20 kV source bus → F1 → L1 → R1 → L2 → T2 20/0.4 kV → aggregate LV demand.
-  - [ ] Rename the grid model to reflect the reference feeder and create the canonical v1 asset names: `BRK_F1`, `BRK_R1`, `BUS_MV_SOURCE`, `BUS_R1_REMOTE`, and SS1 assets.
-  - [ ] Replace per-breaker plant setters with identity-based physical-breaker access.
-  - [ ] Publish bus, line, transformer, and topology/quality telemetry for the new plant.
+- [x] **Reference plant**
+  - [x] Replace the 20 kV three-bus plant with the accepted radial chain: 110 kV upstream grid → T1 110/20 kV → 20 kV source bus → F1 → L1 → R1 → L2 → T2 20/0.4 kV → aggregate LV demand.
+  - [x] Rename the grid model to reflect the reference feeder and create the canonical v1 asset names: `BRK_F1`, `BRK_R1`, `BUS_MV_SOURCE`, `BUS_R1_REMOTE`, and SS1 assets.
+  - [x] Replace per-breaker plant setters with identity-based physical-breaker access.
+  - [x] Publish bus, line, transformer, and topology/quality telemetry for the new plant.
 
-- [ ] **Protection semantics required by the new topology**
-  - [ ] Replace `OVERCURRENT` with `TAIL_OVERCURRENT_TEST`: fivefold demand behind T2 must produce solved tail current and give R1 the 100 ms primary trip opportunity.
-  - [ ] F1 remains a 300 ms upstream backup and remains closed after R1 clears the tail current.
-  - [ ] Replace `UNDERVOLTAGE` with `LOW_SOURCE_VOLTAGE`, with F1's existing undervoltage alarm observing the source MV bus.
-  - [ ] Remove the synthetic `DOWNSTREAM_OVERCURRENT` scenario; do not describe a scenario input as a calculated fault.
+- [x] **Protection semantics required by the new topology**
+  - [x] Replace `OVERCURRENT` with `TAIL_OVERCURRENT_TEST`: fivefold demand behind T2 must produce solved tail current and give R1 the 100 ms primary trip opportunity.
+  - [x] F1 remains a 300 ms upstream backup and remains closed after R1 clears the tail current.
+  - [x] Replace `UNDERVOLTAGE` with `LOW_SOURCE_VOLTAGE`, with F1's existing undervoltage alarm observing the source MV bus.
+  - [x] Remove the synthetic `DOWNSTREAM_OVERCURRENT` scenario; do not describe a scenario input as a calculated fault.
 
-- [ ] **Operational path**
-  - [ ] Migrate named MQTT commands and retained status to `BRK_F1` and `BRK_R1`; remove the unqualified L1 aliases and identity-less breaker telemetry object.
-  - [ ] Update the tracked Node-RED HMI, Influx mappings, and existing Grafana operations view so commands, authoritative status, and topology evidence use the canonical identities.
-  - [ ] Make transformer loading observable. No new scenario control is added to the HMI.
+- [x] **Operational path**
+  - [x] Migrate named MQTT commands and retained status to `BRK_F1` and `BRK_R1`; remove the unqualified L1 aliases and identity-less breaker telemetry object.
+  - [x] Update the tracked Node-RED HMI, Influx mappings, and existing Grafana operations view so commands, authoritative status, and topology evidence use the canonical identities.
+  - [x] Make transformer loading observable. No new scenario control is added to the HMI.
 
-- [ ] **Evidence and documentation**
-  - [ ] Add deterministic tests for normal supply, F1 isolation, R1 isolation, tail-overcurrent selectivity, MQTT command/status, and telemetry quality.
-  - [ ] Update README’s single-line diagram, MQTT contract, data mapping, operating walkthrough, and modeled/simplified/not-modeled boundary.
-  - [ ] Run the relevant Compose, MQTT, HMI, historian, and dashboard acceptance check. Record evidence before marking this sprint complete.
+- [x] **Evidence and documentation**
+  - [x] Add deterministic tests for normal supply, F1 isolation, R1 isolation, tail-overcurrent selectivity, MQTT command/status, and telemetry quality.
+  - [x] Update README’s single-line diagram, MQTT contract, data mapping, operating walkthrough, and modeled/simplified/not-modeled boundary.
+  - [x] Run the relevant Compose, MQTT, HMI, historian, and dashboard acceptance check. Record evidence before marking this sprint complete.
 
 ### Acceptance criteria
 
-- [ ] Normal operation supplies the aggregate LV demand through closed F1 and R1.
-- [ ] Opening F1 de-energizes the remote point and SS1; opening R1 leaves the remote point energized but de-energizes SS1.
-- [ ] `TAIL_OVERCURRENT_TEST` opens R1 first and leaves F1 closed once tail current disappears.
-- [ ] Node-RED OPEN/CLOSE/RESET, retained MQTT status, pandapower topology, InfluxDB, and Grafana agree for F1 and R1.
-- [ ] Transformer loading is visible and isolated values remain strict JSON `null` with the existing energized/quality meaning.
-- [ ] Automated tests, `docker compose config --quiet`, and recorded end-to-end stack verification pass.
+- [x] Normal operation supplies the aggregate LV demand through closed F1 and R1.
+- [x] Opening F1 de-energizes the remote point and SS1; opening R1 leaves the remote point energized but de-energizes SS1.
+- [x] `TAIL_OVERCURRENT_TEST` opens R1 first and leaves F1 closed once tail current disappears.
+- [x] Node-RED OPEN/CLOSE/RESET, retained MQTT status, pandapower topology, InfluxDB, and Grafana agree for F1 and R1.
+- [x] Transformer loading is visible and isolated values remain strict JSON `null` with the existing energized/quality meaning.
+- [x] Automated tests, `docker compose config --quiet`, and recorded end-to-end stack verification pass.
+
+### Acceptance evidence — 2026-09-23
+
+- **Automated/configuration:** `.\.venv\Scripts\python.exe -m pytest -q` passed 53 tests; `docker compose config --quiet` passed.
+- **Stack health:** `docker compose up -d --build` completed; `sim`, Node-RED, Mosquitto, InfluxDB, and Grafana were running, with `sim` and Node-RED healthy.
+- **Normal and switching:** live MQTT telemetry showed closed F1/R1 supplying all reference-feeder buses; F1 OPEN de-energized the remote point and SS1; R1 OPEN kept `BUS_R1_REMOTE` energized and de-energized SS1.
+- **Protection/recovery:** the first non-retained tail-test transition was the R1 overcurrent trip; retained status and topology showed R1 open/tripped, F1 closed/not tripped, and SS1 isolated. CLOSE was rejected while latched; RESET left R1 open; a later CLOSE restored SS1.
+- **Voltage alarm:** `LOW_SOURCE_VOLTAGE` produced 0.896 pu at `BUS_MV_SOURCE`, asserted F1's alarm without a trip, and `NORMAL` cleared it.
+- **HMI:** the live Node-RED dashboard was visually checked in normal operation and during the selective trip; it showed canonical F1/R1 identity, F1 closed/clear, R1 open/tripped, and `overcurrent` reason.
+- **Historian/Grafana:** an Influx query returned canonical F1/R1 status plus T1/T2 loading and electrical fields. The provisioned v0.6 dashboard was fetched from Grafana, and its datasource query returned current loading frames for both transformers.
+- **Retained migration:** three stale v0.5 retained messages in the reused broker volume were cleared individually; the retained wildcard then returned only `status/breaker/BRK_F1` and `status/breaker/BRK_R1`. No volume was deleted.
+- **Release state:** acceptance is verified on the feature branch. Merge, tag, changelog release entry, and publication remain separate approval steps.
 
 ### Out-of-scope
 
