@@ -1,4 +1,4 @@
-## Sprint 6 → v0.6.0: Reference-feeder vertical migration (acceptance verified; release pending)
+## Sprint 6 → v0.6.0: Reference-feeder vertical migration (released)
 
 **Goal:** Replace the anonymous three-bus feeder with the v1 reference feeder while preserving a working operator-to-plant-to-historian SCADA loop.
 
@@ -46,6 +46,15 @@
 - **Historian/Grafana:** an Influx query returned canonical F1/R1 status plus T1/T2 loading and electrical fields. The provisioned v0.6 dashboard was fetched from Grafana, and its datasource query returned current loading frames for both transformers.
 - **Retained migration:** three stale v0.5 retained messages in the reused broker volume were cleared individually; the retained wildcard then returned only `status/breaker/BRK_F1` and `status/breaker/BRK_R1`. No volume was deleted.
 - **Release state:** acceptance is verified on the feature branch. Merge, tag, changelog release entry, and publication remain separate approval steps.
+
+### Release closeout — 2026-09-27
+
+- The acceptance-verified reference-feeder candidate was merged through PR #9.
+- Issue #8 corrected the Grafana voltage trend: SS1 curves now show a gap while
+  de-energized and resume only after restoration; no zero-filled, held, or
+  visually interpolated voltage is presented.
+- This closeout records the v0.6.0 release state; tag and GitHub publication
+  follow this documentation commit.
 
 ### Out-of-scope
 
@@ -287,4 +296,6 @@ Priorities rank work after the active sprint. P1 is the next candidate to consid
 - [x] `v0.3.1`: reproducible clone-to-dashboard startup path and runtime-state recovery.
 - [x] `v0.4.0`: physical L1 breaker control/protection loop, Node-RED operation, historian, and Grafana evidence.
 - [x] `v0.5.0`: two-breaker selective feeder protection with BRK_L2 primary and BRK_L1_SOURCE delayed backup, named MQTT control/status, Node-RED and Grafana observability, and documented acceptance evidence.
-
+- [x] `v0.6.0`: 110/20/0.4 kV reference radial feeder with canonical F1/R1
+  control/status, R1-primary/F1-backup tail-overcurrent behavior, transformer
+  observability, and truthful de-energized Grafana voltage gaps.

@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-26
+
+### Added
+
+- Added the 110/20/0.4 kV reference radial feeder: upstream grid, T1, F1,
+  L1, remote R1, L2, T2, and aggregate LV demand.
+- Added canonical F1/R1 MQTT commands and retained authoritative breaker status.
+- Added transformer telemetry/loading and reference-feeder topology/quality
+  measurements through Node-RED, InfluxDB, and Grafana.
+- Added deterministic `TAIL_OVERCURRENT_TEST` and `LOW_SOURCE_VOLTAGE`
+  scenarios for the reference feeder.
+
+### Changed
+
+- Replaced the v0.5 three-bus feeder identities and MQTT aliases with the
+  canonical reference-feeder contract.
+- Corrected selective protection semantics: R1 is the 100 ms primary device
+  for tail overcurrent, while F1 remains the 300 ms upstream backup.
+
+### Fixed
+
+- Grafana bus-voltage trends now show a visible gap while SS1 is de-energized,
+  rather than visually connecting values across the isolation interval.
+
 ## [0.5.0] - 2026-09-20
 
 ### Added
