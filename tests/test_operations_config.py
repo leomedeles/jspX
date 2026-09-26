@@ -196,3 +196,15 @@ def test_existing_dashboard_contains_influx_backed_operations_panels() -> None:
     assert 'r._measurement == "transformer"' in loading_query
     assert 'r._field == "loading_percent"' in loading_query
     assert 'group(columns: ["name"])' in loading_query
+
+
+def test_bus_voltage_panel_disconnects_missing_telemetry_samples() -> None:
+    dashboard = load_json(DASHBOARD_PATH)
+    panels = {panel["title"]: panel for panel in dashboard["panels"]}
+    voltage_panel = panels["Bus Voltages (p.u.)"]
+    graph_options = voltage_panel["fieldConfig"]["defaults"]["custom"]
+
+    # Routine samples arrive every second. A missing voltage sample therefore
+    # makes adjacent valid points about two seconds apart and must break the line.
+    assert graph_options["insertNulls"] == 1500
+    assert graph_options["spanNulls"] is False
