@@ -1,157 +1,88 @@
-﻿# jspX v0.5.0 - joySCADA_Power X (Simulated Power System)
+# jspX v0.6 candidate — joySCADA Power X
 
-A minimal, reproducible SCADA loop for a simulated power portfolio:
-- Python sim emits timestamped JSON lines (buses, lines, ext_grid) at 1 s intervals
-- Node-red ingest via MQTT **or** file tail into historian InfluxDB
-- Display latest values on grafana dashboard
-- Clean structure, least privilege, and beginner-friendly
+jspX is a small learning system that connects a solved pandapower feeder to an
+operator and historian loop:
 
 ```mermaid
-flowchart TD
-    sim["power_sim.py<br/>control scans + JSON telemetry"] -->|telemetry/pandapower| mqtt["Mosquitto MQTT"]
-    sim -->|file mode| file["data/telemetry.ndjson"]
-    mqtt --> nr["Node-RED<br/>HMI + historian flow"]
-    nr -->|Influx line protocol| influx["InfluxDB historian"]
-    influx -->|Flux queries| grafana["Grafana dashboard"]
+flowchart LR
+    sim["Python plant + control\n50 ms scans"] -->|telemetry and retained status| mqtt["Mosquitto"]
+    mqtt --> nr["Node-RED HMI\nand Influx transform"]
+    nr --> influx["InfluxDB historian"]
+    influx --> grafana["Grafana operations view"]
+    nr -->|queued F1/R1 commands| mqtt
+    mqtt --> sim
 ```
 
-## Grid Model
+The current branch is an accepted Sprint 6 implementation candidate. It is not
+a released `v0.6.0` until the separate merge, tag, and release decision.
 
-20 kV feeder (3-bus minimal case)
+## Reference feeder
 
-   [BUS0_SLACK] --[BRK_L1_SOURCE]--L1(5 km)--> [BUS1_LOAD] --[BRK_L2]--L2(3 km)--> [BUS2_LOAD]
-       ext_grid                                      ~1.2 MW / 0.3 MVAr        ~0.8 MW / 0.2 MVAr
-       vm≈1.00 pu                                    vm≈0.98–0.99 pu           vm≈0.97–0.99 pu
-
-Both breakers are real pandapower line switches with independent authoritative
-`BreakerController` state. The simulator applies controller positions during
-its 50 ms control scan while retaining the configured SCADA publication
-interval. MQTT callbacks and the HMI only enqueue commands; they never write
-the physical switches directly.
-
-When `BRK_L1_SOURCE` opens, L1 current/loading is zero and both downstream buses
-are isolated. Unavailable voltage/angle values are JSON `null`, with
-`energized: false` and `quality: "NOT_ENERGIZED"`.
-
-`BRK_L2` is a real pandapower line switch at the BUS1 end of L2. Opening only
-this switch leaves BUS1 supplied through L1 while BUS2 and L2 report the
-downstream section as not energized.
-
-### Breaker MQTT contract
-
-Pandapower MQTT mode uses payload-independent named command topics and retained
-authoritative status for each breaker:
-
-| Breaker | Open | Close | Reset | Retained status |
-| --- | --- | --- | --- | --- |
-| `BRK_L1_SOURCE` | `cmd/breaker/BRK_L1_SOURCE/open` | `cmd/breaker/BRK_L1_SOURCE/close` | `cmd/breaker/BRK_L1_SOURCE/reset` | `status/breaker/BRK_L1_SOURCE` |
-| `BRK_L2` | `cmd/breaker/BRK_L2/open` | `cmd/breaker/BRK_L2/close` | `cmd/breaker/BRK_L2/reset` | `status/breaker/BRK_L2` |
-
-For v0.4 compatibility, `cmd/breaker/open`, `cmd/breaker/close`,
-`cmd/breaker/reset`, and retained `status/breaker` remain L1 aliases; they do
-not address L2. Named status includes `breaker`, timestamp, state, trip latch,
-trip reason, and undervoltage alarm. The simulator publishes status after the
-control scan applies a command or protection transition. `RESET` clears the
-latch without closing, and `CLOSE` is rejected while that breaker's latch is
-active. `telemetry/pandapower` remains non-retained and is not authoritative
-breaker state.
-
-The tracked Node-RED HMI publishes named commands and displays retained named
-status for both breakers. For example, from the repository directory:
-
-```powershell
-docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_L2/open -n
-docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_L2/close -n
+```text
+GRID_110KV
+  → T1_PRIMARY, 25 MVA 110/20 kV
+  → BUS_MV_SOURCE
+  → BRK_F1
+  → L1_FEEDER_HEAD, 5 km
+  → BUS_R1_REMOTE
+  → BRK_R1
+  → L2_FEEDER_TAIL, 3 km
+  → BUS_SS1_MV
+  → T2_SS1, 2.5 MVA 20/0.4 kV
+  → BUS_SS1_LV
+  → LOAD_SS1_AGGREGATE, 2.00 MW + 0.50 MVAr nominal
 ```
 
-### Validation scenario MQTT contract
+F1 and R1 are real pandapower line switches. The overhead-line parameters are
+`r=0.5939 Ω/km`, `x=0.372 Ω/km`, `c=9.5 nF/km`, and `max_i=0.21 kA`.
+T2 uses `vk=6%`, `vkr=1%`, `pfe=6 kW`, `i0=0.25%`, and a 150° shift.
 
-Pandapower MQTT mode subscribes to `cmd/sim/scenario/set`. Its payload must be
-exactly one of `NORMAL`, `OVERCURRENT`, `UNDERVOLTAGE`, or
-`DOWNSTREAM_OVERCURRENT` (uppercase UTF-8 with no surrounding whitespace).
-Unknown or invalid payloads are rejected without changing the selected scenario
-or plant inputs.
+The plant owns source/load inputs, topology, power-flow solving, and
+measurements. Each `BreakerController` owns its command interlock, trip latch,
+definite-time overcurrent timer, and alarm state. `power_sim.py` is the only
+writer that applies controller positions to the plant; MQTT callbacks only
+enqueue intent. Control scans run every 50 ms, independently of 1 Hz SCADA
+publication.
 
-- `NORMAL` restores the 1.0 pu source setpoint and base downstream demand. It
-  does not reset a protection latch or operate the breaker.
-- `OVERCURRENT` applies five times the base downstream MW/MVAr demand without
-  changing L1's current rating, allowing the existing protection to trip L1.
-- `UNDERVOLTAGE` lowers the source setpoint to 0.90 pu. It asserts the existing
-  downstream undervoltage alarm but does not directly trip L1.
-- `DOWNSTREAM_OVERCURRENT` asserts a persistent, deterministic teaching signal.
-  L2 trips first after 100 ms; if the condition remains asserted, L1 trips as
-  delayed backup 100 ms later.
-
-### Data contracts
-
-These are the compact interfaces between the simulator, MQTT, Node-RED, and
-InfluxDB. JSON uses `null` for unavailable measurements; it never uses `NaN`.
-
-#### `telemetry/pandapower`
-
-The simulator publishes one object at the configured SCADA interval. The
-representative shape is:
-
-```json
-{
-  "ts": "2026-09-19T12:00:00+00:00",
-  "buses": [
-    {
-      "bus_idx": 1,
-      "name": "BUS1_LOAD",
-      "vm_pu": 0.986,
-      "va_degree": -0.4,
-      "p_mw": 1.2,
-      "q_mvar": 0.3,
-      "energized": true,
-      "quality": "GOOD"
-    }
-  ],
-  "lines": [
-    {
-      "line_idx": 1,
-      "name": "L2_3km",
-      "end": "from",
-      "from_bus": 1,
-      "to_bus": 2,
-      "p_mw": 0.8,
-      "q_mvar": 0.2,
-      "pl_mw": 0.01,
-      "ql_mvar": 0.02,
-      "i_ka": 0.03,
-      "vm_pu": 0.986,
-      "va_degree": -0.4,
-      "loading_percent": 15.0,
-      "energized": true,
-      "quality": "GOOD"
-    }
-  ],
-  "ext_grid": {
-    "p_mw": 2.0,
-    "q_mvar": 0.5
-  }
-}
-```
-
-| Object | Main fields |
-| --- | --- |
-| `buses[]` | `bus_idx`, `name`, voltage/angle, P/Q, `energized`, `quality` |
-| `lines[]` | identity/endpoints, P/Q, losses, current, voltage/angle, loading, `energized`, `quality` |
-| `ext_grid` | source P/Q |
-| `ts` | ISO-8601 observation timestamp |
-
-When a breaker isolates a section, unavailable voltage and angle values are
-`null`; the affected object reports `energized: false` and
+Opening F1 leaves the upstream grid, T1, and `BUS_MV_SOURCE` supplied while
+de-energizing the remote point and SS1. Opening R1 leaves
+`BUS_R1_REMOTE` supplied while de-energizing SS1. Unavailable measurements are
+strict JSON `null`, with `energized: false` and
 `quality: "NOT_ENERGIZED"`.
 
-#### Named breaker status
+## Protection and scenarios
 
-Each retained `status/breaker/<breaker>` message has this shape:
+`cmd/sim/scenario/set` accepts exactly these uppercase payloads:
+
+| Scenario | Plant input and expected protection result |
+| --- | --- |
+| `NORMAL` | 1.00 pu source and nominal aggregate demand. It does not reset a latch or operate a breaker. |
+| `TAIL_OVERCURRENT_TEST` | Fivefold nominal aggregate input behind T2. Both elements see solved line current; R1 trips at 0.20 kA after 100 ms, then its open switch removes tail current and F1 remains closed. |
+| `LOW_SOURCE_VOLTAGE` | 0.90 pu source. F1 alarms when `BUS_MV_SOURCE` is below 0.92 pu, clears at or above 0.94 pu, and does not trip. |
+
+F1 uses `I> = 0.20 kA` with a 300 ms delay. R1 uses the same pickup with a
+100 ms delay. `RESET` clears a latch without closing; `CLOSE` is rejected while
+that latch is active.
+
+The old `OVERCURRENT`, `UNDERVOLTAGE`, and `DOWNSTREAM_OVERCURRENT` payloads
+are invalid.
+
+## MQTT contracts
+
+Commands are payload-independent; an empty payload is sufficient.
+
+| Breaker | Open | Close | Reset | Retained authoritative status |
+| --- | --- | --- | --- | --- |
+| `BRK_F1` | `cmd/breaker/BRK_F1/open` | `cmd/breaker/BRK_F1/close` | `cmd/breaker/BRK_F1/reset` | `status/breaker/BRK_F1` |
+| `BRK_R1` | `cmd/breaker/BRK_R1/open` | `cmd/breaker/BRK_R1/close` | `cmd/breaker/BRK_R1/reset` | `status/breaker/BRK_R1` |
+
+There are no unqualified breaker command/status aliases and no identity-less
+breaker object in routine telemetry. Each retained status has this form:
 
 ```json
 {
-  "ts": "2026-09-19T12:00:00.120Z",
-  "breaker": "BRK_L2",
+  "ts": "2026-09-23T14:37:49.223Z",
+  "breaker": "BRK_R1",
   "state": "OPEN",
   "tripped": true,
   "undervoltage_alarm": false,
@@ -159,148 +90,126 @@ Each retained `status/breaker/<breaker>` message has this shape:
 }
 ```
 
-`state` is `OPEN` or `CLOSED`; `tripped` is the latch state; and
-`trip_reason` is either a reason string or `null`. This status is authoritative.
-The legacy `status/breaker` topic carries the L1 compatibility status.
+Status transitions publish immediately after a control scan. Routine
+`telemetry/pandapower` remains non-retained.
 
-#### Legacy L1 telemetry compatibility
+## Telemetry and historian mapping
 
-Controlled `telemetry/pandapower` messages also include a `breaker` object
-containing the L1 controller snapshot: `state`, `tripped`,
-`undervoltage_alarm`, and `trip_reason`. It is retained for v0.4
-compatibility and has no breaker identity, so it represents
-`BRK_L1_SOURCE` only.
+The telemetry object contains `ts`, `buses[]`, `lines[]`, `transformers[]`, and
+`ext_grid`. Representative transformer data is:
 
-Use retained named `status/breaker/<breaker>` messages for operational breaker
-state. They identify both L1 and L2 and are the authoritative HMI/status
-contract.
-
-#### Scenario command
-
-`cmd/sim/scenario/set` accepts exactly:
-
-```text
-NORMAL
-OVERCURRENT
-UNDERVOLTAGE
-DOWNSTREAM_OVERCURRENT
+```json
+{
+  "transformer_idx": 1,
+  "name": "T2_SS1",
+  "hv_bus": 3,
+  "lv_bus": 4,
+  "p_hv_mw": 2.01,
+  "q_hv_mvar": 0.61,
+  "p_lv_mw": -1.99,
+  "q_lv_mvar": -0.50,
+  "i_hv_ka": 0.063,
+  "i_lv_ka": 3.13,
+  "vm_hv_pu": 0.967,
+  "vm_lv_pu": 0.945,
+  "loading_percent": 87.1,
+  "energized": true,
+  "quality": "GOOD"
+}
 ```
 
-The payload is uppercase UTF-8 with no surrounding whitespace. A scenario
-changes the simulator's deterministic teaching conditions; it does not itself
-reset or operate a breaker.
+Node-RED writes millisecond-timestamped Influx line protocol:
 
-#### InfluxDB mapping
-
-Node-RED converts observations to Influx line protocol with millisecond
-timestamps:
-
-| Measurement | Tags | Fields |
+| Measurement | Tags | Main fields |
 | --- | --- | --- |
-| `bus` | `bus_id`, `name` | `vm_pu`, `va_deg`, `p_mw`, `q_mvar`, `energized`, `quality` |
-| `line` | `line_id`, `name`, `end`, `from_bus`, `to_bus` | `p_mw`, `pl_mw`, `q_mvar`, `ql_mvar`, `i_ka`, `vm_pu`, `va_deg`, `loading_percent` when present |
-| `ext_grid` | `site=main` | `p_mw`, `q_mvar` |
-| `breaker_status` | `breaker` | `state`, `tripped`, `undervoltage_alarm`, `trip_reason` |
+| `bus` | `bus_id`, `name` | voltage, angle, P/Q, `energized`, `quality` |
+| `line` | `line_id`, `name`, `end`, endpoint buses | P/Q, losses, current, voltage/angle, loading, `energized`, `quality` |
+| `transformer` | `transformer_id`, `name`, HV/LV buses | HV/LV P/Q/current/voltage/angle, loading, `energized`, `quality` |
+| `ext_grid` | `grid_id`, `name` | P/Q |
+| `breaker_status` | `breaker` | state, latch, undervoltage alarm, trip reason |
 
-The command audit path also writes a `breaker` measurement tagged
-`source=command`. These records describe requested actions, not authoritative
-plant state.
+Grafana shows bus voltage, line power, F1/R1 state and latch, F1 source-MV
+alarm, recent protection status, feeder energization, and transformer loading.
 
-### Model boundary
+## Start and operate
 
-- **Modeled:** a fixed three-bus feeder, two real line switches, authoritative
-  controller/interlock state, and a deterministic L2-primary/L1-backup outcome.
-- **Simplified:** the downstream-overcurrent input is scenario-driven and the
-  primary/backup delays are a teaching sequence, not calculated fault current
-  or coordinated relay settings.
-- **Not modeled yet:** CT/VT behavior, relay curves and coordination studies,
-  directional elements, breaker-failure protection, autoreclosing, and fault
-  location.
-
-## Getting started
-
-### Prerequisites
-
-- Docker Desktop with Docker Compose v2
-- Git
-
-Python is included in the simulator image, so it is not required on the host for the normal startup path.
-
-
-### Quickstart
-
-Clone the repository, enter it, and create the local environment file:
+Prerequisites are Docker Desktop with Compose v2 and Git. Copy the development
+defaults, then build and start the complete stack:
 
 ```powershell
 Copy-Item .env.example .env
-```
-
-On Linux or macOS, use `cp .env.example .env` instead. The supplied values are development defaults and all ports bind to localhost. Change the credentials before exposing any service outside your computer.
-
-Build and start the complete stack:
-
-```powershell
+docker compose config --quiet
 docker compose up -d --build
 docker compose ps
 ```
 
-This starts the pandapower simulator, Mosquitto, Node-RED, InfluxDB, and Grafana. The simulator publishes one sample per second to `telemetry/pandapower`; the tracked Node-RED flow writes it to the `scada` bucket.
+All published ports bind to localhost:
 
-Node-RED persists each named authoritative status as `breaker_status` tagged by
-breaker identity. It also stores bus/line energized and quality fields. The
-provisioned Grafana Operations section shows both breaker states and latches,
-recent primary/backup transitions, and feeder topology energization.
-
-Open:
-
-- Node-RED: http://localhost:1880
+- Node-RED HMI: http://localhost:1880/ui/
 - InfluxDB: http://localhost:8086
 - Grafana: http://localhost:3000
 
-To inspect startup problems:
+A compact operating walkthrough from the repository directory:
+
+```powershell
+# Observe retained state.
+docker compose exec -T mosquitto mosquitto_sub -h mosquitto -t 'status/breaker/#' -v
+
+# Operate R1.
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_R1/open -n
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_R1/close -n
+
+# Run the solved-current selectivity test.
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/sim/scenario/set -m TAIL_OVERCURRENT_TEST
+
+# A latched R1 rejects CLOSE. Restore inputs, reset without closing, then close.
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/sim/scenario/set -m NORMAL
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_R1/reset -n
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_R1/close -n
+```
+
+When reusing a broker volume last run by v0.5, clear its three obsolete retained
+status messages once; this does not remove the volume or any historian data:
+
+```powershell
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t status/breaker -r -n
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t status/breaker/BRK_L1_SOURCE -r -n
+docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t status/breaker/BRK_L2 -r -n
+```
+
+Inspect problems with:
 
 ```powershell
 docker compose logs --tail 100 sim mosquitto nodered influxdb grafana
 ```
 
-To stop the stack while retaining database and application state:
+Stop while retaining all named-volume data with `docker compose down`.
 
-```powershell
-docker compose down
-```
-
-Runtime state is stored in Docker named volumes. `.env`, simulator output, Node-RED credentials/settings/cache, database files, and broker data are ignored by Git. The system definition and `nodered/data/flows.json` are tracked, so running the stack should not create files that Git asks you to commit.
-
-#### Why v0.3.1 tracks these files
-
-- `requirements.txt` and `dockerfile` define a Python 3.12 numerical stack that has been build-tested and can complete a pandapower step. The full dependency set is pinned because pandapower 3.1.2 currently fails with pandas 3.x.
-- `nodered/data/flows.json` is the deployable flow and is the only tracked file under Node-RED's data directory. Node-RED credentials, settings, installed modules, caches, and backups remain runtime data.
-- `package.json` and `nodered/Dockerfile` install the UI nodes referenced by the flow into the image. A new clone does not rely on a pre-existing `node_modules` directory.
-- `docker-compose.yml` stores mutable Node-RED, Mosquitto, InfluxDB, and Grafana data in named volumes. Only the flow file and read-only provisioning/configuration are mounted from tracked paths.
-- `.dockerignore` keeps local state and secrets out of Docker build contexts; `.gitignore` keeps the same runtime artifacts out of commits.
-- Grafana's datasource UID is fixed to the UID referenced by the tracked dashboard, making provisioning deterministic on an empty Grafana volume.
-
-When upgrading an existing checkout, old files under `nodered/data`, `mqtt/data`, and `mqtt/log` are not deleted. The v0.3.1 Compose configuration stops mounting those directories as service state. Node-RED uses the tracked flow plus a named volume, and Mosquitto uses named data/log volumes.
-
-### Run the simulator on the host (optional)
-
-Python 3.12 and 3.13 are supported by the pinned requirements. On Windows, create a fresh virtual environment and install them without activating the environment:
+For optional host execution, use Python 3.12 or 3.13 and install both runtime
+and test requirements into a virtual environment:
 
 ```powershell
 py -3.13 -m venv .venv
-.\.venv\Scripts\python -m pip install --upgrade pip
-.\.venv\Scripts\python -m pip install -r requirements.txt
+.\.venv\Scripts\python -m pip install -r requirements.txt -r requirements-dev.txt
+.\.venv\Scripts\python -m pytest -q
+.\.venv\Scripts\python src/power_sim.py --pandapower
 ```
 
-Start only the broker and run the simulator against the broker's localhost port:
+## Model boundary
 
-```powershell
-docker compose up -d mosquitto
-.\.venv\Scripts\python src/power_sim.py --mqtt --pandapower
-```
+- **Modeled:** fixed radial reference feeder; real F1/R1 line switches; source,
+  line, bus, transformer, and aggregate-load power flow; solved-current
+  definite-time protection; latch/reset/close interlock; source-MV alarm;
+  operator-to-plant-to-historian loop.
+- **Simplified:** the aggregate load is represented as 50% constant power and
+  50% constant current so the mandated fivefold nominal input remains solvable.
+  `TAIL_OVERCURRENT_TEST` is a deterministic overload test, not a calculated
+  fault or protection-coordination study. Loads vary slightly for routine live
+  telemetry.
+- **Not modeled:** CT/VT chains, relay curves, short-circuit calculation,
+  breaker failure, autoreclose, transformer/LV protection, RTU/gateway or IEC
+  61850, extra feeders, ring supply, DER, and production security.
 
-On Linux or macOS, use a Python 3.12 or 3.13 interpreter and `.venv/bin/python` in the equivalent commands. Omitting `--mqtt` writes to `data/telemetry.ndjson`; that generated file is ignored by Git.
-
-### Historical verification
-
-![Grafana dashboard showing bus voltage and line power](docs/dashboard_v0_3_0.png)
+Versioned definitions live in `docker-compose.yml`, `requirements.txt`,
+`dockerfile`, `nodered/data/flows.json`, `grafana/provisioning/`, and
+`mqtt/config/mqtt.conf`. Mutable service state remains in Docker named volumes.

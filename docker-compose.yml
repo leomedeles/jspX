@@ -69,9 +69,6 @@ services:
     environment:
       BROKER_URL: ${MQTT_BROKER_URL:-mqtt://mosquitto:1883}
       PUB_TOPIC: ${MQTT_PUB_TOPIC:-telemetry/pandapower}
-      CMD_TOPIC: ${MQTT_CMD_TOPIC:-cmd/breaker/main/set}
-      RESET_TOPIC: ${MQTT_RESET_TOPIC:-cmd/breaker/main/reset}
-      STATUS_TOPIC: ${MQTT_STATUS_TOPIC:-status/breaker/main}
       RATE_HZ: ${SIM_RATE_HZ:-1}
     command:
       - python

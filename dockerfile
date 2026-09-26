@@ -21,9 +21,6 @@ COPY src ./src
 # Defaults (overridden by .env / compose)
 ENV BROKER_URL=mqtt://mosquitto:1883 \
     PUB_TOPIC=telemetry/pandapower \
-    CMD_TOPIC=cmd/breaker/main/set \
-    RESET_TOPIC=cmd/breaker/main/reset \
-    STATUS_TOPIC=status/breaker/main \
     RATE_HZ=1
 
 USER appuser

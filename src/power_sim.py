@@ -25,34 +25,27 @@ except Exception:
 
 
 CONTROL_INTERVAL_S = 0.050
-OPEN_COMMAND_TOPIC = "cmd/breaker/open"
-CLOSE_COMMAND_TOPIC = "cmd/breaker/close"
-RESET_COMMAND_TOPIC = "cmd/breaker/reset"
-BREAKER_STATUS_TOPIC = "status/breaker"
 SCENARIO_COMMAND_TOPIC = "cmd/sim/scenario/set"
-BRK_L1_SOURCE = "BRK_L1_SOURCE"
-BRK_L2 = "BRK_L2"
-DOWNSTREAM_OVERCURRENT_PERCENT = 150.0
+BRK_F1 = "BRK_F1"
+BRK_R1 = "BRK_R1"
+OVERCURRENT_PICKUP_KA = 0.20
+F1_TRIP_DELAY_S = 0.300
+R1_TRIP_DELAY_S = 0.100
 
 NAMED_COMMAND_TOPICS = {
     (breaker_name, command): (
         f"cmd/breaker/{breaker_name}/{command.lower()}"
     )
-    for breaker_name in (BRK_L1_SOURCE, BRK_L2)
+    for breaker_name in (BRK_F1, BRK_R1)
     for command in ("OPEN", "CLOSE", "RESET")
 }
 NAMED_STATUS_TOPICS = {
     breaker_name: f"status/breaker/{breaker_name}"
-    for breaker_name in (BRK_L1_SOURCE, BRK_L2)
+    for breaker_name in (BRK_F1, BRK_R1)
 }
 COMMAND_BY_TOPIC = {
-    OPEN_COMMAND_TOPIC: (BRK_L1_SOURCE, "OPEN"),
-    CLOSE_COMMAND_TOPIC: (BRK_L1_SOURCE, "CLOSE"),
-    RESET_COMMAND_TOPIC: (BRK_L1_SOURCE, "RESET"),
-    **{
-        topic: breaker_and_command
-        for breaker_and_command, topic in NAMED_COMMAND_TOPICS.items()
-    },
+    topic: breaker_and_command
+    for breaker_and_command, topic in NAMED_COMMAND_TOPICS.items()
 }
 
 
@@ -110,7 +103,6 @@ class BreakerMqttEventQueue:
 @dataclass(frozen=True)
 class ControlScanResult:
     telemetry: dict[str, object]
-    status: dict[str, object] | None
     command: str | None
     command_accepted: bool | None
     scenario: str | None = None
@@ -125,25 +117,29 @@ class ControlledPandapowerSimulator:
     def __init__(
         self,
         grid,
-        controller: BreakerController,
+        f1_controller: BreakerController | None = None,
         *,
-        l2_controller: BreakerController | None = None,
+        r1_controller: BreakerController | None = None,
     ) -> None:
         self.grid = grid
         self.controllers = {
-            BRK_L1_SOURCE: controller,
-            BRK_L2: (
-                l2_controller
-                if l2_controller is not None
-                else BreakerController()
+            BRK_F1: (
+                f1_controller
+                if f1_controller is not None
+                else BreakerController(
+                    pickup_ka=OVERCURRENT_PICKUP_KA,
+                    trip_delay_s=F1_TRIP_DELAY_S,
+                )
+            ),
+            BRK_R1: (
+                r1_controller
+                if r1_controller is not None
+                else BreakerController(
+                    pickup_ka=OVERCURRENT_PICKUP_KA,
+                    trip_delay_s=R1_TRIP_DELAY_S,
+                )
             ),
         }
-        self._physical_switch_setters = {
-            BRK_L1_SOURCE: self.grid.set_breaker_closed,
-            BRK_L2: self.grid.set_l2_breaker_closed,
-        }
-        # Preserve the existing L1-focused simulator and MQTT API.
-        self.controller = self.controllers[BRK_L1_SOURCE]
 
     def command_breaker(self, breaker_name: str, command: str) -> bool:
         """Apply a local command to one controller, not the physical switch."""
@@ -156,46 +152,22 @@ class ControlledPandapowerSimulator:
     def _apply_controller_states(self) -> None:
         """Write both authoritative controller positions to the plant model."""
         for breaker_name, controller in self.controllers.items():
-            set_closed = self._physical_switch_setters[breaker_name]
-            set_closed(controller.state == controller.CLOSED)
+            self.grid.set_breaker_closed(
+                breaker_name, controller.state == controller.CLOSED
+            )
 
     def _evaluate_protection(self, timestamp: float) -> None:
-        """Evaluate the fixed feeder's normal or downstream protection path."""
-        l1_controller = self.controllers[BRK_L1_SOURCE]
-        l2_controller = self.controllers[BRK_L2]
-        downstream_overcurrent = (
-            self.grid.scenario == self.grid.DOWNSTREAM_OVERCURRENT
-        )
-
-        if downstream_overcurrent:
-            # This fixed percentage is a deterministic teaching input. It is
-            # not a calculated short-circuit current or coordination study.
-            l2_controller.evaluate(
-                current_percent=DOWNSTREAM_OVERCURRENT_PERCENT,
-                voltages_pu=(),
-                timestamp=timestamp,
-            )
-            l1_controller.evaluate(
-                current_percent=(
-                    DOWNSTREAM_OVERCURRENT_PERCENT
-                    if l2_controller.tripped
-                    else None
-                ),
-                voltages_pu=self.grid.downstream_voltages_pu(),
-                timestamp=timestamp,
-            )
-            return
-
-        # Preserve the v0.4 L1 measurement-driven protection behavior. A
-        # cleared downstream scenario also resets any unfinished L2 timer.
-        l2_controller.evaluate(
-            current_percent=None,
+        """Evaluate both breakers from solved plant measurements."""
+        self.controllers[BRK_R1].evaluate(
+            current_ka=self.grid.breaker_current_ka(BRK_R1),
             voltages_pu=(),
             timestamp=timestamp,
         )
-        l1_controller.evaluate(
-            current_percent=self.grid.protected_line_loading_percent(),
-            voltages_pu=self.grid.downstream_voltages_pu(),
+        self.controllers[BRK_F1].evaluate(
+            current_ka=self.grid.breaker_current_ka(BRK_F1),
+            voltages_pu=(
+                self.grid.bus_voltage_pu(self.grid.BUS_MV_SOURCE),
+            ),
             timestamp=timestamp,
         )
 
@@ -221,31 +193,29 @@ class ControlledPandapowerSimulator:
             self._apply_controller_states()
             telemetry = self.grid.solve()
 
-        telemetry["breaker"] = self.controller.snapshot()
         return telemetry
 
 
-def breaker_status_payload(
-    controller, breaker_name: str | None = None
-) -> dict[str, object]:
+def breaker_status_payload(controller, breaker_name: str) -> dict[str, object]:
     """Build authoritative status from the controller's current snapshot."""
-    identity = {"breaker": breaker_name} if breaker_name is not None else {}
-    return {"ts": now_iso(), **identity, **controller.snapshot()}
+    return {
+        "ts": now_iso(),
+        "breaker": breaker_name,
+        **controller.snapshot(),
+    }
 
 
 def publish_breaker_status(
     client,
     status: dict[str, object],
-    *,
-    breaker_name: str | None = None,
 ):
     """Publish one authoritative, retained, strict-JSON status snapshot."""
     payload = json.dumps(status, separators=(",", ":"), allow_nan=False)
-    topic = (
-        BREAKER_STATUS_TOPIC
-        if breaker_name is None
-        else NAMED_STATUS_TOPICS[breaker_name]
-    )
+    breaker_name = str(status["breaker"])
+    try:
+        topic = NAMED_STATUS_TOPICS[breaker_name]
+    except KeyError as exc:
+        raise ValueError(f"unknown breaker: {breaker_name}") from exc
     return client.publish(
         topic,
         payload=payload,
@@ -281,7 +251,7 @@ def process_control_scan(
     }
     command = event.command if event is not None else None
     breaker_name = (
-        event.breaker_name or BRK_L1_SOURCE
+        event.breaker_name
         if event is not None and command is not None
         else None
     )
@@ -311,21 +281,13 @@ def process_control_scan(
         or after[name] != before[name]
     }
     statuses = {
-        name: breaker_status_payload(
-            simulator.controllers[name], breaker_name=name
-        )
+        name: breaker_status_payload(simulator.controllers[name], name)
         for name in simulator.controllers
         if name in status_due
     }
-    legacy_status = (
-        breaker_status_payload(simulator.controller)
-        if BRK_L1_SOURCE in status_due
-        else None
-    )
 
     return ControlScanResult(
         telemetry=telemetry,
-        status=legacy_status,
         command=command,
         command_accepted=accepted,
         scenario=scenario,
@@ -516,14 +478,8 @@ def run_controlled_mqtt_mode(
                     vary_load=publish_due,
                 )
 
-                if result.status is not None:
-                    publish_breaker_status(client, result.status)
-                for breaker_name, status in result.statuses.items():
-                    publish_breaker_status(
-                        client,
-                        status,
-                        breaker_name=breaker_name,
-                    )
+                for status in result.statuses.values():
+                    publish_breaker_status(client, status)
 
                 if publish_due:
                     line = json.dumps(
@@ -559,7 +515,7 @@ def main():
     parser.add_argument("--out", default=os.path.join("data", "telemetry.ndjson"),
                         help="Output file path for file mode")
     parser.add_argument("--pandapower", action="store_true",
-                        help="Use the pandapower 3-bus model (emits {'ts', 'buses':[...]} schema)")
+                        help="Use the pandapower reference feeder model")
     args = parser.parse_args()
 
     # Graceful Ctrl+C
@@ -571,10 +527,10 @@ def main():
 
     # Choose producer: RNG (legacy) or pandapower grid
     if args.pandapower:
-        from power_grid import ThreeBusGrid
+        from power_grid import ReferenceFeederGrid
 
         simulator = ControlledPandapowerSimulator(
-            ThreeBusGrid.build(), BreakerController()
+            ReferenceFeederGrid.build()
         )
         if args.mqtt:
             run_controlled_mqtt_mode(
