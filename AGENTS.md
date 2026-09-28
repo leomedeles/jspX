@@ -17,7 +17,7 @@ Inspect the branch, working tree, affected implementation, and relevant configur
 ## Architecture and authoritative state
 
 - `src/power_grid.py` owns physical topology, source/load inputs, power-flow solving, switch positions, and measurements.
-- `src/breaker_control.py` owns breaker state, interlocks, trip latching, protection timing, and alarms. Keep it independent of MQTT and Docker.
+- `src/breaker_control.py` owns control/protection state, interlocks, trip latching, protection timing, and alarms. Keep it independent of MQTT and Docker.
 - `src/power_sim.py` owns scan orchestration, queued MQTT events, and controller-to-plant writes. Transport callbacks enqueue intent; they do not mutate controller or plant state.
 - Node-RED is the HMI and historian integration layer. It must not be the sole enforcer of a control interlock.
 - InfluxDB and Grafana observe the system; they do not control it.
