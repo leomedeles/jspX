@@ -4,7 +4,7 @@
 
 jspX simulates a radial distribution feeder with an operator-to-plant-to-historian control path. `README.md` describes the current system and how to operate it.
 
-Use `docs/BACKLOG.md` for selected sprint scope, feature acceptance criteria, candidates, and recorded acceptance evidence. `docs/DoD.md` contains reusable completion criteria; its existing checkmarks are not evidence that a particular change passed. `CHANGELOG.md` describes released behavior.
+Use `docs/BACKLOG.md` for selected sprint scope, feature acceptance criteria, candidates, and recorded acceptance evidence. `docs/DoD.md` contains reusable completion criteria. `CHANGELOG.md` describes released behavior.
 
 Read the documents relevant to the task. Do not treat historical sprint descriptions as current interfaces; check the implementation and README.
 
