@@ -271,11 +271,11 @@ This backlog is a living list of possible capabilities and improvements. Not eve
 
 ## Candidate queue
 
-Priorities rank work after the active sprint. P1 is the next candidate to consider at sprint planning; it is not committed work until selected into a sprint.
+Priorities rank possible future work. P1 is the first candidate to consider at sprint planning; it is not committed work until selected into a sprint.
 
-- **P1 — Grafana alerts, annotations, and routing for breaker trips/alarms.** Revisit after the two-breaker operational slice provides meaningful events to alert on.
+- **P1 — Grafana alerts, annotations, and routing for breaker trips/alarms.**
 - **P2 — OPC UA or Modbus protocol simulation.** Select one protocol and define a small, explicit signal contract.
-- **P3 — Short demo video or GIF embedded in the README.** Produce after the two-breaker operational story is stable.
+- **P3 — Short demo video or GIF embedded in the README.**
 
 ## Parked
 

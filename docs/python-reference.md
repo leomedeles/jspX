@@ -34,7 +34,7 @@ BUS_SS1_MV -- T2_SS1 -- BUS_SS1_LV -- LOAD_SS1_AGGREGATE
 ```
 
 `BRK_F1` is the line switch at the source end of `L1_FEEDER_HEAD`; `BRK_R1`
-is the line switch at the remote end of `L2_FEEDER_TAIL`. Opening F1 therefore
+is the line switch at the source end of `L2_FEEDER_TAIL`. Opening F1 therefore
 isolates the remote point and SS1, while opening R1 leaves the remote point
 energized and isolates only SS1.
 

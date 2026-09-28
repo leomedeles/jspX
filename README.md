@@ -1,4 +1,4 @@
-# jspX v0.6 candidate — joySCADA Power X
+# jspX v0.6.0 — joySCADA Power X
 
 jspX is a small learning system that connects a solved pandapower feeder to an
 operator and historian loop:
@@ -12,9 +12,6 @@ flowchart LR
     nr -->|queued F1/R1 commands| mqtt
     mqtt --> sim
 ```
-
-The current branch is an accepted Sprint 6 implementation candidate. It is not
-a released `v0.6.0` until the separate merge, tag, and release decision.
 
 ## Reference feeder
 
