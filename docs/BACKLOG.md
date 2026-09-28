@@ -10,6 +10,13 @@
 - [ ] **Event path:** Emit identified, scan-timestamped events for pickup, timing start/cancel, trip request, plant position feedback, reset, and rejected CLOSE; publish them without retention and persist them through the existing Node-RED → InfluxDB integration. Document event fields and their relation to slower telemetry.
 - [ ] **Documentation and tests:** Update deterministic controller, scenario, MQTT/status, and integration tests plus README and the Python internals reference. Preserve the 50 ms control scan, slower telemetry cadence, canonical F1/R1 command/status topics, and strict JSON quality semantics.
 
+### Implementation evidence — 2026-09-28 (live acceptance pending)
+
+- **Deterministic behavior:** `python -m pytest -q` in the repository virtual environment passed 64 tests. Traces cover R1 OPEN and F1 timing cancel in the tail test; R1 OPEN request with actual CLOSED feedback at 100 ms and F1 backup OPEN at 300 ms in the failure test; rejected CLOSE, RESET without movement, and `NORMAL` without latch or position changes. The tests also check strict JSON and identified, non-retained MQTT event records.
+- **Node-RED contract:** The tracked active flow subscribes to `event/ied`, validates and converts records to `ied_event` Influx line protocol, then uses the existing Influx write path. A test executes the flow's JavaScript transform and checks the failed-operation fields. The existing command/status display and telemetry flow remain wired in the tracked definition.
+- **Configuration:** `docker compose config --quiet` passed. The host's default Python 3.14 lacks pytest; the repository virtual environment supplied the passing run.
+- **Live verification gap:** Docker Desktop was stopped and did not start from `docker desktop start`; `Start-Service com.docker.service` failed, and `docker compose up -d --build` could not connect to the Docker engine. Compose services, live MQTT delivery, Node-RED display, Influx persistence, and end-to-end status/topology agreement were not observed. All Sprint 7 acceptance criteria remain open pending that run.
+
 ### Acceptance criteria
 
 - [ ] `TAIL_OVERCURRENT_TEST` produces a trace in which R1 picks up and requests OPEN after 100 ms, plant feedback confirms R1 OPEN, tail current disappears, F1 timing cancels, and F1 stays CLOSED.
