@@ -26,10 +26,17 @@ The active Node-RED definition is `nodered/data/flows.json`; `flows/` contains h
 
 ## Control invariants
 
-- An accepted operation or protection trip must affect the authoritative physical switch and the next solved topology and telemetry.
+- A breaker command or protection trip requests an operation; acceptance
+  does not prove that the switch moved. The plant owns physical position.
+  Post-scan position feedback, retained status, events, solved topology, and
+  telemetry must agree about the actual result, including failed actuation.
 - Reject CLOSE while the breaker is trip-latched. RESET clears the latch without closing the breaker.
 - Use monotonic elapsed time for protection. Keep control scans separate from the slower telemetry publication rate.
-- Make test scenarios deterministic and reversible.
+- Make test scenarios deterministic and reversible. Injected actuation failures
+  must be explicit test-harness conditions at the plant-operation boundary.
+  They must not directly force an IED decision or fabricate position feedback;
+  IEDs may respond to measurements produced by the altered plant state.
+  Removing the injection does not reset latches or move switches.
 - Emit strict JSON: unavailable electrical measurements are `null`, with energized and quality information. Never emit `NaN`.
 
 ## Verification and documentation
