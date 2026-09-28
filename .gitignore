@@ -31,4 +31,7 @@ Thumbs.db
 mqtt/data/
 mqtt/log/
 
+# Rust
+/target/
+
 *code-workspace*
