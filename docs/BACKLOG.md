@@ -1,4 +1,4 @@
-## Rust v1 rebuild — release candidate (final clean check pending)
+## Rust v1 rebuild — accepted release candidate (release decision pending)
 
 **Goal:** Deliver the reference feeder as one local Rust and Docker laboratory,
 with coherent operator, plant, protection, and historian behavior. This branch
@@ -7,7 +7,7 @@ the earlier Sprint 8–10 service migrations.
 
 ### Acceptance criteria
 
-- [ ] A clean clone builds one healthy Rust Compose service with only a
+- [x] A clean clone builds one healthy Rust Compose service with only a
   localhost port and a separate 30-day named history volume.
 - [x] The balanced AC solver matches frozen pandapower normal, F1/R1 isolation,
   overload, and low-voltage fixtures within README tolerances, with exact
@@ -22,7 +22,7 @@ the earlier Sprint 8–10 service migrations.
 - [x] Engineering charts show p.u. bases, separate actual-voltage levels,
   line P/Q/current/loading, transformer loading, energization, and scan events.
   Unavailable values, run boundaries, and missed telemetry have visible gaps.
-- [ ] Rust formatting, lint, tests, Compose configuration, live functional
+- [x] Rust formatting, lint, tests, Compose configuration, live functional
   checks, visual checks, and clean-clone checks pass with evidence below.
 
 ### Implementation and verification evidence
@@ -80,11 +80,29 @@ the earlier Sprint 8–10 service migrations.
   while preserving prior R1 isolation history. The exact checks and run IDs
   are in [clean-check results](evidence/clean-clone.json) and the
   [isolation screenshot](evidence/clean-clone-isolation.png). The clean-check
-  Compose project was stopped without removing its named volume. That checkout
-  predates the later fixed-input and browser fixes, so the final committed
-  tree still needs a fresh checkout build and live check. Hosted CI has not
+  Compose project was stopped without removing its named volume.
+- A second detached clean checkout of final implementation commit `7799de2`
+  also had no local changes. Its Compose configuration and multistage build
+  passed with eight Rust tests; `jspx-rust-v1-final` became healthy on
+  `127.0.0.1:8090` with its own `jspx-rust-v1-final_rust-history` volume.
+  The browser and API observed the failed R1 OPEN, physical R1 `CLOSED`, F1
+  backup `OPEN` 199 ms later, a visible latched CLOSE rejection, restoration,
+  and zero browser errors. Restart created a distinct `RUN_STARTED` normal run
+  while retaining the earlier failure trace. See
+  [final clean-check data](evidence/final-clean.json) and
+  [failure screenshot](evidence/final-clean-failure.png). That temporary
+  Compose project was stopped without removing its volume. Hosted CI has not
   been observed; local equivalents passed. PR, merge, tag, and publication
   remain separate decisions.
+- A literal `git clone --no-local --single-branch --branch rust/v1-rebuild`
+  of implementation commit `7799de2` was clean and passed Compose
+  configuration and `up -d --build`. The separate `jspx-rust-v1-clone` service
+  became healthy on `127.0.0.1:8091`. Browser/API checks repeated the R1
+  refusal, F1 backup 200 ms later, latched CLOSE rejection, and restoration
+  without browser errors. Restart retained the prior failure history and
+  recorded a new NORMAL run. See [clone check](evidence/clone-check.json)
+  and [failure view](evidence/clone-check-failure.png). The clone Compose
+  project was stopped without deleting its named volume.
 
 ### Explicit exclusions
 

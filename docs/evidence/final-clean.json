@@ -1,0 +1,48 @@
+{
+  "checked_at_utc": "2026-09-28T22:29:27.568Z",
+  "commit": "7799de2",
+  "project": "jspx-rust-v1-final",
+  "port": "127.0.0.1:8090",
+  "volume": "jspx-rust-v1-final_rust-history",
+  "run_id": "cbbfe8db-0658-43dc-bd7c-25b6f1c31051",
+  "normal": {
+    "f1": "CLOSED",
+    "r1": "CLOSED"
+  },
+  "opening_failure": {
+    "r1": "CLOSED",
+    "r1_latched": true,
+    "f1": "OPEN",
+    "f1_latched": true,
+    "remote_quality": "NOT_ENERGIZED"
+  },
+  "refused_feedback": {
+    "ts": "2026-09-28T22:29:26.428Z",
+    "actual_state": "CLOSED",
+    "success": false
+  },
+  "backup_feedback": {
+    "ts": "2026-09-28T22:29:26.627Z",
+    "actual_state": "OPEN",
+    "success": true
+  },
+  "backup_delay_ms": 199,
+  "latched_close_rejected": true,
+  "scenario_removal_held_state": true,
+  "restored": {
+    "f1": "CLOSED",
+    "r1": "CLOSED",
+    "lv_quality": "GOOD"
+  },
+  "events": 16,
+  "snapshots": 14,
+  "browser_errors": [],
+  "restart": {
+    "new_run_id": "97e0328d-f9d6-4fec-b782-7f7d68f7d5e4",
+    "old_run_retained": true,
+    "run_started_event": true,
+    "normal_closed_clear": true,
+    "events_after_restart": 17,
+    "snapshots_after_restart": 65
+  }
+}
