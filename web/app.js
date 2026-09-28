@@ -5,6 +5,7 @@ $(page).classList.add('active');
 for (const link of document.querySelectorAll('nav a')) if (link.pathname === location.pathname || (page === 'feederPage' && link.pathname === '/feeder' && location.pathname === '/')) link.classList.add('active');
 let snapshot = null, lastSeen = 0, historyBusy = false, historyTimer = null;
 const pending = new Map();
+const completed = new Map();
 const colors = ['#51ddb5','#80b8f8','#f4c66c','#bca7ff','#e68072'];
 const busNames = ['GRID_110KV','BUS_MV_SOURCE','BUS_R1_REMOTE','BUS_SS1_MV','BUS_SS1_LV'];
 const b = (s,name) => s?.telemetry.buses.find(x => x.name === name);
@@ -57,19 +58,22 @@ function render(s,stale=false){
 }
 
 async function getSnapshot(){try{const r=await fetch('/api/v1/snapshot',{cache:'no-store'});if(!r.ok)throw new Error('snapshot unavailable');snapshot=await r.json();lastSeen=Date.now();render(snapshot);}catch(_){if(snapshot)render(snapshot,true);else setConnection(false);}}
+function showOutcome(e){
+  if(!e.breaker)return;
+  const id=e.breaker==='BRK_F1'?'f1Command':'r1Command';
+  if(e.event==='POSITION_FEEDBACK')put(id,`${e.cause==='protection'?'Protection':'Remote'} ${e.requested_state} requested · actual ${e.actual_state} · ${e.success?'operation completed':'ACTUATION FAILED'}`,e.success?'good':'off');
+  if(e.event==='CLOSE_REJECTED')put(id,'CLOSE rejected: trip latch active. RESET first.','off');
+  if(e.event==='RESET')put(id,'Latch reset. Physical breaker position did not change.','good');
+}
 function onEvent(e){
   const extra=[e.requested_state,e.actual_state,e.success===false?'FAILED':e.success===true?'SUCCESS':null].filter(Boolean).join(' / ');
   put('latestEvent',`${e.ts} · ${e.ied||'SYSTEM'} · ${e.event} · ${e.breaker||''} ${extra}`);
-  if(e.event==='POSITION_FEEDBACK'&&e.breaker){
-    const id=e.breaker==='BRK_F1'?'f1Command':'r1Command';
-    put(id,`${e.cause==='protection'?'Protection':'Remote'} ${e.requested_state} requested · actual ${e.actual_state} · ${e.success?'operation completed':'ACTUATION FAILED'}`,e.success?'good':'off');
-  }
-  if(e.request_id&&pending.has(e.request_id)){
+  if(['POSITION_FEEDBACK','CLOSE_REJECTED','RESET'].includes(e.event)){
+    showOutcome(e);
+    if(e.request_id){completed.set(e.request_id,e);pending.delete(e.request_id);if(completed.size>100)completed.delete(completed.keys().next().value);}
+  }else if(e.request_id&&pending.has(e.request_id)){
     const breaker=pending.get(e.request_id),id=breaker==='BRK_F1'?'f1Command':'r1Command';
     if(e.event==='OPERATION_REQUEST')put(id,'Operation accepted by IED. Awaiting physical position feedback…');
-    if(e.event==='POSITION_FEEDBACK'){put(id,`${e.requested_state} requested · actual ${e.actual_state} · ${e.success?'operation completed':'ACTUATION FAILED'}`,e.success?'good':'off');pending.delete(e.request_id);}
-    if(e.event==='CLOSE_REJECTED'){put(id,'CLOSE rejected: trip latch active. RESET first.','off');pending.delete(e.request_id);}
-    if(e.event==='RESET'){put(id,'Latch reset. Physical breaker position did not change.','good');pending.delete(e.request_id);}
   }
   if(page==='engineeringPage'){clearTimeout(historyTimer);historyTimer=setTimeout(loadHistory,1300);}
 }
@@ -77,7 +81,7 @@ function connect(){const source=new EventSource('/api/v1/stream');source.onmessa
 document.querySelectorAll('button[data-breaker]').forEach(button=>button.addEventListener('click',async()=>{
   const breaker=button.dataset.breaker,action=button.dataset.action,id=breaker==='BRK_F1'?'f1Command':'r1Command';
   put(id,`${action} request being queued…`);
-  try{const r=await fetch(`/api/v1/breakers/${breaker}/commands`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:action})});const data=await r.json();if(!r.ok)throw new Error(data.error||'request failed');pending.set(data.request_id,breaker);put(id,`${action} queued (${data.request_id.slice(0,8)}). Awaiting scan result…`);}catch(err){put(id,`Request failed: ${err.message}`,'off');}
+  try{const r=await fetch(`/api/v1/breakers/${breaker}/commands`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:action})});const data=await r.json();if(!r.ok)throw new Error(data.error||'request failed');if(completed.has(data.request_id)){showOutcome(completed.get(data.request_id));completed.delete(data.request_id);}else{pending.set(data.request_id,breaker);put(id,`${action} queued (${data.request_id.slice(0,8)}). Awaiting scan result…`);}}catch(err){put(id,`Request failed: ${err.message}`,'off');}
 }));
 
 const getBus=(name,field,scale=1)=>s=>{const x=b(s,name);return x?.quality==='GOOD'&&finite(x[field])?x[field]*scale:null;};

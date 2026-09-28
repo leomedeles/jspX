@@ -1,0 +1,33 @@
+{
+  "checked_at_utc": "2026-09-28T22:05:15.823Z",
+  "commit": "b437d92",
+  "project": "jspx-rust-v1-clean",
+  "port": "127.0.0.1:8089",
+  "volume": "jspx-rust-v1-clean_rust-history",
+  "run_id": "d82c65d1-2f7e-48cc-9dc0-6e9055e59873",
+  "normal": {
+    "f1": "CLOSED",
+    "r1": "CLOSED",
+    "lv_quality": "GOOD"
+  },
+  "isolation": {
+    "r1": "OPEN",
+    "remote_quality": "GOOD",
+    "ss1_quality": "NOT_ENERGIZED"
+  },
+  "restored": {
+    "r1": "CLOSED",
+    "ss1_quality": "GOOD"
+  },
+  "events": 3,
+  "snapshots": 49,
+  "browser_errors": [],
+  "restart": {
+    "new_run_id": "f9ec8659-a86f-404d-bdea-38876a4d881b",
+    "old_run_retained": true,
+    "run_started_event": true,
+    "normal_closed_clear": true,
+    "events_after_restart": 6,
+    "snapshots_after_restart": 86
+  }
+}

@@ -1,11 +1,12 @@
 {
-  "verified_at_utc": "2026-09-28T21:58:58.735Z",
-  "run_id": "5b6df31b-db1a-4f01-80fa-c5742b6922ab",
+  "verified_at_utc": "2026-09-28T22:24:05.003Z",
+  "run_id": "fa27e67d-e6b8-4d7e-8188-1a1dfbcd46d8",
   "observations": [
     "normal: F1/R1 closed, remote and LV energized",
     "R1 isolation: remote energized, SS1 de-energized, actual R1 open",
     "F1 isolation: remote and SS1 de-energized, source MV energized",
     "tail overload: R1 tripped open, F1 remained closed, SS1 isolated",
+    "latched CLOSE: queued request rejected by IED; physical R1 stayed OPEN",
     "R1 failure: R1 physical CLOSED and latched; F1 backup OPEN and latched",
     "restoration: RESET left F1 open; later CLOSE restored LV",
     "low source: F1 undervoltage alarm active without trip",
@@ -13,13 +14,13 @@
     "chart gaps: null, run boundary, and >1.5 s missed sample split paths"
   ],
   "event_count": 39,
-  "snapshot_count": 40,
+  "snapshot_count": 94,
   "browser_errors": [],
-  "timeline_blocks": 174,
+  "timeline_blocks": 113,
   "chart_gap_segments": 4,
   "trace": {
     "normal": {
-      "ts": "2026-09-28T21:58:30.876Z",
+      "ts": "2026-09-28T22:22:43.419Z",
       "scenario": "NORMAL",
       "f1": {
         "breaker": "BRK_F1",
@@ -37,19 +38,19 @@
       },
       "remote": {
         "quality": "GOOD",
-        "vm_kv": 19.572788748317343
+        "vm_kv": 19.553539495318383
       },
       "ss1_mv": {
         "quality": "GOOD",
-        "vm_kv": 19.35714038980584
+        "vm_kv": 19.32844106656314
       },
       "lv": {
         "quality": "GOOD",
-        "vm_kv": 0.3785043770324037
+        "vm_kv": 0.37753648977561344
       }
     },
     "r1_isolation": {
-      "ts": "2026-09-28T21:58:38.327Z",
+      "ts": "2026-09-28T22:23:44.115Z",
       "scenario": "NORMAL",
       "f1": {
         "breaker": "BRK_F1",
@@ -79,7 +80,7 @@
       }
     },
     "f1_isolation": {
-      "ts": "2026-09-28T21:58:41.424Z",
+      "ts": "2026-09-28T22:23:47.165Z",
       "scenario": "NORMAL",
       "f1": {
         "breaker": "BRK_F1",
@@ -109,7 +110,7 @@
       }
     },
     "tail_trip": {
-      "ts": "2026-09-28T21:58:44.524Z",
+      "ts": "2026-09-28T22:23:50.315Z",
       "scenario": "TAIL_OVERCURRENT_TEST",
       "f1": {
         "breaker": "BRK_F1",
@@ -139,7 +140,7 @@
       }
     },
     "opening_failure": {
-      "ts": "2026-09-28T21:58:49.024Z",
+      "ts": "2026-09-28T22:23:54.965Z",
       "scenario": "R1_OPENING_FAILURE_TEST",
       "f1": {
         "breaker": "BRK_F1",
@@ -169,7 +170,7 @@
       }
     },
     "low_voltage": {
-      "ts": "2026-09-28T21:58:54.774Z",
+      "ts": "2026-09-28T22:24:00.915Z",
       "scenario": "LOW_SOURCE_VOLTAGE",
       "f1": {
         "breaker": "BRK_F1",
@@ -199,7 +200,7 @@
       }
     },
     "restored": {
-      "ts": "2026-09-28T21:58:58.724Z",
+      "ts": "2026-09-28T22:24:04.914Z",
       "scenario": "NORMAL",
       "f1": {
         "breaker": "BRK_F1",
@@ -217,71 +218,66 @@
       },
       "remote": {
         "quality": "GOOD",
-        "vm_kv": 19.55115545156933
+        "vm_kv": 19.593733308668753
       },
       "ss1_mv": {
         "quality": "GOOD",
-        "vm_kv": 19.32488798729989
+        "vm_kv": 19.388389803464552
       },
       "lv": {
         "quality": "GOOD",
-        "vm_kv": 0.3774166040366838
+        "vm_kv": 0.3795573276443184
       }
     }
   },
   "selected_events": [
     {
-      "ts": "2026-09-28T21:58:30.876Z",
-      "event": "RUN_STARTED",
-      "breaker": null
-    },
-    {
-      "ts": "2026-09-28T21:58:38.327Z",
+      "ts": "2026-09-28T22:23:44.115Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_R1",
       "requested_state": "OPEN",
       "actual_state": "OPEN",
       "success": true,
       "cause": "operator",
-      "request_id": "78772343-8a4a-4bc2-810c-0d026fc7e27e"
+      "request_id": "08f49172-c7ce-4f09-9c62-1a8bb7ea8b83"
     },
     {
-      "ts": "2026-09-28T21:58:40.125Z",
+      "ts": "2026-09-28T22:23:45.915Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_R1",
       "requested_state": "CLOSED",
       "actual_state": "CLOSED",
       "success": true,
       "cause": "operator",
-      "request_id": "ac14eca1-5832-4551-8bc5-943cdb5b8c2f"
+      "request_id": "cf7e131c-6427-4547-bee7-a21103aaad00"
     },
     {
-      "ts": "2026-09-28T21:58:41.424Z",
+      "ts": "2026-09-28T22:23:47.165Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_F1",
       "requested_state": "OPEN",
       "actual_state": "OPEN",
       "success": true,
       "cause": "operator",
-      "request_id": "6f8c4a12-5700-4072-86ec-4c1d26c4f91b"
+      "request_id": "45c3e4bf-78e4-4c55-893d-5722dc5a964f"
     },
     {
-      "ts": "2026-09-28T21:58:43.174Z",
+      "ts": "2026-09-28T22:23:48.965Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_F1",
       "requested_state": "CLOSED",
       "actual_state": "CLOSED",
       "success": true,
       "cause": "operator",
-      "request_id": "e899ffe7-f9c2-4bd7-b6fc-b305ebd200ad"
+      "request_id": "95631ede-ad8a-4b9b-bcc7-c5721b6e8167"
     },
     {
-      "ts": "2026-09-28T21:58:44.524Z",
+      "ts": "2026-09-28T22:23:50.315Z",
       "event": "TRIP_REQUEST",
       "breaker": "BRK_R1"
     },
     {
-      "ts": "2026-09-28T21:58:44.524Z",
+      "ts": "2026-09-28T22:23:50.315Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_R1",
       "requested_state": "OPEN",
@@ -290,22 +286,29 @@
       "cause": "protection"
     },
     {
-      "ts": "2026-09-28T21:58:47.474Z",
+      "ts": "2026-09-28T22:23:53.165Z",
+      "event": "CLOSE_REJECTED",
+      "breaker": "BRK_R1",
+      "cause": "trip_latch",
+      "request_id": "63fe4165-42bb-40dc-bda6-81b8ae08d68b"
+    },
+    {
+      "ts": "2026-09-28T22:23:53.365Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_R1",
       "requested_state": "CLOSED",
       "actual_state": "CLOSED",
       "success": true,
       "cause": "operator",
-      "request_id": "ed535036-ce2e-45b6-a4bc-bc1f2f4fa4c5"
+      "request_id": "7950f1c3-cf3f-446f-827d-6446125290a7"
     },
     {
-      "ts": "2026-09-28T21:58:48.824Z",
+      "ts": "2026-09-28T22:23:54.764Z",
       "event": "TRIP_REQUEST",
       "breaker": "BRK_R1"
     },
     {
-      "ts": "2026-09-28T21:58:48.824Z",
+      "ts": "2026-09-28T22:23:54.764Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_R1",
       "requested_state": "OPEN",
@@ -314,12 +317,12 @@
       "cause": "protection"
     },
     {
-      "ts": "2026-09-28T21:58:49.024Z",
+      "ts": "2026-09-28T22:23:54.965Z",
       "event": "TRIP_REQUEST",
       "breaker": "BRK_F1"
     },
     {
-      "ts": "2026-09-28T21:58:49.024Z",
+      "ts": "2026-09-28T22:23:54.965Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_F1",
       "requested_state": "OPEN",
@@ -328,14 +331,14 @@
       "cause": "protection"
     },
     {
-      "ts": "2026-09-28T21:58:52.974Z",
+      "ts": "2026-09-28T22:23:59.165Z",
       "event": "POSITION_FEEDBACK",
       "breaker": "BRK_F1",
       "requested_state": "CLOSED",
       "actual_state": "CLOSED",
       "success": true,
       "cause": "operator",
-      "request_id": "73ef7b90-60c6-4cbd-ba4a-95dfde41d02f"
+      "request_id": "5b36ff39-abf5-4253-a4db-057d4c7bcf3a"
     }
   ]
 }

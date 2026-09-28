@@ -1,4 +1,4 @@
-## Rust v1 rebuild — release candidate (selected; acceptance in progress)
+## Rust v1 rebuild — release candidate (final clean check pending)
 
 **Goal:** Deliver the reference feeder as one local Rust and Docker laboratory,
 with coherent operator, plant, protection, and historian behavior. This branch
@@ -31,14 +31,14 @@ the earlier Sprint 8–10 service migrations.
   HTTP/SSE, a 30-day redb history, and one browser UI. The five frozen
   pandapower fixture cases are tracked under `fixtures/`.
 - On 2026-09-28 UTC, the multistage `docker compose up -d --build` completed
-  Rust format, Clippy with denied warnings, seven unit tests, and the release
+  Rust format, Clippy with denied warnings, eight unit tests, and the release
   build. `docker compose ps` showed one healthy app on `127.0.0.1:8088`.
   `docker compose config --quiet` passed. The image build is a local result;
   hosted CI has not run on this branch.
 - The 2026-09-28 live browser/API trace for run
-  `5b6df31b-db1a-4f01-80fa-c5742b6922ab` is in
+  `fa27e67d-e6b8-4d7e-8188-1a1dfbcd46d8` is in
   [`evidence/live-acceptance.json`](evidence/live-acceptance.json). It contains
-  40 stored snapshots, 39 scan events, selected physical feedback and
+  94 stored snapshots, 39 scan events, selected physical feedback and
   measurement/quality states, and zero browser errors. The browser exercised
   the feeder commands and both read-only panels; scenarios were selected
   through the test API only. Screenshots cover
@@ -58,11 +58,33 @@ the earlier Sprint 8–10 service migrations.
   and topology. It observed R1's failed OPEN with actual `CLOSED`, followed
   200 ms later by F1's successful backup OPEN. It checked the 24-hour range,
   merged timeline blocks, and four deliberately split chart segments across
-  unavailable data, a run boundary, and a missed sample. Restart was observed
-  to make a new run while prior redb records remained; retention and cursor
-  boundaries are also unit tested.
-- A fresh committed-tree checkout and Compose acceptance remain to be run.
-  PR, merge, tag, and publication remain separate decisions.
+  unavailable data, a run boundary, and a missed sample. A live CLOSE while
+  R1 was latched returned a queue acknowledgement but the IED emitted
+  `CLOSE_REJECTED`; physical R1 stayed OPEN. Removing the failure scenario
+  left both latches and physical positions unchanged until separate RESET and
+  CLOSE requests. Restart was observed to make a new run while prior redb
+  records remained; retention and cursor boundaries are also unit tested.
+- A later live repetition found that normal-demand variation leaked into the
+  fivefold test condition, causing an AC solve to become `UNKNOWN` and leaving
+  F1 without current for backup timing. The three non-normal test conditions
+  now hold fixed inputs across publications. A 120-publication regression test
+  for each condition and the fresh live trace above both pass. A fast
+  `CLOSE_REJECTED` event also exposed a browser race with the `202` response;
+  request-ID outcome reconciliation fixed the stale command note.
+- A detached clean checkout of commit `b437d92` had no local changes. Its
+  Compose configuration and multistage build passed, and the separate
+  `jspx-rust-v1-clean` service became healthy on `127.0.0.1:8089`, using
+  `jspx-rust-v1-clean_rust-history`. The browser opened and restored R1 while
+  comparing actual position, remote/SS1 quality, events, and stored snapshots.
+  A restart created `RUN_STARTED` for a distinct `NORMAL`, closed/clear run
+  while preserving prior R1 isolation history. The exact checks and run IDs
+  are in [clean-check results](evidence/clean-clone.json) and the
+  [isolation screenshot](evidence/clean-clone-isolation.png). The clean-check
+  Compose project was stopped without removing its named volume. That checkout
+  predates the later fixed-input and browser fixes, so the final committed
+  tree still needs a fresh checkout build and live check. Hosted CI has not
+  been observed; local equivalents passed. PR, merge, tag, and publication
+  remain separate decisions.
 
 ### Explicit exclusions
 

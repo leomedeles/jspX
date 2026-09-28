@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A restart begins a new NORMAL run with closed switches and clear latches;
   earlier history remains until its retention deadline.
 
+### Fixed
+
+- Held non-normal test inputs fixed across 1 Hz publications so overload
+  protection keeps valid measurements and deterministic backup timing.
+- Reconciled fast command-result events with their queued HTTP responses in
+  the operator view, including `CLOSE_REJECTED`.
+
 This entry is proposed release content. No v1 version, tag, or publication has
 been assigned.
 

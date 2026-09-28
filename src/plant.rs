@@ -245,8 +245,11 @@ impl Plant {
     }
     pub fn vary_load(&mut self) {
         self.tick += 1;
-        self.variation =
-            1.0 + 0.05 * (std::f64::consts::TAU * ((self.tick % 120) as f64) / 120.0).sin();
+        self.variation = if self.scenario == Scenario::Normal {
+            1.0 + 0.05 * (std::f64::consts::TAU * ((self.tick % 120) as f64) / 120.0).sin()
+        } else {
+            1.0
+        };
     }
 
     fn active(&self) -> [bool; 4] {
@@ -724,6 +727,23 @@ mod tests {
                 }
             }
             serde_json::to_string(&actual).unwrap();
+        }
+    }
+    #[test]
+    fn named_test_scenarios_keep_fixed_solvable_inputs_across_publications() {
+        for scenario in [
+            Scenario::TailOvercurrentTest,
+            Scenario::R1OpeningFailureTest,
+            Scenario::LowSourceVoltage,
+        ] {
+            let mut plant = Plant::default();
+            plant.set_scenario(scenario);
+            for _ in 0..120 {
+                plant.vary_load();
+                assert_eq!(plant.variation, 1.0);
+                let telemetry = plant.solve().expect("test condition must remain solvable");
+                assert!(telemetry.buses.iter().all(|b| b.quality == Quality::Good));
+            }
         }
     }
 }

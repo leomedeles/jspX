@@ -85,10 +85,13 @@ scenarios are:
 
 | Scenario | Input and expected outcome |
 | --- | --- |
-| `NORMAL` | 1.00 p.u. source and nominal load; does not reset latches or move switches. |
+| `NORMAL` | 1.00 p.u. source and nominal load with a deterministic ±5% routine variation; does not reset latches or move switches. |
 | `TAIL_OVERCURRENT_TEST` | Fivefold load; R1 trips after 100 ms, tail current clears, and F1 remains closed. |
 | `R1_OPENING_FAILURE_TEST` | Same load with a plant-boundary refusal of R1 OPEN; R1 stays physically closed and latched, then F1 opens after 300 ms. |
 | `LOW_SOURCE_VOLTAGE` | 0.90 p.u. source; F1 asserts its voltage alarm without tripping. |
+
+The three non-normal test conditions hold their specified load and source
+inputs across 1 Hz publications. They do not inherit routine demand variation.
 
 After the failure test, set `NORMAL`, RESET R1 and F1, then CLOSE F1. R1 is
 already physically closed in that test. Scenario removal never resets latches
@@ -141,8 +144,8 @@ current and actual closed position.
   remote control; plant feedback; local 30-day history; live and review views.
 - **Simplified:** the fivefold tail condition is an overload, not a calculated
   fault. The R1 refusal is an explicit test injection at the plant-operation
-  boundary, not a mechanical failure model. Routine demand has a small smooth
-  deterministic variation.
+  boundary, not a mechanical failure model. NORMAL demand has a small smooth
+  deterministic variation; named test inputs stay fixed.
 - **Not modeled:** CT/VT chains, relay curves, short-circuit or coordination
   studies, breaker-failure protection, local panel control, Local/Remote
   authority, autoreclose, transformer/LV protection, IEC 61850, DER, extra

@@ -37,6 +37,11 @@ load has two converged solutions; an explicit low-voltage seed selects the
 pandapower reference branch. Frozen fixture tests compare all five defined
 plant conditions within the README tolerances.
 
+The 1 Hz publisher varies demand by a deterministic ±5% only in `NORMAL`.
+Non-normal test conditions hold their frozen source/load inputs across scans
+and publications. This keeps the fivefold overload on the solved reference
+branch and makes protection timing reproducible.
+
 The plant, not the controller, owns breaker position. Unavailable bus, line,
 and transformer voltage/current values are `null` with a quality state.
 `NOT_ENERGIZED` means topology removes supply. `UNKNOWN` means the solve failed
