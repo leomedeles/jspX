@@ -6,7 +6,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{
-        IntoResponse, Response,
+        Html, IntoResponse, Response,
         sse::{Event as SseEvent, KeepAlive, Sse},
     },
     routing::{get, post},
@@ -201,6 +201,21 @@ async fn events(State(state): State<AppState>, Query(q): Query<RangeQuery>) -> R
 async fn live() -> StatusCode {
     StatusCode::OK
 }
+async fn page() -> Html<&'static str> {
+    Html(include_str!("../web/index.html"))
+}
+async fn style() -> impl IntoResponse {
+    (
+        [("content-type", "text/css; charset=utf-8")],
+        include_str!("../web/style.css"),
+    )
+}
+async fn script() -> impl IntoResponse {
+    (
+        [("content-type", "text/javascript; charset=utf-8")],
+        include_str!("../web/app.js"),
+    )
+}
 async fn ready(State(state): State<AppState>) -> StatusCode {
     if state.ready.load(Ordering::Relaxed) {
         StatusCode::OK
@@ -217,6 +232,13 @@ pub fn publish_live(state: &AppState, kind: &str, data: Value) {
 
 pub fn router(state: AppState) -> Router {
     Router::new()
+        .route("/", get(page))
+        .route("/feeder", get(page))
+        .route("/panels/f1", get(page))
+        .route("/panels/r1", get(page))
+        .route("/engineering", get(page))
+        .route("/assets/style.css", get(style))
+        .route("/assets/app.js", get(script))
         .route("/api/v1/snapshot", get(snapshot))
         .route("/api/v1/stream", get(stream))
         .route("/api/v1/breakers/{id}/commands", post(breaker_command))

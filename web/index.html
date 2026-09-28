@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>jspX · Reference Feeder</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="brand-mark">jX</span><div><strong>jspX</strong><small>REFERENCE FEEDER LAB</small></div></div>
+    <nav aria-label="Main navigation"><a href="/feeder">Feeder</a><a href="/panels/f1">F1 panel</a><a href="/panels/r1">R1 panel</a><a href="/engineering">Engineering</a></nav>
+    <div class="live-indicator" id="connection"><span class="dot"></span><span>Connecting</span></div>
+  </header>
+  <main>
+    <section class="page" id="feederPage">
+      <div class="page-title"><div><p class="eyebrow">OPERATIONS / LIVE</p><h1>Reference feeder</h1><p>One source, two remotely operated breakers, one aggregate LV demand.</p></div><div class="timebox"><span>LAST AUTHORITATIVE SCAN</span><strong id="scanTime">—</strong></div></div>
+      <div class="alert" id="staleAlert" hidden>Live updates are unavailable. All indications are UNKNOWN until a fresh post-scan snapshot arrives.</div>
+      <section class="card diagram-card" aria-label="Feeder single-line diagram">
+        <div class="card-header"><div><h2>Single-line view</h2><p>110 kV upstream → 20 kV feeder → 400 V demand</p></div><span class="legend"><i class="legend-good"></i> Energized <i class="legend-off"></i> De-energized <i class="legend-unknown"></i> Unknown</span></div>
+        <div class="diagram-scroll"><svg viewBox="0 0 1360 355" role="img" aria-labelledby="diagramTitle"><title id="diagramTitle">Reference feeder single-line with T1, F1, L1, R1, L2, T2 and LV load</title>
+          <g class="wire" id="wireSource"><path d="M65 164 H311"/></g><g class="wire" id="wireL1"><path d="M311 164 H659"/></g><g class="wire" id="wireL2"><path d="M659 164 H1000"/></g><g class="wire" id="wireLv"><path d="M1000 164 H1295"/></g>
+          <g class="station"><circle cx="65" cy="164" r="11"/><text x="65" y="106">GRID_110KV</text><text class="value" id="gridValue" x="65" y="245">—</text><text class="base" x="65" y="268">110 kV base</text></g>
+          <g class="transformer"><circle cx="205" cy="154" r="24"/><circle cx="205" cy="176" r="24"/><text x="205" y="75">T1_PRIMARY</text><text class="base" x="205" y="99">25 MVA · 110/20 kV</text><text class="value" id="t1Value" x="205" y="245">—</text></g>
+          <g class="station"><circle cx="311" cy="164" r="11"/><text x="311" y="106">BUS_MV_SOURCE</text><text class="value" id="sourceValue" x="311" y="245">—</text><text class="base" x="311" y="268">20 kV base</text></g>
+          <g class="breaker" id="f1Symbol"><rect x="381" y="139" width="54" height="50" rx="6"/><path class="blade" d="M392 164 H424"/><text x="408" y="106">F1</text><text class="value" id="f1Value" x="408" y="245">—</text><text class="minor" id="f1Latch" x="408" y="268">—</text></g>
+          <g class="line-asset"><text x="528" y="106">L1_FEEDER_HEAD</text><text class="base" x="528" y="129">5 km · 20 kV</text><text class="value" id="l1Value" x="528" y="245">—</text></g>
+          <g class="station"><circle cx="659" cy="164" r="11"/><text x="659" y="75">BUS_R1_REMOTE</text><text class="value" id="remoteValue" x="659" y="245">—</text><text class="base" x="659" y="268">20 kV base</text></g>
+          <g class="breaker" id="r1Symbol"><rect x="725" y="139" width="54" height="50" rx="6"/><path class="blade" d="M736 164 H768"/><text x="752" y="106">R1</text><text class="value" id="r1Value" x="752" y="245">—</text><text class="minor" id="r1Latch" x="752" y="268">—</text></g>
+          <g class="line-asset"><text x="875" y="106">L2_FEEDER_TAIL</text><text class="base" x="875" y="129">3 km · 20 kV</text><text class="value" id="l2Value" x="875" y="245">—</text></g>
+          <g class="station"><circle cx="1000" cy="164" r="11"/><text x="1000" y="75">BUS_SS1_MV</text><text class="value" id="ss1MvValue" x="1000" y="245">—</text><text class="base" x="1000" y="268">20 kV base</text></g>
+          <g class="transformer"><circle cx="1093" cy="154" r="24"/><circle cx="1093" cy="176" r="24"/><text x="1093" y="75">T2_SS1</text><text class="base" x="1093" y="99">2.5 MVA · 20/0.4 kV</text><text class="value" id="t2Value" x="1093" y="245">—</text></g>
+          <g class="station"><circle cx="1191" cy="164" r="11"/><text x="1191" y="106">BUS_SS1_LV</text><text class="value" id="lvValue" x="1191" y="245">—</text><text class="base" x="1191" y="268">400 V base</text></g>
+          <g class="load"><path d="M1280 143 L1310 164 L1280 185 Z"/><text x="1295" y="75">LV DEMAND</text><text class="value" id="loadValue" x="1295" y="245">—</text><text class="base" x="1295" y="268">2 MW + 0.5 MVAr nominal</text></g>
+          <text class="caption" x="680" y="328" id="topologyCaption">Waiting for solved topology</text>
+        </svg></div>
+      </section>
+      <div class="two-column">
+        <section class="card control-card"><div class="card-header"><div><p class="eyebrow">REMOTE OPERATION</p><h2>BRK_F1</h2></div><a href="/panels/f1">View panel →</a></div><div class="status-line"><span>Physical position</span><strong id="f1State">UNKNOWN</strong></div><div class="status-line"><span>Trip latch / reason</span><strong id="f1Trip">UNKNOWN</strong></div><div class="status-line"><span>Source undervoltage alarm</span><strong id="f1Alarm">UNKNOWN</strong></div><div class="buttons"><button data-breaker="BRK_F1" data-action="OPEN">OPEN</button><button data-breaker="BRK_F1" data-action="CLOSE">CLOSE</button><button data-breaker="BRK_F1" data-action="RESET">RESET</button></div><p class="command-note" id="f1Command">Commands enter the next control scan. Await physical feedback.</p></section>
+        <section class="card control-card"><div class="card-header"><div><p class="eyebrow">REMOTE OPERATION</p><h2>BRK_R1</h2></div><a href="/panels/r1">View panel →</a></div><div class="status-line"><span>Physical position</span><strong id="r1State">UNKNOWN</strong></div><div class="status-line"><span>Trip latch / reason</span><strong id="r1Trip">UNKNOWN</strong></div><div class="status-line"><span>Remote-point voltage</span><strong id="r1Alarm">UNKNOWN</strong></div><div class="buttons"><button data-breaker="BRK_R1" data-action="OPEN">OPEN</button><button data-breaker="BRK_R1" data-action="CLOSE">CLOSE</button><button data-breaker="BRK_R1" data-action="RESET">RESET</button></div><p class="command-note" id="r1Command">Commands enter the next control scan. Await physical feedback.</p></section>
+      </div>
+      <section class="card event-strip"><div class="card-header"><h2>Latest IED / operation event</h2><a href="/engineering">Full sequence →</a></div><p id="latestEvent">Waiting for scan events.</p></section>
+    </section>
+
+    <section class="page panel-page" id="f1PanelPage"><div class="page-title"><div><p class="eyebrow">READ-ONLY / PHYSICAL PORTRAYAL</p><h1>F1 panel</h1><p>Source-side breaker and IED_F1. Indications follow the same post-scan plant state as the feeder view.</p></div><a class="back-link" href="/feeder">← Feeder view</a></div><div class="panel-shell"><div class="panel-top"><span>jspX / FEEDER HEAD</span><strong>BRK_F1</strong><span>IED_F1</span></div><div class="panel-lamps"><div><span class="lamp" id="pf1ClosedLamp"></span><small>CLOSED</small></div><div><span class="lamp" id="pf1OpenLamp"></span><small>OPEN</small></div><div><span class="lamp" id="pf1TripLamp"></span><small>TRIP LATCH</small></div><div><span class="lamp" id="pf1AlarmLamp"></span><small>UV ALARM</small></div></div><div class="panel-readouts"><div><span>PHYSICAL POSITION</span><strong id="pf1Position">UNKNOWN</strong></div><div><span>TRIP REASON</span><strong id="pf1Reason">—</strong></div><div><span>SOURCE MV VOLTAGE</span><strong id="pf1Voltage">—</strong></div><div><span>L1 CURRENT</span><strong id="pf1Current">—</strong></div></div><p class="panel-footnote">Read-only simulation portrayal. No local controls or authority selectors are modeled.</p></div></section>
+
+    <section class="page panel-page" id="r1PanelPage"><div class="page-title"><div><p class="eyebrow">READ-ONLY / PHYSICAL PORTRAYAL</p><h1>R1 panel</h1><p>Remote-point breaker and IED_R1. Indications follow the same post-scan plant state as the feeder view.</p></div><a class="back-link" href="/feeder">← Feeder view</a></div><div class="panel-shell"><div class="panel-top"><span>jspX / REMOTE POINT</span><strong>BRK_R1</strong><span>IED_R1</span></div><div class="panel-lamps"><div><span class="lamp" id="pr1ClosedLamp"></span><small>CLOSED</small></div><div><span class="lamp" id="pr1OpenLamp"></span><small>OPEN</small></div><div><span class="lamp" id="pr1TripLamp"></span><small>TRIP LATCH</small></div><div><span class="lamp idle"></span><small>NO UV ACTION</small></div></div><div class="panel-readouts"><div><span>PHYSICAL POSITION</span><strong id="pr1Position">UNKNOWN</strong></div><div><span>TRIP REASON</span><strong id="pr1Reason">—</strong></div><div><span>REMOTE MV VOLTAGE</span><strong id="pr1Voltage">—</strong></div><div><span>L2 CURRENT</span><strong id="pr1Current">—</strong></div></div><p class="panel-footnote">Read-only simulation portrayal. No local controls or authority selectors are modeled.</p></div></section>
+
+    <section class="page engineering-page" id="engineeringPage"><div class="page-title"><div><p class="eyebrow">ENGINEERING / HISTORIAN</p><h1>Feeder review</h1><p>Electrical trends are sampled near 1 Hz; IED and operation events are recorded at the 50 ms scan resolution.</p></div><div class="range-picker"><label for="rangeSelect">TIME RANGE</label><select id="rangeSelect"><option value="15">Last 15 min</option><option value="60">Last hour</option><option value="360">Last 6 hours</option><option value="1440">Last 24 hours</option></select><button id="refreshHistory">Refresh</button></div></div>
+      <div class="info-line" id="historyInfo">Loading stored history…</div>
+      <section class="card wide"><div class="card-header"><h2>Bus voltage · p.u.</h2><p>Nominal bases: GRID_110KV 110 kV; MV buses 20 kV; BUS_SS1_LV 0.4 kV.</p></div><div class="chart" id="chartPu"></div></section>
+      <div class="chart-grid three"><section class="card"><div class="card-header"><h2>Actual voltage · 110 kV</h2></div><div class="chart" id="chart110"></div></section><section class="card"><div class="card-header"><h2>Actual voltage · 20 kV</h2></div><div class="chart" id="chart20"></div></section><section class="card"><div class="card-header"><h2>Actual voltage · 400 V</h2></div><div class="chart" id="chart400"></div></section></div>
+      <div class="chart-grid two"><section class="card"><div class="card-header"><h2>Line active power · MW</h2></div><div class="chart" id="chartP"></div></section><section class="card"><div class="card-header"><h2>Line reactive power · MVAr</h2></div><div class="chart" id="chartQ"></div></section><section class="card"><div class="card-header"><h2>Line current · kA</h2></div><div class="chart" id="chartCurrent"></div><p class="chart-note">Open-switch through-current is inferred to be zero by topology. Current measurement remains unavailable and appears as a gap.</p></section><section class="card"><div class="card-header"><h2>Line loading · %</h2></div><div class="chart" id="chartLineLoading"></div></section></div>
+      <section class="card wide"><div class="card-header"><h2>Transformer loading · %</h2></div><div class="chart" id="chartTransformer"></div></section>
+      <section class="card wide"><div class="card-header"><h2>Feeder energization timeline</h2><p>Green supplied · red isolated · gray unknown · blank no stored observation</p></div><div class="chart timeline" id="energizationTimeline"></div></section>
+      <section class="card wide"><div class="card-header"><div><h2>IED and operation sequence</h2><p>Actual position and latch are captured after each scan, including refused operations.</p></div></div><div class="table-scroll"><table><thead><tr><th>UTC time</th><th>Source</th><th>Event</th><th>Physical</th><th>Latch</th><th>Request / result</th></tr></thead><tbody id="eventRows"><tr><td colspan="6">Loading events…</td></tr></tbody></table></div></section>
+    </section>
+  </main>
+  <footer><span>jspX · local reference-feeder laboratory</span><span>Simulation only · no production control connection</span></footer>
+</body>
+</html>
