@@ -175,4 +175,48 @@ mod tests {
         drop(db);
         let _ = std::fs::remove_file(path);
     }
+    #[test]
+    fn cursor_pages_do_not_drop_rows_and_new_runs_remain_distinct() {
+        let path = std::env::temp_dir().join(format!("jspx-pages-{}.redb", uuid::Uuid::new_v4()));
+        let base = 1_800_000_000_000i64;
+        let mut db = HistoryStore::open(&path).unwrap();
+        let mut first_run = Simulator::default();
+        db.append(
+            &first_run.scan(0, "2027-01-15T08:00:00Z".into(), None, true),
+            base,
+        )
+        .unwrap();
+        db.append(
+            &first_run.scan(1000, "2027-01-15T08:00:01Z".into(), None, true),
+            base + 1000,
+        )
+        .unwrap();
+        let mut second_run = Simulator::default();
+        db.append(
+            &second_run.scan(0, "2027-01-15T08:00:02Z".into(), None, true),
+            base + 2000,
+        )
+        .unwrap();
+        let mut cursor = None;
+        let mut rows = Vec::new();
+        loop {
+            let page = db
+                .snapshots(base, base + 2000, 1, cursor.as_deref())
+                .unwrap();
+            rows.extend(page.items);
+            cursor = page.next_cursor;
+            if cursor.is_none() {
+                break;
+            }
+        }
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0].run_id, rows[1].run_id);
+        assert_ne!(rows[1].run_id, rows[2].run_id);
+        assert_eq!(
+            db.events(base + 2000, base + 2000, 10, None).unwrap().items[0].event,
+            "RUN_STARTED"
+        );
+        drop(db);
+        let _ = std::fs::remove_file(path);
+    }
 }

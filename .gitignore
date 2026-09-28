@@ -1,37 +1,11 @@
-﻿# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.pytest_cache/
-.venv/
+/target/
+/data/
 .env
 .env.*.local
-src/sandbox/
-
-# Data
-data/*.ndjson
-data/Notes
-
-# Node / Node-RED
-node_modules/
-nodered/data/*
-!nodered/data/flows.json
-*package-lock.json
-npm-debug.log*
-.DS_Store
-
-# Editors/OS
+.venv/
 .vscode/
 .idea/
+*.code-workspace
 *.swp
+.DS_Store
 Thumbs.db
-
-# Containers
-mqtt/data/
-mqtt/log/
-
-# Rust
-/target/
-
-*code-workspace*

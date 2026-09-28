@@ -1,4 +1,77 @@
-## Sprint 7 — Stage A: IED boundary and event evidence (selected; version assigned after acceptance)
+## Rust v1 rebuild — release candidate (selected; acceptance in progress)
+
+**Goal:** Deliver the reference feeder as one local Rust and Docker laboratory,
+with coherent operator, plant, protection, and historian behavior. This branch
+replaces the Python/Node-RED/MQTT/InfluxDB/Grafana runtime rather than staging
+the earlier Sprint 8–10 service migrations.
+
+### Acceptance criteria
+
+- [ ] A clean clone builds one healthy Rust Compose service with only a
+  localhost port and a separate 30-day named history volume.
+- [x] The balanced AC solver matches frozen pandapower normal, F1/R1 isolation,
+  overload, and low-voltage fixtures within README tolerances, with exact
+  topology and quality classifications.
+- [x] Normal supply, F1/R1 planned isolation and restoration, selective R1
+  trip, R1 opening failure with F1 backup, and low source voltage are observed
+  through HTTP, live feeder view, read-only panels, event sequence, and stored
+  electrical/topology history.
+- [x] Queue acknowledgement is distinguished from IED acceptance and physical
+  feedback. An R1 refusal leaves actual position CLOSED and latch active.
+  RESET does not close; removal of the failure injection does not restore.
+- [x] Engineering charts show p.u. bases, separate actual-voltage levels,
+  line P/Q/current/loading, transformer loading, energization, and scan events.
+  Unavailable values, run boundaries, and missed telemetry have visible gaps.
+- [ ] Rust formatting, lint, tests, Compose configuration, live functional
+  checks, visual checks, and clean-clone checks pass with evidence below.
+
+### Implementation and verification evidence
+
+- Rust source implements a fixed AC feeder, virtual-clock IED tests, queued
+  HTTP/SSE, a 30-day redb history, and one browser UI. The five frozen
+  pandapower fixture cases are tracked under `fixtures/`.
+- On 2026-09-28 UTC, the multistage `docker compose up -d --build` completed
+  Rust format, Clippy with denied warnings, seven unit tests, and the release
+  build. `docker compose ps` showed one healthy app on `127.0.0.1:8088`.
+  `docker compose config --quiet` passed. The image build is a local result;
+  hosted CI has not run on this branch.
+- The 2026-09-28 live browser/API trace for run
+  `5b6df31b-db1a-4f01-80fa-c5742b6922ab` is in
+  [`evidence/live-acceptance.json`](evidence/live-acceptance.json). It contains
+  40 stored snapshots, 39 scan events, selected physical feedback and
+  measurement/quality states, and zero browser errors. The browser exercised
+  the feeder commands and both read-only panels; scenarios were selected
+  through the test API only. Screenshots cover
+  [normal](evidence/normal-feeder.png),
+  [R1 isolation](evidence/r1-isolation.png),
+  [F1 isolation](evidence/f1-isolation.png),
+  [selective trip](evidence/tail-trip.png),
+  [R1 refusal and F1 backup](evidence/r1-opening-failure.png),
+  [restoration](evidence/restored-feeder.png),
+  [low voltage](evidence/low-source-voltage.png), and
+  [engineering review](evidence/engineering-review.png). Separate
+  [F1](evidence/f1-panel-failure.png) and
+  [R1](evidence/r1-panel-failure.png) failure-panel images, plus the
+  [R1 trip panel](evidence/r1-panel-trip.png), confirm panel agreement.
+- The browser fetched `/api/v1/history` and `/api/v1/events` with UTC `from`,
+  `to`, and `limit=10000`, then matched recorded position feedback to quality
+  and topology. It observed R1's failed OPEN with actual `CLOSED`, followed
+  200 ms later by F1's successful backup OPEN. It checked the 24-hour range,
+  merged timeline blocks, and four deliberately split chart segments across
+  unavailable data, a run boundary, and a missed sample. Restart was observed
+  to make a new run while prior redb records remained; retention and cursor
+  boundaries are also unit tested.
+- A fresh committed-tree checkout and Compose acceptance remain to be run.
+  PR, merge, tag, and publication remain separate decisions.
+
+### Explicit exclusions
+
+No old-history import, production authentication, local panel operation,
+calculated faults, or second active dashboard. `flows/` remains historical.
+
+---
+
+## Sprint 7 — Stage A: IED boundary and event evidence (historical source for Rust v1)
 
 **Goal:** Make F1/R1 protection decisions, operation requests, physical results, and their timing inspectable while preserving the released reference feeder.
 

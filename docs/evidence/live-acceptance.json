@@ -1,0 +1,341 @@
+{
+  "verified_at_utc": "2026-09-28T21:58:58.735Z",
+  "run_id": "5b6df31b-db1a-4f01-80fa-c5742b6922ab",
+  "observations": [
+    "normal: F1/R1 closed, remote and LV energized",
+    "R1 isolation: remote energized, SS1 de-energized, actual R1 open",
+    "F1 isolation: remote and SS1 de-energized, source MV energized",
+    "tail overload: R1 tripped open, F1 remained closed, SS1 isolated",
+    "R1 failure: R1 physical CLOSED and latched; F1 backup OPEN and latched",
+    "restoration: RESET left F1 open; later CLOSE restored LV",
+    "low source: F1 undervoltage alarm active without trip",
+    "engineering: voltage, line, transformer, topology charts and IED event table rendered",
+    "chart gaps: null, run boundary, and >1.5 s missed sample split paths"
+  ],
+  "event_count": 39,
+  "snapshot_count": 40,
+  "browser_errors": [],
+  "timeline_blocks": 174,
+  "chart_gap_segments": 4,
+  "trace": {
+    "normal": {
+      "ts": "2026-09-28T21:58:30.876Z",
+      "scenario": "NORMAL",
+      "f1": {
+        "breaker": "BRK_F1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "r1": {
+        "breaker": "BRK_R1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "remote": {
+        "quality": "GOOD",
+        "vm_kv": 19.572788748317343
+      },
+      "ss1_mv": {
+        "quality": "GOOD",
+        "vm_kv": 19.35714038980584
+      },
+      "lv": {
+        "quality": "GOOD",
+        "vm_kv": 0.3785043770324037
+      }
+    },
+    "r1_isolation": {
+      "ts": "2026-09-28T21:58:38.327Z",
+      "scenario": "NORMAL",
+      "f1": {
+        "breaker": "BRK_F1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "r1": {
+        "breaker": "BRK_R1",
+        "state": "OPEN",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "remote": {
+        "quality": "GOOD",
+        "vm_kv": 20.000346546395527
+      },
+      "ss1_mv": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      },
+      "lv": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      }
+    },
+    "f1_isolation": {
+      "ts": "2026-09-28T21:58:41.424Z",
+      "scenario": "NORMAL",
+      "f1": {
+        "breaker": "BRK_F1",
+        "state": "OPEN",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "r1": {
+        "breaker": "BRK_R1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "remote": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      },
+      "ss1_mv": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      },
+      "lv": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      }
+    },
+    "tail_trip": {
+      "ts": "2026-09-28T21:58:44.524Z",
+      "scenario": "TAIL_OVERCURRENT_TEST",
+      "f1": {
+        "breaker": "BRK_F1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "r1": {
+        "breaker": "BRK_R1",
+        "state": "OPEN",
+        "tripped": true,
+        "undervoltage_alarm": false,
+        "trip_reason": "overcurrent"
+      },
+      "remote": {
+        "quality": "GOOD",
+        "vm_kv": 20.000346546395544
+      },
+      "ss1_mv": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      },
+      "lv": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      }
+    },
+    "opening_failure": {
+      "ts": "2026-09-28T21:58:49.024Z",
+      "scenario": "R1_OPENING_FAILURE_TEST",
+      "f1": {
+        "breaker": "BRK_F1",
+        "state": "OPEN",
+        "tripped": true,
+        "undervoltage_alarm": false,
+        "trip_reason": "overcurrent"
+      },
+      "r1": {
+        "breaker": "BRK_R1",
+        "state": "CLOSED",
+        "tripped": true,
+        "undervoltage_alarm": false,
+        "trip_reason": "overcurrent"
+      },
+      "remote": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      },
+      "ss1_mv": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      },
+      "lv": {
+        "quality": "NOT_ENERGIZED",
+        "vm_kv": null
+      }
+    },
+    "low_voltage": {
+      "ts": "2026-09-28T21:58:54.774Z",
+      "scenario": "LOW_SOURCE_VOLTAGE",
+      "f1": {
+        "breaker": "BRK_F1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": true,
+        "trip_reason": null
+      },
+      "r1": {
+        "breaker": "BRK_R1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "remote": {
+        "quality": "GOOD",
+        "vm_kv": 17.54366192719296
+      },
+      "ss1_mv": {
+        "quality": "GOOD",
+        "vm_kv": 17.31442010368957
+      },
+      "lv": {
+        "quality": "GOOD",
+        "vm_kv": 0.3370402275093717
+      }
+    },
+    "restored": {
+      "ts": "2026-09-28T21:58:58.724Z",
+      "scenario": "NORMAL",
+      "f1": {
+        "breaker": "BRK_F1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "r1": {
+        "breaker": "BRK_R1",
+        "state": "CLOSED",
+        "tripped": false,
+        "undervoltage_alarm": false,
+        "trip_reason": null
+      },
+      "remote": {
+        "quality": "GOOD",
+        "vm_kv": 19.55115545156933
+      },
+      "ss1_mv": {
+        "quality": "GOOD",
+        "vm_kv": 19.32488798729989
+      },
+      "lv": {
+        "quality": "GOOD",
+        "vm_kv": 0.3774166040366838
+      }
+    }
+  },
+  "selected_events": [
+    {
+      "ts": "2026-09-28T21:58:30.876Z",
+      "event": "RUN_STARTED",
+      "breaker": null
+    },
+    {
+      "ts": "2026-09-28T21:58:38.327Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_R1",
+      "requested_state": "OPEN",
+      "actual_state": "OPEN",
+      "success": true,
+      "cause": "operator",
+      "request_id": "78772343-8a4a-4bc2-810c-0d026fc7e27e"
+    },
+    {
+      "ts": "2026-09-28T21:58:40.125Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_R1",
+      "requested_state": "CLOSED",
+      "actual_state": "CLOSED",
+      "success": true,
+      "cause": "operator",
+      "request_id": "ac14eca1-5832-4551-8bc5-943cdb5b8c2f"
+    },
+    {
+      "ts": "2026-09-28T21:58:41.424Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_F1",
+      "requested_state": "OPEN",
+      "actual_state": "OPEN",
+      "success": true,
+      "cause": "operator",
+      "request_id": "6f8c4a12-5700-4072-86ec-4c1d26c4f91b"
+    },
+    {
+      "ts": "2026-09-28T21:58:43.174Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_F1",
+      "requested_state": "CLOSED",
+      "actual_state": "CLOSED",
+      "success": true,
+      "cause": "operator",
+      "request_id": "e899ffe7-f9c2-4bd7-b6fc-b305ebd200ad"
+    },
+    {
+      "ts": "2026-09-28T21:58:44.524Z",
+      "event": "TRIP_REQUEST",
+      "breaker": "BRK_R1"
+    },
+    {
+      "ts": "2026-09-28T21:58:44.524Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_R1",
+      "requested_state": "OPEN",
+      "actual_state": "OPEN",
+      "success": true,
+      "cause": "protection"
+    },
+    {
+      "ts": "2026-09-28T21:58:47.474Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_R1",
+      "requested_state": "CLOSED",
+      "actual_state": "CLOSED",
+      "success": true,
+      "cause": "operator",
+      "request_id": "ed535036-ce2e-45b6-a4bc-bc1f2f4fa4c5"
+    },
+    {
+      "ts": "2026-09-28T21:58:48.824Z",
+      "event": "TRIP_REQUEST",
+      "breaker": "BRK_R1"
+    },
+    {
+      "ts": "2026-09-28T21:58:48.824Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_R1",
+      "requested_state": "OPEN",
+      "actual_state": "CLOSED",
+      "success": false,
+      "cause": "protection"
+    },
+    {
+      "ts": "2026-09-28T21:58:49.024Z",
+      "event": "TRIP_REQUEST",
+      "breaker": "BRK_F1"
+    },
+    {
+      "ts": "2026-09-28T21:58:49.024Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_F1",
+      "requested_state": "OPEN",
+      "actual_state": "OPEN",
+      "success": true,
+      "cause": "protection"
+    },
+    {
+      "ts": "2026-09-28T21:58:52.974Z",
+      "event": "POSITION_FEEDBACK",
+      "breaker": "BRK_F1",
+      "requested_state": "CLOSED",
+      "actual_state": "CLOSED",
+      "success": true,
+      "cause": "operator",
+      "request_id": "73ef7b90-60c6-4cbd-ba4a-95dfde41d02f"
+    }
+  ]
+}

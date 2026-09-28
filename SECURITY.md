@@ -1,19 +1,7 @@
 # Security
 
-jspX is a local learning simulation, not a production SCADA system.
-
-## Development credentials
-
-- Never commit real passwords, tokens, certificates, or customer data.
-- Keep local values in `.env`; commit only safe example values and placeholders.
-- If a secret is committed accidentally, revoke or rotate it rather than only deleting it from a later commit.
-
-## Network exposure
-
-- Docker service ports are intended to bind to localhost during development.
-- MQTT currently has no production authentication or TLS configuration.
-- Do not expose this stack to an untrusted network or use it to control real equipment.
-
-## Future hardening
-
-Production use would require authentication, TLS, secret management, access control, and a security review.
+jspX is a local learning simulation, not production SCADA. The Compose port
+binds to `127.0.0.1`, and the HTTP command API has no authentication or TLS.
+Do not expose it to an untrusted network or connect it to real equipment.
+Production use would require authentication, access control, TLS, rate limits,
+secret management, and a security review. Never commit real credentials.

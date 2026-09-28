@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Rust v1 release candidate
+
+### Added
+
+- One Rust and Docker reference-feeder laboratory with a balanced AC solve,
+  F1/R1 IEDs, queued HTTP commands, physical feedback, and SSE live state.
+- A feeder single-line, read-only F1/R1 panel portrayals, and an engineering
+  review with voltage bases, separated actual-voltage views, electrical and
+  energization trends, and scan-resolution event history.
+- A 30-day embedded historian with distinct inferred open-switch zero and
+  unavailable current, explicit run boundaries, and strict JSON quality.
+
+### Changed
+
+- Replaced the Python, Node-RED, Mosquitto, InfluxDB, and Grafana runtimes on
+  this branch. The Rust v1 uses HTTP/SSE rather than MQTT topics. Historical
+  `flows/` exports remain unexecuted.
+- A restart begins a new NORMAL run with closed switches and clear latches;
+  earlier history remains until its retention deadline.
+
+This entry is proposed release content. No v1 version, tag, or publication has
+been assigned.
+
 ## [0.6.0] - 2026-09-26
 
 ### Added
