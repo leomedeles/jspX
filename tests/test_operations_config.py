@@ -1,5 +1,9 @@
 import json
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -123,6 +127,63 @@ def test_existing_telemetry_influx_path_is_preserved() -> None:
     assert "l.loading_pct" not in function
     assert nodes["7d88f8edcae91d28"]["wires"] == [["ad39eed653b0a057"]]
     assert nodes["ad39eed653b0a057"]["wires"] == [["http-write"]]
+
+
+def test_ied_event_mqtt_to_influx_contract_and_line_protocol() -> None:
+    nodes = {node["id"]: node for node in load_json(FLOW_PATH)}
+    assert nodes["mqtt_in_ied_event"]["topic"] == "event/ied"
+    assert nodes["mqtt_in_ied_event"]["rh"] == 0
+    assert nodes["mqtt_in_ied_event"]["wires"] == [["json_parse_ied_event"]]
+    assert nodes["json_parse_ied_event"]["wires"] == [["fn_ied_event_to_lp"]]
+    assert nodes["fn_ied_event_to_lp"]["wires"] == [["917c308f0b48aa53"]]
+    assert nodes["917c308f0b48aa53"]["wires"] == [["http_influx_write"]]
+
+    if not shutil.which("node"):
+        pytest.skip("Node.js is unavailable for executing the Node-RED transform")
+    sample = {
+        "ts": "2026-09-28T12:00:00.100Z",
+        "event_id": "a" * 32 + ":5",
+        "ied": "IED_R1",
+        "breaker": "BRK_R1",
+        "event": "POSITION_FEEDBACK",
+        "scan_monotonic_s": 21.1,
+        "position": "CLOSED",
+        "tripped": True,
+        "requested_state": "OPEN",
+        "actual_state": "CLOSED",
+        "success": False,
+        "cause": "protection",
+    }
+    script = """
+const input = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+const fn = new Function('msg', 'node', input.func);
+const result = fn({payload: input.event}, {warn: () => {}});
+process.stdout.write(JSON.stringify(result));
+"""
+    function = nodes["fn_ied_event_to_lp"]["func"]
+    completed = subprocess.run(
+        ["node", "-e", script],
+        input=json.dumps({"func": function, "event": sample}),
+        text=True, capture_output=True, check=True,
+    )
+    line = json.loads(completed.stdout)["payload"]
+    assert line.startswith(
+        "ied_event,ied=IED_R1,breaker=BRK_R1,event=POSITION_FEEDBACK,"
+        "event_id=" + sample["event_id"] + " "
+    )
+    assert 'position="CLOSED"' in line
+    assert 'requested_state="OPEN"' in line
+    assert "success=false" in line
+    assert line.endswith(" 1790596800100")
+
+    malformed = {**sample, "position": "OPEN"}
+    malformed["ied"] = "IED_F1"
+    rejected = subprocess.run(
+        ["node", "-e", script],
+        input=json.dumps({"func": function, "event": malformed}),
+        text=True, capture_output=True, check=True,
+    )
+    assert json.loads(rejected.stdout) is None
 
 
 def test_existing_dashboard_contains_influx_backed_operations_panels() -> None:

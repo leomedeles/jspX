@@ -6,6 +6,7 @@ import random
 import signal
 import sys
 import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from queue import Empty, SimpleQueue
@@ -28,6 +29,7 @@ except Exception:
 
 CONTROL_INTERVAL_S = 0.050
 SCENARIO_COMMAND_TOPIC = "cmd/sim/scenario/set"
+IED_EVENT_TOPIC = "event/ied"
 BRK_F1 = "BRK_F1"
 BRK_R1 = "BRK_R1"
 NAMED_COMMAND_TOPICS = {
@@ -107,6 +109,7 @@ class ControlScanResult:
     scenario_accepted: bool | None = None
     breaker_name: str | None = None
     statuses: dict[str, dict[str, object]] = field(default_factory=dict)
+    events: tuple[dict[str, object], ...] = ()
 
 
 class ControlledPandapowerSimulator:
@@ -128,7 +131,14 @@ class ControlledPandapowerSimulator:
         self.controllers = {
             name: ied.controller for name, ied in self.ieds.items()
         }
-        self._pending_operations: dict[str, bool] = {}
+        self._pending_operations: dict[str, tuple[bool, str]] = {}
+        self._pending_events: list[tuple[str, str, dict[str, object]]] = []
+        self.last_events: tuple[dict[str, object], ...] = ()
+        self._event_run_id = uuid.uuid4().hex
+        self._event_sequence = 0
+
+    def _record_event(self, breaker_name: str, event: str, **fields: object) -> None:
+        self._pending_events.append((breaker_name, event, fields))
 
     def command_breaker(self, breaker_name: str, command: str) -> bool:
         """Apply a local command to one controller, not the physical switch."""
@@ -136,27 +146,68 @@ class ControlledPandapowerSimulator:
             controller = self.controllers[breaker_name]
         except KeyError as exc:
             raise ValueError(f"unknown breaker: {breaker_name}") from exc
+        timing_started = controller.timing_started_at is not None
         accepted = apply_breaker_command(controller, command)
         if accepted and command in ("OPEN", "CLOSE"):
-            self._pending_operations[breaker_name] = command == "CLOSE"
+            self._record_event(
+                breaker_name, "OPERATION_REQUEST",
+                requested_state="CLOSED" if command == "CLOSE" else "OPEN",
+                cause="operator",
+            )
+            self._pending_operations[breaker_name] = (command == "CLOSE", "operator")
+            if command == "OPEN" and timing_started:
+                self._record_event(breaker_name, "TIMING_CANCELLED")
+        elif command == "RESET":
+            self._record_event(breaker_name, "RESET")
+        elif command == "CLOSE" and not accepted:
+            self._record_event(breaker_name, "CLOSE_REJECTED", cause="trip_latch")
         return accepted
 
     def _apply_pending_operations(self) -> None:
         """Attempt each accepted request once at the plant-operation boundary."""
         operations = self._pending_operations
         self._pending_operations = {}
-        for breaker_name, closed in operations.items():
+        for breaker_name, (closed, cause) in operations.items():
             self.grid.set_breaker_closed(breaker_name, closed)
+            actual_closed = self.grid.breaker_is_closed(breaker_name)
+            self._record_event(
+                breaker_name, "POSITION_FEEDBACK",
+                requested_state="CLOSED" if closed else "OPEN",
+                actual_state="CLOSED" if actual_closed else "OPEN",
+                success=actual_closed == closed,
+                cause=cause,
+            )
 
     def _evaluate_protection(self, timestamp: float) -> None:
         """Evaluate both breakers from solved plant measurements."""
         for ied in self.ieds.values():
-            before = ied.controller.state
             ied.evaluate(self.grid, timestamp)
-            if ied.controller.state != before:
-                self._pending_operations[ied.config.breaker] = (
-                    ied.controller.state == BreakerController.CLOSED
-                )
+            for transition in ied.controller.transitions:
+                self._record_event(ied.config.breaker, transition)
+                if transition == "TRIP_REQUEST":
+                    self._pending_operations[ied.config.breaker] = (False, "protection")
+
+    def _finish_events(self, timestamp: float) -> None:
+        scan_ts = now_iso()
+        events = []
+        for breaker_name, event, fields in self._pending_events:
+            self._event_sequence += 1
+            controller = self.controllers[breaker_name]
+            events.append({
+                "ts": scan_ts,
+                "event_id": f"{self._event_run_id}:{self._event_sequence}",
+                "ied": self.ieds[breaker_name].config.event_source,
+                "breaker": breaker_name,
+                "event": event,
+                "scan_monotonic_s": float(timestamp),
+                "position": (
+                    "CLOSED" if self.grid.breaker_is_closed(breaker_name) else "OPEN"
+                ),
+                "tripped": controller.tripped,
+                **fields,
+            })
+        self.last_events = tuple(events)
+        self._pending_events.clear()
 
     def control_step(
         self, *, timestamp: float | None = None, vary_load: bool = False
@@ -171,16 +222,16 @@ class ControlledPandapowerSimulator:
             self._apply_pending_operations()
             telemetry = self.grid.solve()
 
+        self._finish_events(now)
         return telemetry
 
 
 def breaker_status_payload(
-    controller, breaker_name: str, physical_closed: bool | None = None
+    controller, breaker_name: str, physical_closed: bool
 ) -> dict[str, object]:
     """Build retained status from post-scan position and IED state."""
     snapshot = controller.snapshot()
-    if physical_closed is not None:
-        snapshot["state"] = "CLOSED" if physical_closed else "OPEN"
+    snapshot["state"] = "CLOSED" if physical_closed else "OPEN"
     return {
         "ts": now_iso(),
         "breaker": breaker_name,
@@ -279,6 +330,17 @@ def process_control_scan(
         scenario_accepted=scenario_accepted,
         breaker_name=breaker_name,
         statuses=statuses,
+        events=simulator.last_events,
+    )
+
+
+def publish_ied_event(client, event: dict[str, object]):
+    """Publish one identified scan event without MQTT retention."""
+    return client.publish(
+        IED_EVENT_TOPIC,
+        payload=json.dumps(event, separators=(",", ":"), allow_nan=False),
+        qos=0,
+        retain=False,
     )
 
 # # Allow importing sibling modules when running as "python src/power_sim.py"
@@ -465,6 +527,8 @@ def run_controlled_mqtt_mode(
 
                 for status in result.statuses.values():
                     publish_breaker_status(client, status)
+                for ied_event in result.events:
+                    publish_ied_event(client, ied_event)
 
                 if publish_due:
                     line = json.dumps(

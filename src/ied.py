@@ -81,4 +81,5 @@ class SimulatedIED:
             if self.config.undervoltage_action
             else (),
             timestamp=timestamp,
+            position_closed=self.measurements.position == BreakerController.CLOSED,
         )

@@ -1195,5 +1195,62 @@
         "x": 640,
         "y": 160,
         "wires": []
+    },
+    {
+        "id": "mqtt_in_ied_event",
+        "type": "mqtt in",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "IED scan events",
+        "topic": "event/ied",
+        "qos": "0",
+        "datatype": "utf8",
+        "broker": "bkr_mqtt_broker",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 140,
+        "y": 1030,
+        "wires": [
+            [
+                "json_parse_ied_event"
+            ]
+        ]
+    },
+    {
+        "id": "json_parse_ied_event",
+        "type": "json",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Parse IED event JSON",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 380,
+        "y": 1030,
+        "wires": [
+            [
+                "fn_ied_event_to_lp"
+            ]
+        ]
+    },
+    {
+        "id": "fn_ied_event_to_lp",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "IED event → line protocol",
+        "func": "const p = msg.payload || {};\nconst timestamp = Date.parse(p.ts);\nconst identity = {BRK_F1: \"IED_F1\", BRK_R1: \"IED_R1\"};\nconst events = [\"PICKUP\", \"TIMING_STARTED\", \"TIMING_CANCELLED\", \"TRIP_REQUEST\",\n    \"OPERATION_REQUEST\", \"POSITION_FEEDBACK\", \"RESET\", \"CLOSE_REJECTED\"];\nif (!Number.isFinite(timestamp) || identity[p.breaker] !== p.ied ||\n    !events.includes(p.event) || typeof p.event_id !== \"string\" ||\n    !/^[a-f0-9]{32}:[1-9][0-9]*$/.test(p.event_id) ||\n    ![\"OPEN\", \"CLOSED\"].includes(p.position) ||\n    typeof p.tripped !== \"boolean\" ||\n    !Number.isFinite(p.scan_monotonic_s)) {\n    node.warn(\"Ignoring malformed IED event\");\n    return null;\n}\nconst tag = value => String(value).replace(/\\\\/g, \"\\\\\\\\\").replace(/([ ,=])/g, \"\\\\$1\");\nconst fields = [\n    `position=${JSON.stringify(p.position)}`,\n    `tripped=${p.tripped}`,\n    `scan_monotonic_s=${p.scan_monotonic_s}`\n];\nif (p.requested_state != null) fields.push(`requested_state=${JSON.stringify(p.requested_state)}`);\nif (p.actual_state != null) fields.push(`actual_state=${JSON.stringify(p.actual_state)}`);\nif (typeof p.success === \"boolean\") fields.push(`success=${p.success}`);\nif (p.cause != null) fields.push(`cause=${JSON.stringify(p.cause)}`);\nmsg.payload = `ied_event,ied=${tag(p.ied)},breaker=${tag(p.breaker)},event=${tag(p.event)},event_id=${tag(p.event_id)} ${fields.join(\",\")} ${timestamp}`;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 1030,
+        "wires": [
+            [
+                "917c308f0b48aa53"
+            ]
+        ]
     }
 ]
