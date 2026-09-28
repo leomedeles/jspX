@@ -1,3 +1,34 @@
+## Sprint 7 — Stage A: IED boundary and event evidence (selected; version assigned after acceptance)
+
+**Goal:** Make F1/R1 protection decisions, operation requests, physical results, and their timing inspectable while preserving the released reference feeder.
+
+### Scope
+
+- [ ] **Simulated devices:** Use one reusable IED component with explicit `IED_F1` and `IED_R1` configurations for identity, measurement bindings, protection settings, and event identity. Retain useful controller logic. F1 observes `I_L1`, source-MV voltage, and F1 position; R1 observes `I_L2`, remote-bus voltage, and R1 position, with no R1 undervoltage action in v1. Remove F1/R1-specific protection branches from `power_sim.py`.
+- [ ] **Operation and feedback:** Treat operator commands and protection trips as requests. Apply accepted requests through the single-writer plant boundary; derive retained named status from actual post-scan switch position alongside IED latch/alarm state. Record an unsuccessful operation without reporting a position change that did not occur. Preserve CLOSE rejection while latched and RESET without closing.
+- [ ] **Test conditions:** Define the four named scenarios together by source/load inputs and any explicit actuation failure. Add `R1_OPENING_FAILURE_TEST`: the same tail overload as `TAIL_OVERCURRENT_TEST`, with the harness refusing R1 OPEN at the plant boundary. Returning to `NORMAL` removes the injection without resetting latches or moving switches. Keep scenario control in the test harness, not the HMI.
+- [ ] **Event path:** Emit identified, scan-timestamped events for pickup, timing start/cancel, trip request, plant position feedback, reset, and rejected CLOSE; publish them without retention and persist them through the existing Node-RED → InfluxDB integration. Document event fields and their relation to slower telemetry.
+- [ ] **Documentation and tests:** Update deterministic controller, scenario, MQTT/status, and integration tests plus README and the Python internals reference. Preserve the 50 ms control scan, slower telemetry cadence, canonical F1/R1 command/status topics, and strict JSON quality semantics.
+
+### Acceptance criteria
+
+- [ ] `TAIL_OVERCURRENT_TEST` produces a trace in which R1 picks up and requests OPEN after 100 ms, plant feedback confirms R1 OPEN, tail current disappears, F1 timing cancels, and F1 stays CLOSED.
+- [ ] `R1_OPENING_FAILURE_TEST` produces R1's OPEN request and actual CLOSED feedback with no false OPEN status; persistent solved current causes F1 to request OPEN at 300 ms and plant feedback confirms F1 OPEN.
+- [ ] A rejected CLOSE while latched and a RESET are recorded; RESET alone does not move a switch. Removing failure injection does not clear a latch or restore supply.
+- [ ] Named retained status, pandapower switch positions, solved topology, and Node-RED's existing command/status display agree in normal, switching, and failure cases.
+- [ ] Identified event records reach MQTT and InfluxDB at scan resolution, separately from 1 Hz telemetry. Existing measurements and historian writes continue to work.
+- [ ] Relevant deterministic tests and `python -m pytest -q` pass; `docker compose config --quiet` and an observed Compose/MQTT/Node-RED/InfluxDB path check pass. Record the evidence and any unavailable checks before marking this sprint complete.
+
+### Likely affected files
+
+`src/breaker_control.py`, a small IED module, `src/power_grid.py`, `src/power_sim.py`, relevant `tests/`, `nodered/data/flows.json`, `README.md`, and `docs/python-reference.md`. Keep the active flow and dashboard singular.
+
+### Out of scope
+
+The FlowFuse migration, feeder single-line, and F1/R1 panel portrayals belong to Stage B; Grafana event presentation belongs to Stage C. Legacy runtime cleanup belongs before v1 release. No general relay framework, new service, local panel operation, Local/Remote authority, calculated fault solver, or protection-coordination study is introduced here.
+
+---
+
 ## Sprint 6 → v0.6.0: Reference-feeder vertical migration (released)
 
 **Goal:** Replace the anonymous three-bus feeder with the v1 reference feeder while preserving a working operator-to-plant-to-historian SCADA loop.
