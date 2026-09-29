@@ -6,7 +6,7 @@ for (const link of document.querySelectorAll('nav a')) if (link.pathname === loc
 let snapshot = null, lastSeen = 0, historyBusy = false, historyTimer = null;
 const pending = new Map();
 const completed = new Map();
-const colors = ['#51ddb5','#80b8f8','#f4c66c','#bca7ff','#e68072'];
+const colors = ['#00efdb','#1e8eff','#ffe047','#ed54e8','#ff3180'];
 const busNames = ['GRID_110KV','BUS_MV_SOURCE','BUS_R1_REMOTE','BUS_SS1_MV','BUS_SS1_LV'];
 const b = (s,name) => s?.telemetry.buses.find(x => x.name === name);
 const l = (s,name,end='from') => s?.telemetry.lines.find(x => x.name === name && x.end === end);
@@ -93,8 +93,8 @@ function drawChart(id,rows,series,unit){
   const W=700,H=205,L=48,R=14,T=16,B=29,t0=Date.parse(rows[0].ts),t1=Math.max(Date.parse(rows.at(-1).ts),t0+1000);let lo=Infinity,hi=-Infinity;for(const value of values){lo=Math.min(lo,value);hi=Math.max(hi,value);}if(lo===hi){lo-=1;hi+=1;}const pad=(hi-lo)*.12;lo-=pad;hi+=pad;
   const x=ts=>L+(Date.parse(ts)-t0)/(t1-t0)*(W-L-R),y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
   const svg=['<svg viewBox="0 0 700 205" role="img" aria-label="Time series">'];
-  for(let i=0;i<5;i++){const yy=T+(H-T-B)*i/4,v=hi-(hi-lo)*i/4;svg.push(`<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="#2c414a" stroke-width="1"/><text x="${L-7}" y="${yy+4}" fill="#91a6ae" text-anchor="end" font-size="10">${v.toFixed(Math.abs(v)<1?2:1)}</text>`);}
-  svg.push(`<text x="${L}" y="${H-5}" fill="#91a6ae" font-size="10">${new Date(t0).toISOString().slice(11,16)} UTC</text><text x="${W-R}" y="${H-5}" fill="#91a6ae" text-anchor="end" font-size="10">${new Date(t1).toISOString().slice(11,16)} UTC</text>`);
+  for(let i=0;i<5;i++){const yy=T+(H-T-B)*i/4,v=hi-(hi-lo)*i/4;svg.push(`<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="#164a91" stroke-dasharray="3 4" stroke-width="1"/><text x="${L-7}" y="${yy+4}" fill="#91b7e7" text-anchor="end" font-size="10">${v.toFixed(Math.abs(v)<1?2:1)}</text>`);}
+  svg.push(`<text x="${L}" y="${H-5}" fill="#91b7e7" font-size="10">${new Date(t0).toISOString().slice(11,16)} UTC</text><text x="${W-R}" y="${H-5}" fill="#91b7e7" text-anchor="end" font-size="10">${new Date(t1).toISOString().slice(11,16)} UTC</text>`);
   series.forEach((definition,i)=>{let segment=[];let previous=null;const flush=()=>{if(segment.length)svg.push(`<path d="${segment.join(' ')}" fill="none" stroke="${definition.color||colors[i%colors.length]}" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"/>`);segment=[];};for(const row of rows){const val=definition.read(row),dt=previous?Date.parse(row.ts)-Date.parse(previous.ts):0;if(!finite(val)||previous&&(previous.run_id!==row.run_id||dt>1500||dt<0)){flush();}if(finite(val))segment.push(`${segment.length?'L':'M'}${x(row.ts).toFixed(1)} ${y(val).toFixed(1)}`);previous=row;}flush();});svg.push('</svg>');root.innerHTML=svg.join('');
   const legend=document.createElement('div');legend.className='legend-row';for(const [i,definition] of series.entries()){const span=document.createElement('span'),swatch=document.createElement('i');swatch.style.background=definition.color||colors[i%colors.length];span.append(swatch,document.createTextNode(`${definition.name} · ${unit}`));legend.append(span);}root.append(legend);
 }
@@ -107,21 +107,21 @@ function drawTimeline(rows){
   let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Energization timeline">`;
   for(const [i,asset] of assets.entries()){
     const yy=7+i*25;
-    svg+=`<text x="${L-8}" y="${yy+13}" text-anchor="end" fill="#a8bbc0" font-size="10">${asset}</text><line x1="${L}" y1="${yy+8}" x2="${W-R}" y2="${yy+8}" stroke="#263740" stroke-width="17"/>`;
+    svg+=`<text x="${L-8}" y="${yy+13}" text-anchor="end" fill="#91b7e7" font-size="10">${asset}</text><line x1="${L}" y1="${yy+8}" x2="${W-R}" y2="${yy+8}" stroke="#0b295d" stroke-width="17"/>`;
     let start=null,end=null,color=null;
     const flush=()=>{if(start!==null)svg+=`<rect x="${x(start)}" y="${yy}" width="${Math.max(1,x(end)-x(start))}" height="17" fill="${color}"/>`;start=null;};
     for(let j=0;j<rows.length-1;j++){
       const a=rows[j],z=rows[j+1],am=Date.parse(a.ts),zm=Date.parse(z.ts),dt=zm-am;
       if(a.run_id!==z.run_id||dt>1500||dt<0){flush();continue;}
       const o=busNames.includes(asset)?b(a,asset):asset.startsWith('L')?l(a,asset):t(a,asset);
-      const nextColor=o?.quality==='GOOD'?'#51ddb5':o?.quality==='NOT_ENERGIZED'?'#e68072':'#8a9aa1';
+      const nextColor=o?.quality==='GOOD'?'#00efdb':o?.quality==='NOT_ENERGIZED'?'#719bd8':'#8097bd';
       if(start!==null&&nextColor!==color)flush();
       if(start===null){start=am;color=nextColor;}
       end=zm;
     }
     flush();
   }
-  svg+=`<text x="${L}" y="${H-4}" fill="#91a6ae" font-size="10">${new Date(t0).toISOString().slice(11,16)} UTC</text><text x="${W-R}" y="${H-4}" fill="#91a6ae" text-anchor="end" font-size="10">${new Date(t1).toISOString().slice(11,16)} UTC</text></svg>`;
+  svg+=`<text x="${L}" y="${H-4}" fill="#91b7e7" font-size="10">${new Date(t0).toISOString().slice(11,16)} UTC</text><text x="${W-R}" y="${H-4}" fill="#91b7e7" text-anchor="end" font-size="10">${new Date(t1).toISOString().slice(11,16)} UTC</text></svg>`;
   root.innerHTML=svg;
 }
 function renderEvents(events){const body=$('eventRows');body.replaceChildren();if(!events.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=6;td.textContent='No events in this range';tr.append(td);body.append(tr);return;}for(const event of events.slice().reverse()){const tr=document.createElement('tr');const parts=[event.ts.replace('T',' ').replace('Z',' UTC'),event.ied||'SYSTEM',event.event,event.position||'—',event.tripped==null?'—':event.tripped?'LATCHED':'CLEAR',[event.requested_state&&`${event.requested_state} requested`,event.actual_state&&`actual ${event.actual_state}`,event.success===false&&'FAILED',event.cause].filter(Boolean).join(' · ')||'—'];for(const value of parts){const td=document.createElement('td');td.textContent=value;tr.append(td);}body.append(tr);}}

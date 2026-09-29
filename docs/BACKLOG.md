@@ -1,5 +1,28 @@
 ## Rust v1 rebuild — accepted release candidate (release decision pending)
 
+### Dashboard visual refresh (2026-09-29)
+
+- [x] Keep the feeder diagram, F1/R1 control cards, event strip, read-only
+  panels, and engineering chart layout and retain the real 110/20/0.4 kV
+  topology and labels.
+- [x] Apply the supplied neon control-room style to all browser views, with
+  distinct energized, isolated, open, warning, and unknown indications.
+- [x] Check desktop and narrow-screen rendering against live HTTP/SSE data.
+
+The local Rust app on `127.0.0.1:8092` served the updated pages. Edge via
+Playwright rendered the [normal feeder](evidence/neon-feeder.png),
+[mobile feeder](evidence/neon-feeder-mobile.png),
+[F1 panel](evidence/neon-f1-panel.png), and
+[engineering review](evidence/neon-engineering.png). An HTTP R1 OPEN request
+returned `queued:true`; a later snapshot showed F1 `CLOSED`, R1 `OPEN`,
+`BUS_R1_REMOTE` energized/GOOD, and `BUS_SS1_MV` de-energized/NOT_ENERGIZED.
+The [open-state feeder view](evidence/neon-r1-open.png) showed the same
+physical position and dashed isolated tail. `cargo fmt --all -- --check`,
+`cargo clippy --all-targets -- -D warnings`, all eight `cargo test` tests,
+`docker compose config --quiet`, and `git diff --check` passed. Docker Desktop's
+Linux engine was unavailable, so a fresh Compose build/health check was not
+observed for this visual change.
+
 **Goal:** Deliver the reference feeder as one local Rust and Docker laboratory,
 with coherent operator, plant, protection, and historian behavior. This branch
 replaces the Python/Node-RED/MQTT/InfluxDB/Grafana runtime rather than staging

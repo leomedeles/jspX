@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Restyled the feeder, panel, and engineering views with a neon control-room
+  palette, angular borders, a skyline header, and matching chart colors while
+  retaining the existing layout, topology, and controls.
 - Replaced the Python, Node-RED, Mosquitto, InfluxDB, and Grafana runtimes on
   this branch. The Rust v1 uses HTTP/SSE rather than MQTT topics. Historical
   `flows/` exports remain unexecuted.

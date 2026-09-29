@@ -66,6 +66,12 @@ is occupied. The panel portrayals are read-only. The feeder view's OPEN,
 CLOSE, and RESET buttons send queued remote intent and wait for physical
 feedback. Scenario selection is a test-harness API only.
 
+The browser views use a neon control-room theme. Cyan lines show energized
+paths, dashed blue lines show isolated paths, magenta marks an open breaker or
+unavailable value, and green marks healthy/live status. The feeder diagram
+scrolls horizontally on narrow screens. Colors and labels follow the same
+post-scan physical feedback and quality fields as before.
+
 Run a reproducible scenario from PowerShell:
 
 ```powershell
