@@ -26,10 +26,6 @@
 - [ ] Identified event records reach MQTT and InfluxDB at scan resolution, separately from 1 Hz telemetry. Existing measurements and historian writes continue to work.
 - [ ] Relevant deterministic tests and `python -m pytest -q` pass; `docker compose config --quiet` and an observed Compose/MQTT/Node-RED/InfluxDB path check pass. Record the evidence and any unavailable checks before marking this sprint complete.
 
-### Likely affected files
-
-`src/breaker_control.py`, a small IED module, `src/power_grid.py`, `src/power_sim.py`, relevant `tests/`, `nodered/data/flows.json`, `README.md`, and `docs/python-reference.md`. Keep the active flow and dashboard singular.
-
 ### Out of scope
 
 The FlowFuse migration, feeder single-line, and F1/R1 panel portrayals belong to Stage B; Grafana event presentation belongs to Stage C. Legacy runtime cleanup belongs before v1 release. No general relay framework, new service, local panel operation, Local/Remote authority, calculated fault solver, or protection-coordination study is introduced here.
