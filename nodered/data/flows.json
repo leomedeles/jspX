@@ -465,7 +465,7 @@
             [
                 "chg_state_text",
                 "chg_trip_text",
-                "chg_trip_reason",
+                "ui_trip_reason",
                 "chg_undervoltage_text",
                 "fn_status_to_lp"
             ]
@@ -651,28 +651,6 @@
         ]
     },
     {
-        "id": "chg_trip_reason",
-        "type": "change",
-        "z": "f2a7b9f2d1c64f2a",
-        "name": "Trip reason field",
-        "rules": [
-            {
-                "t": "set",
-                "p": "payload",
-                "pt": "msg",
-                "to": "payload.trip_reason",
-                "tot": "msg"
-            }
-        ],
-        "x": 610,
-        "y": 500,
-        "wires": [
-            [
-                "ui_trip_reason"
-            ]
-        ]
-    },
-    {
         "id": "ui_trip_reason",
         "type": "ui_text",
         "z": "f2a7b9f2d1c64f2a",
@@ -682,7 +660,7 @@
         "height": 1,
         "name": "",
         "label": "Trip reason",
-        "format": "{{msg.payload || '-'}}",
+        "format": "{{msg.payload.trip_reason || '-'}}",
         "layout": "row-spread",
         "className": "",
         "style": false,
