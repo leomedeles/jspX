@@ -1,4 +1,4 @@
-## Sprint 7 — Stage A: IED boundary and event evidence (selected; version assigned after acceptance)
+## Sprint 7 — Simulated IED boundary and event evidence
 
 **Goal:** Make F1/R1 protection decisions, operation requests, physical results, and their timing inspectable while preserving the released reference feeder.
 
@@ -38,7 +38,7 @@
 
 ### Out of scope
 
-The FlowFuse migration, feeder single-line, and F1/R1 panel portrayals belong to Stage B; Grafana event presentation belongs to Stage C. Legacy runtime cleanup belongs before v1 release. No general relay framework, new service, local panel operation, Local/Remote authority, calculated fault solver, or protection-coordination study is introduced here.
+The FlowFuse migration, feeder single-line, and F1/R1 panel portrayals are planned for later work; Grafana event presentation are planned for later work. Legacy runtime cleanup belongs before v1 release. No general relay framework, new service, local panel operation, Local/Remote authority, calculated fault solver, or protection-coordination study is introduced here.
 
 ---
 
