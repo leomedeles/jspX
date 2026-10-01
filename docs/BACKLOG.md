@@ -1,4 +1,4 @@
-## Sprint 7 — Simulated IED boundary and event evidence
+## Sprint 7 → v0.7.0: Simulated IED boundary and event evidence
 
 **Goal:** Make F1/R1 protection decisions, operation requests, physical results, and their timing inspectable while preserving the released reference feeder.
 
@@ -35,6 +35,11 @@
 - [x] Named retained status, pandapower switch positions, solved topology, and Node-RED's existing command/status display agree in normal, switching, and failure cases.
 - [x] Identified event records reach MQTT and InfluxDB at scan resolution, separately from 1 Hz telemetry. Existing measurements and historian writes continue to work.
 - [x] Relevant deterministic tests and `python -m pytest -q` pass; `docker compose config --quiet` and an observed Compose/MQTT/Node-RED/InfluxDB path check pass. Record the evidence and any unavailable checks before marking this sprint complete.
+
+### Release closeout — 2026-10-01
+
+- The acceptance-verified implementation and evidence were merged through PR #14.
+- The release is assigned v0.7.0. Tagging and publication follow this documentation closeout.
 
 ### Out of scope
 
