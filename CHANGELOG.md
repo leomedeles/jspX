@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - [Unreleased]
+
+### Added
+
+- Added reusable simulated IED configurations for F1 and R1, separating protection decisions from plant operation and physical position feedback.
+- Added `R1_OPENING_FAILURE_TEST`, in which R1 requests OPEN but remains CLOSED and F1 operates as backup.
+- Added identified, scan-timestamped IED events on MQTT and persisted them through Node-RED to InfluxDB.
+- Added deterministic tests for IED behaviour, operation feedback, events, and failure scenarios.
+
+### Changed
+
+- Retained breaker status now reflects actual post-scan switch position alongside IED latch and alarm state.
+- Updated the README and Python internals reference with the IED boundary and event contract.
+
+### Fixed
+
+- Cleared F1's displayed trip reason when authoritative status reports no trip reason.
+
 ## [0.6.0] - 2026-09-26
 
 ### Added
