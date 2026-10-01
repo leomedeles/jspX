@@ -36,6 +36,7 @@ def queue_scenario(events: BreakerMqttEventQueue, payload: bytes) -> None:
     [
         (ReferenceFeederGrid.NORMAL, 1.0, 1.0),
         (ReferenceFeederGrid.TAIL_OVERCURRENT_TEST, 1.0, 5.0),
+        (ReferenceFeederGrid.R1_OPENING_FAILURE_TEST, 1.0, 5.0),
         (ReferenceFeederGrid.LOW_SOURCE_VOLTAGE, 0.90, 1.0),
     ],
 )

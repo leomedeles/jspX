@@ -1,11 +1,11 @@
-# jspX v0.6.0 — joySCADA Power X
+# jspX — joySCADA Power X
 
 jspX is a small learning system that connects a solved pandapower feeder to an
 operator and historian loop:
 
 ```mermaid
 flowchart LR
-    sim["Python plant + control\n50 ms scans"] -->|telemetry and retained status| mqtt["Mosquitto"]
+    sim["Python plant + control\n50 ms scans"] -->|telemetry, retained status, scan events| mqtt["Mosquitto"]
     mqtt --> nr["Node-RED HMI\nand Influx transform"]
     nr --> influx["InfluxDB historian"]
     influx --> grafana["Grafana operations view"]
@@ -35,11 +35,14 @@ F1 and R1 are real pandapower line switches. The overhead-line parameters are
 T2 uses `vk=6%`, `vkr=1%`, `pfe=6 kW`, `i0=0.25%`, and a 150° shift.
 
 The plant owns source/load inputs, topology, power-flow solving, and
-measurements. Each `BreakerController` owns its command interlock, trip latch,
+measurements. One reusable simulated IED uses explicit `IED_F1` and `IED_R1`
+configurations. F1 observes `I_L1`, source-MV voltage, and F1 position; R1
+observes `I_L2`, remote-bus voltage, and R1 position. R1 has no undervoltage
+action. Each IED's `BreakerController` owns its command interlock, trip latch,
 definite-time overcurrent timer, and alarm state. `power_sim.py` is the only
-writer that applies controller positions to the plant; MQTT callbacks only
-enqueue intent. Control scans run every 50 ms, independently of 1 Hz SCADA
-publication.
+writer that attempts accepted operations at the plant. MQTT callbacks only
+enqueue intent. An accepted request does not prove the switch moved. Control
+scans run every 50 ms, independently of 1 Hz SCADA publication.
 
 Opening F1 leaves the upstream grid, T1, and `BUS_MV_SOURCE` supplied while
 de-energizing the remote point and SS1. Opening R1 leaves
@@ -55,11 +58,14 @@ strict JSON `null`, with `energized: false` and
 | --- | --- |
 | `NORMAL` | 1.00 pu source and nominal aggregate demand. It does not reset a latch or operate a breaker. |
 | `TAIL_OVERCURRENT_TEST` | Fivefold nominal aggregate input behind T2. Both elements see solved line current; R1 trips at 0.20 kA after 100 ms, then its open switch removes tail current and F1 remains closed. |
+| `R1_OPENING_FAILURE_TEST` | The same fivefold tail input, with an explicit harness condition that refuses R1 OPEN at the plant operation boundary. R1 trips at 100 ms but remains physically CLOSED; persistent solved current causes F1 backup OPEN at 300 ms. |
 | `LOW_SOURCE_VOLTAGE` | 0.90 pu source. F1 alarms when `BUS_MV_SOURCE` is below 0.92 pu, clears at or above 0.94 pu, and does not trip. |
 
 F1 uses `I> = 0.20 kA` with a 300 ms delay. R1 uses the same pickup with a
-100 ms delay. `RESET` clears a latch without closing; `CLOSE` is rejected while
-that latch is active.
+100 ms delay. `RESET` clears a latch without moving a switch; `CLOSE` is rejected
+while that latch is active. Returning to `NORMAL` removes the opening-failure
+injection without clearing latches or changing positions. Scenario selection is
+a test harness command, not an HMI control.
 
 The old `OVERCURRENT`, `UNDERVOLTAGE`, and `DOWNSTREAM_OVERCURRENT` payloads
 are invalid.
@@ -87,8 +93,31 @@ breaker object in routine telemetry. Each retained status has this form:
 }
 ```
 
-Status transitions publish immediately after a control scan. Routine
-`telemetry/pandapower` remains non-retained.
+`state` is the actual post-scan pandapower switch position. It can be `CLOSED`
+while `tripped` is true if R1 refuses OPEN. Status transitions publish
+immediately after a control scan. Routine `telemetry/pandapower` remains
+non-retained.
+
+IED events publish on non-retained `event/ied` at scan resolution. Each record
+contains `ts` (UTC scan time), a unique `event_id`, `ied` (`IED_F1` or
+`IED_R1`), `breaker`, `event`, `scan_monotonic_s`, post-scan physical `position`,
+and `tripped`. `OPERATION_REQUEST` and `POSITION_FEEDBACK` carry
+`requested_state` and `cause`; feedback also carries `actual_state` and
+`success`. `RESET` and `CLOSE_REJECTED` are recorded. Protection events are
+`PICKUP`, `TIMING_STARTED`, `TIMING_CANCELLED`, and `TRIP_REQUEST`.
+
+For a failed R1 trip, the two records from the 100 ms scan include:
+
+```json
+[
+  {"event":"TRIP_REQUEST","ied":"IED_R1","breaker":"BRK_R1","position":"CLOSED","tripped":true},
+  {"event":"POSITION_FEEDBACK","ied":"IED_R1","breaker":"BRK_R1","requested_state":"OPEN","actual_state":"CLOSED","success":false,"cause":"protection"}
+]
+```
+
+These excerpts show the decisive fields; published records also include the
+common identity and time fields above. Events are separate from 1 Hz telemetry
+and are not retained or replayed to a new MQTT subscriber.
 
 ## Telemetry and historian mapping
 
@@ -124,6 +153,7 @@ Node-RED writes millisecond-timestamped Influx line protocol:
 | `transformer` | `transformer_id`, `name`, HV/LV buses | HV/LV P/Q/current/voltage/angle, loading, `energized`, `quality` |
 | `ext_grid` | `grid_id`, `name` | P/Q |
 | `breaker_status` | `breaker` | state, latch, undervoltage alarm, trip reason |
+| `ied_event` | `ied`, `breaker`, `event`, `event_id` | physical position, latch, scan monotonic time, requested/actual state, operation success and cause when present |
 
 Grafana shows bus voltage, line power, F1/R1 state and latch, F1 source-MV
 alarm, recent protection status, feeder energization, and transformer loading.
@@ -152,6 +182,9 @@ A compact operating walkthrough from the repository directory:
 # Observe retained state.
 docker compose exec -T mosquitto mosquitto_sub -h mosquitto -t 'status/breaker/#' -v
 
+# In another terminal, observe non-retained scan events.
+docker compose exec -T mosquitto mosquitto_sub -h mosquitto -t event/ied -v
+
 # Operate R1.
 docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_R1/open -n
 docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_R1/close -n
@@ -164,6 +197,13 @@ docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/sim/scenario/
 docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_R1/reset -n
 docker compose exec -T mosquitto mosquitto_pub -h mosquitto -t cmd/breaker/BRK_R1/close -n
 ```
+
+To test failed R1 actuation after restoring normal state, send
+`R1_OPENING_FAILURE_TEST` on `cmd/sim/scenario/set`. R1 remains physically
+CLOSED and latched; F1 then opens and latches as backup. Returning to `NORMAL`
+removes the injection without moving switches. After inspecting retained
+status, RESET R1, RESET F1, then CLOSE F1 to restore supply. RESET alone never
+changes either switch position.
 
 When reusing a broker volume last run by v0.5, clear its three obsolete retained
 status messages once; this does not remove the volume or any historian data:
@@ -197,14 +237,16 @@ py -3.13 -m venv .venv
 - **Modeled:** fixed radial reference feeder; real F1/R1 line switches; source,
   line, bus, transformer, and aggregate-load power flow; solved-current
   definite-time protection; latch/reset/close interlock; source-MV alarm;
-  operator-to-plant-to-historian loop.
+  operator-to-plant-to-historian loop; explicit failed R1 actuation test and
+  scan-level IED event evidence.
 - **Simplified:** the aggregate load is represented as 50% constant power and
   50% constant current so the mandated fivefold nominal input remains solvable.
   `TAIL_OVERCURRENT_TEST` is a deterministic overload test, not a calculated
-  fault or protection-coordination study. Loads vary slightly for routine live
-  telemetry.
+  fault or protection-coordination study. `R1_OPENING_FAILURE_TEST` is an
+  injected plant-operation refusal, not a modeled mechanical failure. Loads
+  vary slightly for routine live telemetry.
 - **Not modeled:** CT/VT chains, relay curves, short-circuit calculation,
-  breaker failure, autoreclose, transformer/LV protection, RTU/gateway or IEC
+  breaker-failure protection, autoreclose, transformer/LV protection, RTU/gateway or IEC
   61850, extra feeders, ring supply, DER, and production security.
 
 Versioned definitions live in `docker-compose.yml`, `requirements.txt`,

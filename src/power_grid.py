@@ -11,16 +11,21 @@ import numpy as np
 import pandapower as pp
 
 
+@dataclass(frozen=True)
+class ScenarioInputs:
+    source_voltage_pu: float
+    load_multiplier: float
+    refuse_open_breaker: str | None = None
+
+
 @dataclass
 class ReferenceFeederGrid:
     """Reference 110/20/0.4 kV radial feeder and its measurements."""
 
     NORMAL: ClassVar[str] = "NORMAL"
     TAIL_OVERCURRENT_TEST: ClassVar[str] = "TAIL_OVERCURRENT_TEST"
+    R1_OPENING_FAILURE_TEST: ClassVar[str] = "R1_OPENING_FAILURE_TEST"
     LOW_SOURCE_VOLTAGE: ClassVar[str] = "LOW_SOURCE_VOLTAGE"
-    SCENARIOS: ClassVar[frozenset[str]] = frozenset(
-        {NORMAL, TAIL_OVERCURRENT_TEST, LOW_SOURCE_VOLTAGE}
-    )
 
     GRID_110KV: ClassVar[str] = "GRID_110KV"
     T1_PRIMARY: ClassVar[str] = "T1_PRIMARY"
@@ -38,6 +43,17 @@ class ReferenceFeederGrid:
     NORMAL_SOURCE_VOLTAGE_PU: ClassVar[float] = 1.0
     LOW_SOURCE_VOLTAGE_PU: ClassVar[float] = 0.90
     TAIL_LOAD_MULTIPLIER: ClassVar[float] = 5.0
+    SCENARIO_INPUTS: ClassVar[dict[str, ScenarioInputs]] = {
+        NORMAL: ScenarioInputs(NORMAL_SOURCE_VOLTAGE_PU, 1.0),
+        TAIL_OVERCURRENT_TEST: ScenarioInputs(
+            NORMAL_SOURCE_VOLTAGE_PU, TAIL_LOAD_MULTIPLIER
+        ),
+        R1_OPENING_FAILURE_TEST: ScenarioInputs(
+            NORMAL_SOURCE_VOLTAGE_PU, TAIL_LOAD_MULTIPLIER, BRK_R1
+        ),
+        LOW_SOURCE_VOLTAGE: ScenarioInputs(LOW_SOURCE_VOLTAGE_PU, 1.0),
+    }
+    SCENARIOS: ClassVar[frozenset[str]] = frozenset(SCENARIO_INPUTS)
 
     net: pp.pandapowerNet
     base_p_mw: float
@@ -203,27 +219,14 @@ class ReferenceFeederGrid:
         if scenario not in self.SCENARIOS:
             return False
 
-        source_voltage = (
-            self.LOW_SOURCE_VOLTAGE_PU
-            if scenario == self.LOW_SOURCE_VOLTAGE
-            else self.NORMAL_SOURCE_VOLTAGE_PU
-        )
-        load_multiplier = (
-            self.TAIL_LOAD_MULTIPLIER
-            if scenario == self.TAIL_OVERCURRENT_TEST
-            else 1.0
-        )
-        self.net.ext_grid.loc[:, "vm_pu"] = source_voltage
-        self._set_load(load_multiplier)
+        inputs = self.SCENARIO_INPUTS[scenario]
+        self.net.ext_grid.loc[:, "vm_pu"] = inputs.source_voltage_pu
+        self._set_load(inputs.load_multiplier)
         self.scenario = scenario
         return True
 
     def _scenario_load_multiplier(self) -> float:
-        return (
-            self.TAIL_LOAD_MULTIPLIER
-            if self.scenario == self.TAIL_OVERCURRENT_TEST
-            else 1.0
-        )
+        return self.SCENARIO_INPUTS[self.scenario].load_multiplier
 
     def _set_load(self, multiplier: float) -> None:
         self.net.load.at[self.load_idx, "p_mw"] = self.base_p_mw * multiplier
@@ -240,6 +243,12 @@ class ReferenceFeederGrid:
         switch_idx = self._identity_index(
             self.breaker_switch_indices, breaker_name, "breaker"
         )
+        if (
+            not closed
+            and self.SCENARIO_INPUTS[self.scenario].refuse_open_breaker
+            == breaker_name
+        ):
+            return
         self.net.switch.at[switch_idx, "closed"] = bool(closed)
 
     def breaker_current_ka(self, breaker_name: str) -> float | None:

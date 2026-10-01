@@ -42,6 +42,11 @@ class BreakerController:
         self.undervoltage_alarm = False
         self.trip_reason: str | None = None
         self._overcurrent_started_at: float | None = None
+        self.transitions: tuple[str, ...] = ()
+
+    @property
+    def timing_started_at(self) -> float | None:
+        return self._overcurrent_started_at
 
     def open(self) -> None:
         """Open the breaker and cancel any in-progress overcurrent timing."""
@@ -67,14 +72,22 @@ class BreakerController:
         current_ka: float | None,
         voltages_pu: Iterable[float | None],
         timestamp: float,
+        position_closed: bool | None = None,
     ) -> dict[str, object]:
         """Evaluate one protection scan using a caller-supplied monotonic time."""
         now = float(timestamp)
         if not math.isfinite(now):
             raise ValueError("timestamp must be finite")
 
+        transitions: list[str] = []
         self._evaluate_undervoltage(voltages_pu)
-        self._evaluate_overcurrent(current_ka, now)
+        self._evaluate_overcurrent(
+            current_ka,
+            now,
+            self.state == self.CLOSED if position_closed is None else position_closed,
+            transitions,
+        )
+        self.transitions = tuple(transitions)
         return self.snapshot()
 
     def snapshot(self) -> dict[str, object]:
@@ -87,21 +100,28 @@ class BreakerController:
         }
 
     def _evaluate_overcurrent(
-        self, current_ka: float | None, timestamp: float
+        self,
+        current_ka: float | None,
+        timestamp: float,
+        position_closed: bool,
+        transitions: list[str],
     ) -> None:
         current = self._valid_measurement(current_ka)
-        protection_enabled = self.state == self.CLOSED and not self.tripped
+        protection_enabled = position_closed and not self.tripped
 
         if (
             not protection_enabled
             or current is None
             or current < self.pickup_ka
         ):
+            if self._overcurrent_started_at is not None:
+                transitions.append("TIMING_CANCELLED")
             self._overcurrent_started_at = None
             return
 
         if self._overcurrent_started_at is None:
             self._overcurrent_started_at = timestamp
+            transitions.extend(("PICKUP", "TIMING_STARTED"))
 
         elapsed = timestamp - self._overcurrent_started_at
         delay_elapsed = elapsed >= self.trip_delay_s or math.isclose(
@@ -115,6 +135,7 @@ class BreakerController:
             self.trip_reason = "overcurrent"
             self.state = self.OPEN
             self._overcurrent_started_at = None
+            transitions.append("TRIP_REQUEST")
 
     def _evaluate_undervoltage(
         self, voltages_pu: Iterable[float | None]

@@ -1,31 +1,44 @@
-## Sprint 7 — Stage A: IED boundary and event evidence (selected; version assigned after acceptance)
+## Sprint 7 — Simulated IED boundary and event evidence
 
 **Goal:** Make F1/R1 protection decisions, operation requests, physical results, and their timing inspectable while preserving the released reference feeder.
 
 ### Scope
 
-- [ ] **Simulated devices:** Use one reusable IED component with explicit `IED_F1` and `IED_R1` configurations for identity, measurement bindings, protection settings, and event identity. Retain useful controller logic. F1 observes `I_L1`, source-MV voltage, and F1 position; R1 observes `I_L2`, remote-bus voltage, and R1 position, with no R1 undervoltage action in v1. Remove F1/R1-specific protection branches from `power_sim.py`.
-- [ ] **Operation and feedback:** Treat operator commands and protection trips as requests. Apply accepted requests through the single-writer plant boundary; derive retained named status from actual post-scan switch position alongside IED latch/alarm state. Record an unsuccessful operation without reporting a position change that did not occur. Preserve CLOSE rejection while latched and RESET without closing.
-- [ ] **Test conditions:** Define the four named scenarios together by source/load inputs and any explicit actuation failure. Add `R1_OPENING_FAILURE_TEST`: the same tail overload as `TAIL_OVERCURRENT_TEST`, with the harness refusing R1 OPEN at the plant boundary. Returning to `NORMAL` removes the injection without resetting latches or moving switches. Keep scenario control in the test harness, not the HMI.
-- [ ] **Event path:** Emit identified, scan-timestamped events for pickup, timing start/cancel, trip request, plant position feedback, reset, and rejected CLOSE; publish them without retention and persist them through the existing Node-RED → InfluxDB integration. Document event fields and their relation to slower telemetry.
-- [ ] **Documentation and tests:** Update deterministic controller, scenario, MQTT/status, and integration tests plus README and the Python internals reference. Preserve the 50 ms control scan, slower telemetry cadence, canonical F1/R1 command/status topics, and strict JSON quality semantics.
+- [x] **Simulated devices:** Use one reusable IED component with explicit `IED_F1` and `IED_R1` configurations for identity, measurement bindings, protection settings, and event identity. Retain useful controller logic. F1 observes `I_L1`, source-MV voltage, and F1 position; R1 observes `I_L2`, remote-bus voltage, and R1 position, with no R1 undervoltage action in v1. Remove F1/R1-specific protection branches from `power_sim.py`.
+- [x] **Operation and feedback:** Treat operator commands and protection trips as requests. Apply accepted requests through the single-writer plant boundary; derive retained named status from actual post-scan switch position alongside IED latch/alarm state. Record an unsuccessful operation without reporting a position change that did not occur. Preserve CLOSE rejection while latched and RESET without closing.
+- [x] **Test conditions:** Define the four named scenarios together by source/load inputs and any explicit actuation failure. Add `R1_OPENING_FAILURE_TEST`: the same tail overload as `TAIL_OVERCURRENT_TEST`, with the harness refusing R1 OPEN at the plant boundary. Returning to `NORMAL` removes the injection without resetting latches or moving switches. Keep scenario control in the test harness, not the HMI.
+- [x] **Event path:** Emit identified, scan-timestamped events for pickup, timing start/cancel, trip request, plant position feedback, reset, and rejected CLOSE; publish them without retention and persist them through the existing Node-RED → InfluxDB integration. Document event fields and their relation to slower telemetry.
+- [x] **Documentation and tests:** Update deterministic controller, scenario, MQTT/status, and integration tests plus README and the Python internals reference. Preserve the 50 ms control scan, slower telemetry cadence, canonical F1/R1 command/status topics, and strict JSON quality semantics.
+
+### Implementation evidence — 2026-09-28 (live acceptance pending)
+
+- **Deterministic behavior:** `python -m pytest -q` in the repository virtual environment passed 64 tests. Traces cover R1 OPEN and F1 timing cancel in the tail test; R1 OPEN request with actual CLOSED feedback at 100 ms and F1 backup OPEN at 300 ms in the failure test; rejected CLOSE, RESET without movement, and `NORMAL` without latch or position changes. The tests also check strict JSON and identified, non-retained MQTT event records.
+- **Node-RED contract:** The tracked active flow subscribes to `event/ied`, validates and converts records to `ied_event` Influx line protocol, then uses the existing Influx write path. A test executes the flow's JavaScript transform and checks the failed-operation fields. The existing command/status display and telemetry flow remain wired in the tracked definition.
+- **Configuration:** `docker compose config --quiet` passed. The host's default Python 3.14 lacks pytest; the repository virtual environment supplied the passing run.
+- **Live verification gap:** Docker Desktop was stopped and did not start from `docker desktop start`; `Start-Service com.docker.service` failed, and `docker compose up -d --build` could not connect to the Docker engine. Compose services, live MQTT delivery, Node-RED display, Influx persistence, and end-to-end status/topology agreement were not observed. This was the state on 28 September. The later live acceptance observations below resolve this gap.
+
+### Live acceptance observations — 2026-09-30
+
+- Live MQTT status, Node-RED HMI, and pandapower telemetry agreed during the tested scenarios.
+- In `TAIL_OVERCURRENT_TEST`, R1 requested OPEN, position feedback confirmed OPEN, F1 cancelled timing and stayed CLOSED. The captured pickup-to-R1-request interval was about 163 ms.
+- In `R1_OPENING_FAILURE_TEST`, R1 requested OPEN but feedback and retained status showed CLOSED/tripped; F1 subsequently opened/tripped. The captured pickup-to-request intervals were about 113 ms for R1 and 315 ms for F1.
+- CLOSE while latched was rejected; RESET cleared the latch without moving the breaker; subsequent CLOSE restored supply. Returning to NORMAL did not itself reset or operate a breaker.
+- The InfluxDB CSV confirmed seven separately stored IED events from the tail test. A later query found current bus-voltage measurements and stored state for both F1 and R1. The HMI trip reason was checked against authoritative MQTT status after the correction.
+- LOW_SOURCE_VOLTAGE asserted F1's alarm without tripping; NORMAL cleared the alarm. The local pytest suite and `docker compose config --quiet` passed after the HMI correction.
+- Live scan intervals above are observations, not exact 100/300 ms wall-clock guarantees.
 
 ### Acceptance criteria
 
-- [ ] `TAIL_OVERCURRENT_TEST` produces a trace in which R1 picks up and requests OPEN after 100 ms, plant feedback confirms R1 OPEN, tail current disappears, F1 timing cancels, and F1 stays CLOSED.
-- [ ] `R1_OPENING_FAILURE_TEST` produces R1's OPEN request and actual CLOSED feedback with no false OPEN status; persistent solved current causes F1 to request OPEN at 300 ms and plant feedback confirms F1 OPEN.
-- [ ] A rejected CLOSE while latched and a RESET are recorded; RESET alone does not move a switch. Removing failure injection does not clear a latch or restore supply.
-- [ ] Named retained status, pandapower switch positions, solved topology, and Node-RED's existing command/status display agree in normal, switching, and failure cases.
-- [ ] Identified event records reach MQTT and InfluxDB at scan resolution, separately from 1 Hz telemetry. Existing measurements and historian writes continue to work.
-- [ ] Relevant deterministic tests and `python -m pytest -q` pass; `docker compose config --quiet` and an observed Compose/MQTT/Node-RED/InfluxDB path check pass. Record the evidence and any unavailable checks before marking this sprint complete.
-
-### Likely affected files
-
-`src/breaker_control.py`, a small IED module, `src/power_grid.py`, `src/power_sim.py`, relevant `tests/`, `nodered/data/flows.json`, `README.md`, and `docs/python-reference.md`. Keep the active flow and dashboard singular.
+- [x] `TAIL_OVERCURRENT_TEST` produces a trace in which R1 picks up and requests OPEN after 100 ms, plant feedback confirms R1 OPEN, tail current disappears, F1 timing cancels, and F1 stays CLOSED.
+- [x] `R1_OPENING_FAILURE_TEST` produces R1's OPEN request and actual CLOSED feedback with no false OPEN status; persistent solved current causes F1 to request OPEN at 300 ms and plant feedback confirms F1 OPEN.
+- [x] A rejected CLOSE while latched and a RESET are recorded; RESET alone does not move a switch. Removing failure injection does not clear a latch or restore supply.
+- [x] Named retained status, pandapower switch positions, solved topology, and Node-RED's existing command/status display agree in normal, switching, and failure cases.
+- [x] Identified event records reach MQTT and InfluxDB at scan resolution, separately from 1 Hz telemetry. Existing measurements and historian writes continue to work.
+- [x] Relevant deterministic tests and `python -m pytest -q` pass; `docker compose config --quiet` and an observed Compose/MQTT/Node-RED/InfluxDB path check pass. Record the evidence and any unavailable checks before marking this sprint complete.
 
 ### Out of scope
 
-The FlowFuse migration, feeder single-line, and F1/R1 panel portrayals belong to Stage B; Grafana event presentation belongs to Stage C. Legacy runtime cleanup belongs before v1 release. No general relay framework, new service, local panel operation, Local/Remote authority, calculated fault solver, or protection-coordination study is introduced here.
+The FlowFuse migration, feeder single-line, and F1/R1 panel portrayals are planned for later work; Grafana event presentation are planned for later work. Legacy runtime cleanup belongs before v1 release. No general relay framework, new service, local panel operation, Local/Remote authority, calculated fault solver, or protection-coordination study is introduced here.
 
 ---
 
