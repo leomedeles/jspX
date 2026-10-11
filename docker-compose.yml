@@ -33,7 +33,7 @@ services:
     build:
       context: .
       dockerfile: nodered/Dockerfile
-    image: jspx-nodered:4.1.0-dashboard-3.6.6
+    image: jspx-nodered:4.1.0-flowfuse-1.32.0
     ports: ["127.0.0.1:1880:1880"]
     restart: unless-stopped
     volumes:

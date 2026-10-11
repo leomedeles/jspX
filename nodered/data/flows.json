@@ -67,127 +67,105 @@
         "willPayload": ""
     },
     {
-        "id": "ui_tab_breaker",
-        "type": "ui_tab",
+        "id": "ui_page_breaker",
+        "type": "ui-page",
         "name": "Breaker",
-        "icon": "dashboard",
-        "disabled": false,
-        "hidden": false
+        "ui": "ui_base_operator",
+        "path": "/",
+        "icon": "view-dashboard",
+        "layout": "grid",
+        "theme": "ui_theme_operator",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": "0",
+                "cols": "3"
+            },
+            {
+                "name": "Tablet",
+                "px": "576",
+                "cols": "6"
+            },
+            {
+                "name": "Small Desktop",
+                "px": "768",
+                "cols": "9"
+            },
+            {
+                "name": "Desktop",
+                "px": "1024",
+                "cols": "12"
+            }
+        ],
+        "order": 1,
+        "className": "",
+        "visible": "true",
+        "disabled": "false"
     },
     {
         "id": "ui_group_main",
-        "type": "ui_group",
+        "type": "ui-group",
         "name": "BRK_F1",
-        "tab": "ui_tab_breaker",
-        "order": 1,
-        "disp": true,
+        "page": "ui_page_breaker",
         "width": "6",
-        "collapse": false
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "className": "",
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
     },
     {
         "id": "ui_group_l2",
-        "type": "ui_group",
+        "type": "ui-group",
         "name": "BRK_R1",
-        "tab": "ui_tab_breaker",
-        "order": 2,
-        "disp": true,
+        "page": "ui_page_breaker",
         "width": "6",
-        "collapse": false
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "className": "",
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
     },
     {
-        "id": "983cc82f6f6d38e3",
-        "type": "ui_base",
-        "theme": {
-            "name": "theme-light",
-            "lightTheme": {
-                "default": "#0094CE",
-                "baseColor": "#0094CE",
-                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
-                "edited": false
-            },
-            "darkTheme": {
-                "default": "#097479",
-                "baseColor": "#097479",
-                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
-                "edited": false
-            },
-            "customTheme": {
-                "name": "Untitled Theme 1",
-                "default": "#4B7930",
-                "baseColor": "#4B7930",
-                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
-            },
-            "themeState": {
-                "base-color": {
-                    "default": "#0094CE",
-                    "value": "#0094CE",
-                    "edited": false
-                },
-                "page-titlebar-backgroundColor": {
-                    "value": "#0094CE",
-                    "edited": false
-                },
-                "page-backgroundColor": {
-                    "value": "#fafafa",
-                    "edited": false
-                },
-                "page-sidebar-backgroundColor": {
-                    "value": "#ffffff",
-                    "edited": false
-                },
-                "group-textColor": {
-                    "value": "#1bbfff",
-                    "edited": false
-                },
-                "group-borderColor": {
-                    "value": "#ffffff",
-                    "edited": false
-                },
-                "group-backgroundColor": {
-                    "value": "#ffffff",
-                    "edited": false
-                },
-                "widget-textColor": {
-                    "value": "#111111",
-                    "edited": false
-                },
-                "widget-backgroundColor": {
-                    "value": "#0094ce",
-                    "edited": false
-                },
-                "widget-borderColor": {
-                    "value": "#ffffff",
-                    "edited": false
-                },
-                "base-font": {
-                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
-                }
-            },
-            "angularTheme": {
-                "primary": "indigo",
-                "accents": "blue",
-                "warn": "red",
-                "background": "grey",
-                "palette": "light"
-            }
+        "id": "ui_base_operator",
+        "type": "ui-base",
+        "name": "Operator dashboard",
+        "path": "/dashboard",
+        "appIcon": "",
+        "includeClientData": false,
+        "acceptsClientConfig": [
+            "ui-notification"
+        ],
+        "showPathInSidebar": false,
+        "headerContent": "page",
+        "navigationStyle": "default",
+        "titleBarStyle": "default",
+        "showReconnectNotification": true,
+        "notificationDisplayTime": 3,
+        "showDisconnectNotification": true,
+        "allowInstall": false
+    },
+    {
+        "id": "ui_theme_operator",
+        "type": "ui-theme",
+        "name": "Operator light",
+        "colors": {
+            "surface": "#ffffff",
+            "primary": "#0094ce",
+            "bgPage": "#f5f7f9",
+            "groupBg": "#ffffff",
+            "groupOutline": "#d1d9df"
         },
-        "site": {
-            "name": "Node-RED Dashboard",
-            "hideToolbar": "false",
-            "allowSwipe": "false",
-            "lockMenu": "false",
-            "allowTempTheme": "true",
-            "dateFormat": "DD/MM/YYYY",
-            "sizes": {
-                "sx": 48,
-                "sy": 48,
-                "gx": 6,
-                "gy": 6,
-                "cx": 6,
-                "cy": 6,
-                "px": 0,
-                "py": 0
-            }
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "4px",
+            "widgetGap": "12px"
         }
     },
     {
@@ -330,20 +308,19 @@
     },
     {
         "id": "btn_open",
-        "type": "ui_button",
+        "type": "ui-button",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Open breaker",
         "group": "ui_group_main",
         "order": 1,
         "width": 2,
         "height": 1,
-        "passthru": false,
         "label": "OPEN",
         "tooltip": "Request breaker OPEN",
         "color": "",
         "bgcolor": "",
         "className": "",
-        "icon": "fa-unlock",
+        "icon": "",
         "payload": "OPEN",
         "payloadType": "str",
         "topic": "cmd/breaker/BRK_F1/open",
@@ -354,24 +331,35 @@
             [
                 "mqtt_out_cmd"
             ]
-        ]
+        ],
+        "emulateClick": false,
+        "iconPosition": "left",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str"
     },
     {
         "id": "btn_close",
-        "type": "ui_button",
+        "type": "ui-button",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Close breaker",
         "group": "ui_group_main",
         "order": 2,
         "width": 2,
         "height": 1,
-        "passthru": false,
         "label": "CLOSE",
         "tooltip": "Request breaker CLOSE",
         "color": "",
         "bgcolor": "",
         "className": "",
-        "icon": "fa-lock",
+        "icon": "",
         "payload": "CLOSE",
         "payloadType": "str",
         "topic": "cmd/breaker/BRK_F1/close",
@@ -382,24 +370,35 @@
             [
                 "mqtt_out_cmd"
             ]
-        ]
+        ],
+        "emulateClick": false,
+        "iconPosition": "left",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str"
     },
     {
         "id": "btn_reset",
-        "type": "ui_button",
+        "type": "ui-button",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Manual Reset",
         "group": "ui_group_main",
         "order": 3,
         "width": 2,
         "height": 1,
-        "passthru": false,
         "label": "Manual Reset",
         "tooltip": "Clear the trip latch without closing",
         "color": "",
         "bgcolor": "",
         "className": "",
-        "icon": "fa-refresh",
+        "icon": "",
         "payload": "RESET",
         "payloadType": "str",
         "topic": "cmd/breaker/BRK_F1/reset",
@@ -410,7 +409,19 @@
             [
                 "mqtt_out_cmd"
             ]
-        ]
+        ],
+        "emulateClick": false,
+        "iconPosition": "left",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str"
     },
     {
         "id": "mqtt_out_cmd",
@@ -465,7 +476,7 @@
             [
                 "chg_state_text",
                 "chg_trip_text",
-                "ui_trip_reason",
+                "chg_trip_reason",
                 "chg_undervoltage_text",
                 "fn_status_to_lp"
             ]
@@ -495,7 +506,7 @@
     },
     {
         "id": "ui_state_text",
-        "type": "ui_text",
+        "type": "ui-text",
         "z": "f2a7b9f2d1c64f2a",
         "group": "ui_group_main",
         "order": 4,
@@ -508,11 +519,14 @@
         "className": "",
         "style": false,
         "font": "",
-        "fontSize": "",
+        "fontSize": 16,
         "color": "#000000",
         "x": 640,
         "y": 400,
-        "wires": []
+        "wires": [],
+        "value": "payload",
+        "valueType": "msg",
+        "wrapText": false
     },
     {
         "id": "chg_trip_text",
@@ -538,7 +552,7 @@
     },
     {
         "id": "ui_trip_text",
-        "type": "ui_text",
+        "type": "ui-text",
         "z": "f2a7b9f2d1c64f2a",
         "group": "ui_group_main",
         "order": 5,
@@ -551,11 +565,14 @@
         "className": "",
         "style": false,
         "font": "",
-        "fontSize": "",
+        "fontSize": 16,
         "color": "#000000",
         "x": 640,
         "y": 450,
-        "wires": []
+        "wires": [],
+        "value": "payload",
+        "valueType": "msg",
+        "wrapText": false
     },
     {
         "id": "fn_trip_toast",
@@ -579,19 +596,22 @@
     },
     {
         "id": "ui_toast_trip",
-        "type": "ui_toast",
+        "type": "ui-notification",
         "z": "f2a7b9f2d1c64f2a",
+        "ui": "ui_base_operator",
         "position": "top right",
+        "colorDefault": true,
+        "color": "#000000",
         "displayTime": "3",
-        "highlight": "",
-        "sendall": false,
+        "showCountdown": false,
         "outputs": 0,
-        "ok": "OK",
-        "cancel": "",
+        "allowDismiss": false,
+        "dismissText": "Close",
+        "allowConfirm": false,
+        "confirmText": "Confirm",
         "raw": false,
         "className": "",
-        "topic": "",
-        "name": "Toast",
+        "name": "Plant notification",
         "x": 1070,
         "y": 360,
         "wires": []
@@ -652,7 +672,7 @@
     },
     {
         "id": "ui_trip_reason",
-        "type": "ui_text",
+        "type": "ui-text",
         "z": "f2a7b9f2d1c64f2a",
         "group": "ui_group_main",
         "order": 6,
@@ -660,16 +680,19 @@
         "height": 1,
         "name": "",
         "label": "Trip reason",
-        "format": "{{msg.payload.trip_reason || '-'}}",
+        "format": "{{msg.payload}}",
         "layout": "row-spread",
         "className": "",
         "style": false,
         "font": "",
-        "fontSize": "",
+        "fontSize": 16,
         "color": "#000000",
         "x": 850,
         "y": 500,
-        "wires": []
+        "wires": [],
+        "value": "payload",
+        "valueType": "msg",
+        "wrapText": false
     },
     {
         "id": "chg_undervoltage_text",
@@ -695,7 +718,7 @@
     },
     {
         "id": "ui_undervoltage_text",
-        "type": "ui_text",
+        "type": "ui-text",
         "z": "f2a7b9f2d1c64f2a",
         "group": "ui_group_main",
         "order": 7,
@@ -708,11 +731,14 @@
         "className": "",
         "style": false,
         "font": "",
-        "fontSize": "",
+        "fontSize": 16,
         "color": "#000000",
         "x": 870,
         "y": 550,
-        "wires": []
+        "wires": [],
+        "value": "payload",
+        "valueType": "msg",
+        "wrapText": false
     },
     {
         "id": "http_influx_write",
@@ -932,7 +958,7 @@
     },
     {
         "id": "ui_plant_text",
-        "type": "ui_text",
+        "type": "ui-text",
         "z": "f2a7b9f2d1c64f2a",
         "group": "ui_group_main",
         "order": 0,
@@ -945,11 +971,14 @@
         "className": "",
         "style": false,
         "font": "",
-        "fontSize": "",
+        "fontSize": 16,
         "color": "#000000",
         "x": 1070,
         "y": 240,
-        "wires": []
+        "wires": [],
+        "value": "payload",
+        "valueType": "msg",
+        "wrapText": false
     },
     {
         "id": "917c308f0b48aa53",
@@ -973,20 +1002,19 @@
     },
     {
         "id": "btn_open_l2",
-        "type": "ui_button",
+        "type": "ui-button",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Open BRK_R1",
         "group": "ui_group_l2",
         "order": 1,
         "width": 2,
         "height": 1,
-        "passthru": false,
         "label": "OPEN",
         "tooltip": "Request BRK_R1 OPEN",
         "color": "",
         "bgcolor": "",
         "className": "",
-        "icon": "fa-unlock",
+        "icon": "",
         "payload": "OPEN",
         "payloadType": "str",
         "topic": "cmd/breaker/BRK_R1/open",
@@ -997,24 +1025,35 @@
             [
                 "mqtt_out_cmd"
             ]
-        ]
+        ],
+        "emulateClick": false,
+        "iconPosition": "left",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str"
     },
     {
         "id": "btn_close_l2",
-        "type": "ui_button",
+        "type": "ui-button",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Close BRK_R1",
         "group": "ui_group_l2",
         "order": 2,
         "width": 2,
         "height": 1,
-        "passthru": false,
         "label": "CLOSE",
         "tooltip": "Request BRK_R1 CLOSE",
         "color": "",
         "bgcolor": "",
         "className": "",
-        "icon": "fa-lock",
+        "icon": "",
         "payload": "CLOSE",
         "payloadType": "str",
         "topic": "cmd/breaker/BRK_R1/close",
@@ -1025,24 +1064,35 @@
             [
                 "mqtt_out_cmd"
             ]
-        ]
+        ],
+        "emulateClick": false,
+        "iconPosition": "left",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str"
     },
     {
         "id": "btn_reset_l2",
-        "type": "ui_button",
+        "type": "ui-button",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Reset BRK_R1",
         "group": "ui_group_l2",
         "order": 3,
         "width": 2,
         "height": 1,
-        "passthru": false,
         "label": "Manual Reset",
         "tooltip": "Clear BRK_R1 trip latch without closing",
         "color": "",
         "bgcolor": "",
         "className": "",
-        "icon": "fa-refresh",
+        "icon": "",
         "payload": "RESET",
         "payloadType": "str",
         "topic": "cmd/breaker/BRK_R1/reset",
@@ -1053,7 +1103,19 @@
             [
                 "mqtt_out_cmd"
             ]
-        ]
+        ],
+        "emulateClick": false,
+        "iconPosition": "left",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str"
     },
     {
         "id": "mqtt_in_status_l2",
@@ -1088,16 +1150,16 @@
         "y": 860,
         "wires": [
             [
-                "ui_state_text_l2",
-                "ui_trip_text_l2",
-                "ui_trip_reason_l2",
+                "chg_state_text_l2",
+                "chg_trip_text_l2",
+                "chg_trip_reason_l2",
                 "fn_status_to_lp"
             ]
         ]
     },
     {
         "id": "ui_state_text_l2",
-        "type": "ui_text",
+        "type": "ui-text",
         "z": "f2a7b9f2d1c64f2a",
         "group": "ui_group_l2",
         "order": 4,
@@ -1105,20 +1167,23 @@
         "height": 1,
         "name": "",
         "label": "State",
-        "format": "{{msg.payload.state}}",
+        "format": "{{msg.payload}}",
         "layout": "row-spread",
         "className": "",
         "style": false,
         "font": "",
-        "fontSize": "",
+        "fontSize": 16,
         "color": "#000000",
         "x": 650,
         "y": 820,
-        "wires": []
+        "wires": [],
+        "value": "payload",
+        "valueType": "msg",
+        "wrapText": false
     },
     {
         "id": "ui_trip_text_l2",
-        "type": "ui_text",
+        "type": "ui-text",
         "z": "f2a7b9f2d1c64f2a",
         "group": "ui_group_l2",
         "order": 5,
@@ -1126,20 +1191,23 @@
         "height": 1,
         "name": "",
         "label": "Trip latch",
-        "format": "{{msg.payload.tripped ? 'TRIPPED' : 'OK'}}",
+        "format": "{{msg.payload}}",
         "layout": "row-spread",
         "className": "",
         "style": false,
         "font": "",
-        "fontSize": "",
+        "fontSize": 16,
         "color": "#000000",
         "x": 650,
         "y": 860,
-        "wires": []
+        "wires": [],
+        "value": "payload",
+        "valueType": "msg",
+        "wrapText": false
     },
     {
         "id": "ui_trip_reason_l2",
-        "type": "ui_text",
+        "type": "ui-text",
         "z": "f2a7b9f2d1c64f2a",
         "group": "ui_group_l2",
         "order": 6,
@@ -1147,16 +1215,19 @@
         "height": 1,
         "name": "",
         "label": "Trip reason",
-        "format": "{{msg.payload.trip_reason || '-'}}",
+        "format": "{{msg.payload}}",
         "layout": "row-spread",
         "className": "",
         "style": false,
         "font": "",
-        "fontSize": "",
+        "fontSize": 16,
         "color": "#000000",
         "x": 660,
         "y": 900,
-        "wires": []
+        "wires": [],
+        "value": "payload",
+        "valueType": "msg",
+        "wrapText": false
     },
     {
         "id": "6745d1caf2cb4562",
@@ -1228,6 +1299,94 @@
         "wires": [
             [
                 "917c308f0b48aa53"
+            ]
+        ]
+    },
+    {
+        "id": "chg_trip_reason",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "F1 trip reason",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.trip_reason ? payload.trip_reason : \"-\"",
+                "tot": "jsonata"
+            }
+        ],
+        "x": 630,
+        "y": 500,
+        "wires": [
+            [
+                "ui_trip_reason"
+            ]
+        ]
+    },
+    {
+        "id": "chg_state_text_l2",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "R1 physical state",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.state",
+                "tot": "msg"
+            }
+        ],
+        "x": 450,
+        "y": 820,
+        "wires": [
+            [
+                "ui_state_text_l2"
+            ]
+        ]
+    },
+    {
+        "id": "chg_trip_text_l2",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "R1 trip latch",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "$boolean(payload.tripped) ? \"TRIPPED\" : \"OK\"",
+                "tot": "jsonata"
+            }
+        ],
+        "x": 450,
+        "y": 860,
+        "wires": [
+            [
+                "ui_trip_text_l2"
+            ]
+        ]
+    },
+    {
+        "id": "chg_trip_reason_l2",
+        "type": "change",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "R1 trip reason",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.trip_reason ? payload.trip_reason : \"-\"",
+                "tot": "jsonata"
+            }
+        ],
+        "x": 450,
+        "y": 900,
+        "wires": [
+            [
+                "ui_trip_reason_l2"
             ]
         ]
     }

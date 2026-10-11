@@ -19,6 +19,30 @@ def load_json(path: Path):
         return json.load(source)
 
 
+def test_flowfuse_dashboard_is_the_only_active_hmi() -> None:
+    package = load_json(ROOT / "package.json")
+    flow = load_json(FLOW_PATH)
+    nodes = {node["id"]: node for node in flow}
+    dockerfile = (ROOT / "nodered" / "Dockerfile").read_text(encoding="utf-8")
+    compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert package["dependencies"] == {"@flowfuse/node-red-dashboard": "1.32.0"}
+    assert '"@flowfuse/node-red-dashboard@${dashboard_version}"' in dockerfile
+    assert "jspx-nodered:4.1.0-flowfuse-1.32.0" in compose
+    assert not any(node["type"].startswith("ui_") for node in flow)
+    assert nodes["ui_base_operator"]["type"] == "ui-base"
+    assert nodes["ui_base_operator"]["path"] == "/dashboard"
+    assert nodes["ui_page_breaker"]["type"] == "ui-page"
+    assert nodes["ui_page_breaker"]["ui"] == "ui_base_operator"
+    assert nodes["ui_page_breaker"]["path"] == "/"
+    assert nodes["ui_page_breaker"]["theme"] == "ui_theme_operator"
+    assert sum(node["type"] == "ui-page" for node in flow) == 1
+    assert sum(node["type"] == "ui-notification" for node in flow) == 1
+    for group in ("ui_group_main", "ui_group_l2"):
+        assert nodes[group]["type"] == "ui-group"
+        assert nodes[group]["page"] == "ui_page_breaker"
+
+
 def test_authoritative_status_is_written_with_required_influx_schema() -> None:
     flow = load_json(FLOW_PATH)
     nodes = {node["id"]: node for node in flow}
@@ -56,6 +80,7 @@ def test_hmi_operates_and_displays_both_named_breakers() -> None:
             "status": "mqtt_in_status",
             "parser": "json_parse",
             "display": ("ui_state_text", "ui_trip_text", "ui_trip_reason"),
+            "mappings": ("chg_state_text", "chg_trip_text", "chg_trip_reason"),
         },
         "r1": {
             "group": "ui_group_l2",
@@ -68,6 +93,11 @@ def test_hmi_operates_and_displays_both_named_breakers() -> None:
                 "ui_trip_text_l2",
                 "ui_trip_reason_l2",
             ),
+            "mappings": (
+                "chg_state_text_l2",
+                "chg_trip_text_l2",
+                "chg_trip_reason_l2",
+            ),
         },
     }
     actions = ("open", "close", "reset")
@@ -78,8 +108,14 @@ def test_hmi_operates_and_displays_both_named_breakers() -> None:
         assert nodes[group]["name"] == breaker
         for button_id, action in zip(definition["buttons"], actions):
             button = nodes[button_id]
+            assert button["type"] == "ui-button"
             assert button["group"] == group
             assert button["topic"] == f"cmd/breaker/{breaker}/{action}"
+            assert button["topicType"] == "str"
+            assert button["payload"] == action.upper()
+            assert button["payloadType"] == "str"
+            assert button["enableClick"] is True
+            assert button["emulateClick"] is False
             assert button["wires"] == [["mqtt_out_cmd"]]
 
         status = nodes[definition["status"]]
@@ -87,13 +123,30 @@ def test_hmi_operates_and_displays_both_named_breakers() -> None:
         assert status["rh"] == 0
         assert status["wires"] == [[definition["parser"]]]
         parser_outputs = nodes[definition["parser"]]["wires"][0]
-        for display_id in definition["display"]:
+        assert "fn_status_to_lp" in parser_outputs
+        for display_id, mapping_id in zip(
+            definition["display"], definition["mappings"]
+        ):
+            assert mapping_id in parser_outputs
+            assert nodes[mapping_id]["wires"] == [[display_id]]
+            assert nodes[mapping_id]["rules"][0]["p"] == "payload"
+            assert nodes[display_id]["type"] == "ui-text"
             assert nodes[display_id]["group"] == group
-            assert display_id in parser_outputs or any(
-                display_id in nodes[node_id]["wires"][0]
-                for node_id in parser_outputs
-                if nodes[node_id]["wires"]
-            )
+            assert nodes[display_id]["value"] == "payload"
+            assert nodes[display_id]["valueType"] == "msg"
+
+    assert nodes["chg_state_text_l2"]["rules"][0]["to"] == "payload.state"
+    assert nodes["chg_trip_text_l2"]["rules"][0]["to"] == (
+        '$boolean(payload.tripped) ? "TRIPPED" : "OK"'
+    )
+    assert nodes["chg_trip_reason_l2"]["rules"][0]["to"] == (
+        'payload.trip_reason ? payload.trip_reason : "-"'
+    )
+    assert nodes["fn_online_text_toast"]["wires"] == [
+        ["ui_plant_text"], ["ui_toast_trip"]
+    ]
+    assert nodes["ui_toast_trip"]["type"] == "ui-notification"
+    assert nodes["trig_offline"]["duration"] == "5"
 
 
 def test_existing_telemetry_influx_path_is_preserved() -> None:

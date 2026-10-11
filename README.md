@@ -172,11 +172,16 @@ docker compose ps
 
 All published ports bind to localhost:
 
-- Node-RED HMI: http://localhost:1880/ui/
+- Node-RED FlowFuse Dashboard HMI: http://localhost:1880/dashboard/
 - InfluxDB: http://localhost:8086
 - Grafana: http://localhost:3000
 
 A compact operating walkthrough from the repository directory:
+
+The FlowFuse Dashboard has F1 and R1 OPEN, CLOSE, and Manual Reset controls.
+Its State, Protection/Trip latch, Trip reason, Plant, and Undervoltage
+indications follow simulator feedback; pressing a command does not establish
+that a physical switch moved. Scenario selection stays in the test harness.
 
 ```powershell
 # Observe retained state.
