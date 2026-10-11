@@ -98,6 +98,14 @@ while `tripped` is true if R1 refuses OPEN. Status transitions publish
 immediately after a control scan. Routine `telemetry/pandapower` remains
 non-retained.
 
+The Node-RED dashboard validates each named retained status before displaying
+it. Missing or malformed status shows UNKNOWN for that breaker, independently
+of the other breaker. A valid cleared latch with a null trip reason displays
+OK and clears the previous reason. Plant ONLINE means telemetry has arrived
+within five seconds; it does not establish that either breaker status is valid
+or healthy. The indication changes to OFFLINE after five seconds without
+telemetry and returns to ONLINE when samples resume.
+
 IED events publish on non-retained `event/ied` at scan resolution. Each record
 contains `ts` (UTC scan time), a unique `event_id`, `ied` (`IED_F1` or
 `IED_R1`), `breaker`, `event`, `scan_monotonic_s`, post-scan physical `position`,
@@ -146,6 +154,11 @@ The telemetry object contains `ts`, `buses[]`, `lines[]`, `transformers[]`, and
 
 Node-RED writes millisecond-timestamped Influx line protocol:
 
+One telemetry subscription fans each sample to the historian and the plant
+presence timer. Breaker status and IED events use the same Influx writer;
+events are forwarded as they arrive, with their original timestamp and unique
+`event_id` tag.
+
 | Measurement | Tags | Main fields |
 | --- | --- | --- |
 | `bus` | `bus_id`, `name` | voltage, angle, P/Q, `energized`, `quality` |
@@ -179,7 +192,7 @@ All published ports bind to localhost:
 A compact operating walkthrough from the repository directory:
 
 The FlowFuse Dashboard has F1 and R1 OPEN, CLOSE, and Manual Reset controls.
-Its State, Protection/Trip latch, Trip reason, Plant, and Undervoltage
+Its State, Trip latch, Trip reason, Plant, and Undervoltage
 indications follow simulator feedback; pressing a command does not establish
 that a physical switch moved. Scenario selection stays in the test harness.
 

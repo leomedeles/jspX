@@ -22,7 +22,6 @@ def load_json(path: Path):
 def test_flowfuse_dashboard_is_the_only_active_hmi() -> None:
     package = load_json(ROOT / "package.json")
     flow = load_json(FLOW_PATH)
-    nodes = {node["id"]: node for node in flow}
     dockerfile = (ROOT / "nodered" / "Dockerfile").read_text(encoding="utf-8")
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
@@ -30,213 +29,284 @@ def test_flowfuse_dashboard_is_the_only_active_hmi() -> None:
     assert '"@flowfuse/node-red-dashboard@${dashboard_version}"' in dockerfile
     assert "jspx-nodered:4.1.0-flowfuse-1.32.0" in compose
     assert not any(node["type"].startswith("ui_") for node in flow)
-    assert nodes["ui_base_operator"]["type"] == "ui-base"
-    assert nodes["ui_base_operator"]["path"] == "/dashboard"
-    assert nodes["ui_page_breaker"]["type"] == "ui-page"
-    assert nodes["ui_page_breaker"]["ui"] == "ui_base_operator"
-    assert nodes["ui_page_breaker"]["path"] == "/"
-    assert nodes["ui_page_breaker"]["theme"] == "ui_theme_operator"
-    assert sum(node["type"] == "ui-page" for node in flow) == 1
-    assert sum(node["type"] == "ui-notification" for node in flow) == 1
-    for group in ("ui_group_main", "ui_group_l2"):
-        assert nodes[group]["type"] == "ui-group"
-        assert nodes[group]["page"] == "ui_page_breaker"
+    base = one(flow, type="ui-base")
+    page = one(flow, type="ui-page")
+    theme = one(flow, type="ui-theme")
+    one(flow, type="ui-notification")
+    assert base["path"] == "/dashboard"
+    assert page["ui"] == base["id"]
+    assert page["path"] == "/"
+    assert page["theme"] == theme["id"]
+    for breaker in ("BRK_F1", "BRK_R1"):
+        assert one(flow, type="ui-group", name=breaker)["page"] == page["id"]
 
 
-def test_authoritative_status_is_written_with_required_influx_schema() -> None:
-    flow = load_json(FLOW_PATH)
-    nodes = {node["id"]: node for node in flow}
-
-    assert nodes["mqtt_in_status"]["topic"] == "status/breaker/BRK_F1"
-    assert "fn_status_to_lp" in nodes["json_parse"]["wires"][0]
-    assert "fn_status_to_lp" in nodes["json_parse_l2"]["wires"][0]
-
-    transform = nodes["fn_status_to_lp"]
-    function = transform["func"]
-    assert "Date.parse(p.ts)" in function
-    assert 'p.breaker' in function
-    assert '"BRK_F1", "BRK_R1"' in function
-    assert "breaker_status,breaker=${breaker}" in function
-    for field in ("state", "tripped", "undervoltage_alarm", "trip_reason"):
-        assert field in function
-    assert transform["wires"] == [["917c308f0b48aa53"]]
-    assert nodes["917c308f0b48aa53"]["wires"] == [["http_influx_write"]]
-    assert nodes["http_influx_write"]["method"] == "POST"
-
-    serialized = json.dumps(flow)
-    for old_identity in ("BRK_L1_SOURCE", "BRK_L2"):
-        assert old_identity not in serialized
+def flow_nodes():
+    return load_json(FLOW_PATH)
 
 
-def test_hmi_operates_and_displays_both_named_breakers() -> None:
-    flow = load_json(FLOW_PATH)
-    nodes = {node["id"]: node for node in flow}
-
-    expected = {
-        "f1": {
-            "group": "ui_group_main",
-            "breaker": "BRK_F1",
-            "buttons": ("btn_open", "btn_close", "btn_reset"),
-            "status": "mqtt_in_status",
-            "parser": "json_parse",
-            "display": ("ui_state_text", "ui_trip_text", "ui_trip_reason"),
-            "mappings": ("chg_state_text", "chg_trip_text", "chg_trip_reason"),
-        },
-        "r1": {
-            "group": "ui_group_l2",
-            "breaker": "BRK_R1",
-            "buttons": ("btn_open_l2", "btn_close_l2", "btn_reset_l2"),
-            "status": "mqtt_in_status_l2",
-            "parser": "json_parse_l2",
-            "display": (
-                "ui_state_text_l2",
-                "ui_trip_text_l2",
-                "ui_trip_reason_l2",
-            ),
-            "mappings": (
-                "chg_state_text_l2",
-                "chg_trip_text_l2",
-                "chg_trip_reason_l2",
-            ),
-        },
-    }
-    actions = ("open", "close", "reset")
-
-    for definition in expected.values():
-        group = definition["group"]
-        breaker = definition["breaker"]
-        assert nodes[group]["name"] == breaker
-        for button_id, action in zip(definition["buttons"], actions):
-            button = nodes[button_id]
-            assert button["type"] == "ui-button"
-            assert button["group"] == group
-            assert button["topic"] == f"cmd/breaker/{breaker}/{action}"
-            assert button["topicType"] == "str"
-            assert button["payload"] == action.upper()
-            assert button["payloadType"] == "str"
-            assert button["enableClick"] is True
-            assert button["emulateClick"] is False
-            assert button["wires"] == [["mqtt_out_cmd"]]
-
-        status = nodes[definition["status"]]
-        assert status["topic"] == f"status/breaker/{breaker}"
-        assert status["rh"] == 0
-        assert status["wires"] == [[definition["parser"]]]
-        parser_outputs = nodes[definition["parser"]]["wires"][0]
-        assert "fn_status_to_lp" in parser_outputs
-        for display_id, mapping_id in zip(
-            definition["display"], definition["mappings"]
-        ):
-            assert mapping_id in parser_outputs
-            assert nodes[mapping_id]["wires"] == [[display_id]]
-            assert nodes[mapping_id]["rules"][0]["p"] == "payload"
-            assert nodes[display_id]["type"] == "ui-text"
-            assert nodes[display_id]["group"] == group
-            assert nodes[display_id]["value"] == "payload"
-            assert nodes[display_id]["valueType"] == "msg"
-
-    assert nodes["chg_state_text_l2"]["rules"][0]["to"] == "payload.state"
-    assert nodes["chg_trip_text_l2"]["rules"][0]["to"] == (
-        '$boolean(payload.tripped) ? "TRIPPED" : "OK"'
-    )
-    assert nodes["chg_trip_reason_l2"]["rules"][0]["to"] == (
-        'payload.trip_reason ? payload.trip_reason : "-"'
-    )
-    assert nodes["fn_online_text_toast"]["wires"] == [
-        ["ui_plant_text"], ["ui_toast_trip"]
+def one(nodes, **properties):
+    matches = [
+        node for node in nodes
+        if all(node.get(key) == value for key, value in properties.items())
     ]
-    assert nodes["ui_toast_trip"]["type"] == "ui-notification"
-    assert nodes["trig_offline"]["duration"] == "5"
+    assert len(matches) == 1, properties
+    return matches[0]
 
 
-def test_existing_telemetry_influx_path_is_preserved() -> None:
-    flow = load_json(FLOW_PATH)
-    nodes = {node["id"]: node for node in flow}
-
-    telemetry_input = nodes["eea53fe7b525fcf9"]
-    assert telemetry_input["topic"] == "telemetry/pandapower"
-    assert "7d88f8edcae91d28" in telemetry_input["wires"][0]
-
-    function = nodes["7d88f8edcae91d28"]["func"]
-    assert "`bus,${tags}" in function
-    assert "`line,${tags}" in function
-    assert "Date.parse(p.ts)" in function
-    assert "Array.isArray(p.transformers)" in function
-    assert "`transformer,${tags}" in function
-    assert "transformer_id=${tr.transformer_idx}" in function
-    assert "name=${String(tr.name)" in function
-    assert "hv_bus=${String(tr.hv_bus)}" in function
-    assert "lv_bus=${String(tr.lv_bus)}" in function
-    assert "tr.loading_percent != null" in function
-    assert "`energized=${!!tr.energized}`" in function
-    assert "`quality=${JSON.stringify(tr.quality)}`" in function
-    assert "`ext_grid,${tags}" in function
-    assert "`energized=${!!b.energized}`" in function
-    assert "`quality=${JSON.stringify(b.quality)}`" in function
-    assert "`energized=${!!l.energized}`" in function
-    assert "`quality=${JSON.stringify(l.quality)}`" in function
-    assert "l.loading_percent != null" in function
-    assert "Number(l.loading_percent)" in function
-    assert "l.loading_pct" not in function
-    assert nodes["7d88f8edcae91d28"]["wires"] == [["ad39eed653b0a057"]]
-    assert nodes["ad39eed653b0a057"]["wires"] == [["http-write"]]
+def path_count(by_id, start, target):
+    if start == target:
+        return 1
+    return sum(
+        path_count(by_id, downstream, target)
+        for output in by_id[start].get("wires", [])
+        for downstream in output
+        if downstream in by_id
+    )
 
 
-def test_ied_event_mqtt_to_influx_contract_and_line_protocol() -> None:
-    nodes = {node["id"]: node for node in load_json(FLOW_PATH)}
-    assert nodes["mqtt_in_ied_event"]["topic"] == "event/ied"
-    assert nodes["mqtt_in_ied_event"]["rh"] == 0
-    assert nodes["mqtt_in_ied_event"]["wires"] == [["json_parse_ied_event"]]
-    assert nodes["json_parse_ied_event"]["wires"] == [["fn_ied_event_to_lp"]]
-    assert nodes["fn_ied_event_to_lp"]["wires"] == [["917c308f0b48aa53"]]
-    assert nodes["917c308f0b48aa53"]["wires"] == [["http_influx_write"]]
-
+def run_function(function, messages):
     if not shutil.which("node"):
-        pytest.skip("Node.js is unavailable for executing the Node-RED transform")
+        pytest.skip("Node.js is unavailable for executing Node-RED functions")
+    script = """
+const input = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+const memory = new Map();
+const warnings = [];
+const context = {get: key => memory.get(key), set: (key, value) => memory.set(key, value)};
+const node = {warn: message => warnings.push(message)};
+const fn = new Function('msg', 'node', 'context', input.func);
+const outputs = input.messages.map(msg => fn(msg, node, context));
+process.stdout.write(JSON.stringify({outputs, warnings}));
+"""
+    completed = subprocess.run(
+        ["node", "-e", script],
+        input=json.dumps({"func": function["func"], "messages": messages}),
+        text=True, capture_output=True, check=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def test_named_commands_and_status_are_isolated_and_unknown_is_visible() -> None:
+    flow = flow_nodes()
+    by_id = {node["id"]: node for node in flow}
+    assert len([node for node in flow if node["type"] == "mqtt-broker"]) == 1
+    broker = one(flow, type="mqtt-broker")
+    outbound = one(flow, type="mqtt out")
+    assert outbound["broker"] == broker["id"]
+    assert outbound["qos"] == "1"
+    assert outbound["retain"] == "false"
+
+    status_input = one(flow, type="mqtt in", topic="status/breaker/+")
+    assert [
+        node for node in flow
+        if node["type"] == "mqtt in"
+        and node["topic"].startswith("status/breaker/")
+    ] == [status_input]
+    assert status_input["broker"] == broker["id"]
+    assert status_input["datatype"] == "utf8"
+    assert status_input["rh"] == 0
+    assert len(status_input["wires"][0]) == 1
+    transform_id = status_input["wires"][0][0]
+    transform = by_id[transform_id]
+    assert transform["type"] == "function"
+
+    for breaker in ("BRK_F1", "BRK_R1"):
+        group = one(flow, type="ui-group", name=breaker)
+        for action in ("open", "close", "reset"):
+            button = one(flow, type="ui-button",
+                         topic=f"cmd/breaker/{breaker}/{action}")
+            assert button["group"] == group["id"]
+            assert button["payload"] == action.upper()
+            assert button["wires"] == [[outbound["id"]]]
+
+    outputs = transform["wires"]
+    def output_index(breaker, label):
+        group = one(flow, type="ui-group", name=breaker)
+        widget = one(flow, type="ui-text", group=group["id"], label=label)
+        matches = [i for i, targets in enumerate(outputs) if widget["id"] in targets]
+        assert len(matches) == 1
+        return matches[0]
+
+    f1 = {label: output_index("BRK_F1", label)
+          for label in ("State", "Trip latch", "Trip reason", "Undervoltage")}
+    r1 = {label: output_index("BRK_R1", label)
+          for label in ("State", "Trip latch", "Trip reason")}
+    assert set(f1.values()).isdisjoint(r1.values())
+
+    ts = "2026-10-11T12:00:00.123Z"
+    def status(breaker, state, tripped, reason, alarm=False):
+        return {"ts": ts, "breaker": breaker, "state": state,
+                "tripped": tripped, "trip_reason": reason,
+                "undervoltage_alarm": alarm}
+    messages = [
+        {"topic": "status/bootstrap", "payload": ""},
+        {"topic": "status/breaker/BRK_F1",
+         "payload": json.dumps(status("BRK_F1", "OPEN", True, "overcurrent", True))},
+        {"topic": "status/breaker/BRK_F1",
+         "payload": json.dumps(status("BRK_F1", "OPEN", False, None))},
+        {"topic": "status/breaker/BRK_R1",
+         "payload": json.dumps(status("BRK_R1", "CLOSED", True, "overcurrent"))},
+        {"topic": "status/breaker/BRK_F1", "payload": "{bad JSON"},
+        {"topic": "status/breaker/BRK_R1",
+         "payload": json.dumps(status("BRK_F1", "OPEN", False, None))},
+        {"topic": "status/breaker/BRK_F1",
+         "payload": json.dumps({"ts": ts, "breaker": "BRK_F1",
+                                "state": "CLOSED", "trip_reason": None,
+                                "undervoltage_alarm": False})},
+        {"topic": "status/breaker/BRK_X",
+         "payload": json.dumps(status("BRK_X", "CLOSED", False, None))},
+    ]
+    results = run_function(transform, messages)["outputs"]
+    assert all(results[0][i]["payload"] == "UNKNOWN" for i in
+               list(f1.values()) + list(r1.values()))
+    assert results[1][f1["State"]]["payload"] == "OPEN"
+    assert results[1][f1["Trip latch"]]["payload"] == "TRIPPED"
+    assert results[1][f1["Trip reason"]]["payload"] == "overcurrent"
+    assert results[1][f1["Undervoltage"]]["payload"] == "ALARM"
+    assert all(results[1][i] is None for i in r1.values())
+    assert results[2][f1["Trip latch"]]["payload"] == "OK"
+    assert results[2][f1["Trip reason"]]["payload"] == "-"
+    assert results[2][f1["Undervoltage"]]["payload"] == "NORMAL"
+    assert results[3][r1["State"]]["payload"] == "CLOSED"
+    assert results[3][r1["Trip latch"]]["payload"] == "TRIPPED"
+    assert all(results[3][i] is None for i in f1.values())
+    for result, own, other in ((results[4], f1, r1), (results[5], r1, f1),
+                               (results[6], f1, r1)):
+        assert all(result[i]["payload"] == "UNKNOWN" for i in own.values())
+        assert all(result[i] is None for i in other.values())
+
+    historian_index = next(
+        i for i, targets in enumerate(outputs)
+        if any(by_id[target]["type"] == "function" for target in targets)
+    )
+    assert results[1][historian_index]["payload"]["breaker"] == "BRK_F1"
+    assert results[3][historian_index]["payload"]["breaker"] == "BRK_R1"
+    assert results[4][historian_index] is None
+    assert results[5][historian_index] is None
+    assert results[6][historian_index] is None
+    assert results[7] is None
+    status_lp = by_id[outputs[historian_index][0]]
+    written = run_function(status_lp, [results[3][historian_index]])["outputs"][0]
+    assert written["payload"].startswith("breaker_status,breaker=BRK_R1 ")
+    assert 'state="CLOSED"' in written["payload"]
+    assert "tripped=true" in written["payload"]
+    assert written["payload"].endswith(" 1791720000123")
+
+
+def test_single_telemetry_subscription_and_presence_transitions() -> None:
+    flow = flow_nodes()
+    by_id = {node["id"]: node for node in flow}
+    telemetry = one(flow, type="mqtt in", topic="telemetry/pandapower")
+    writer = one(flow, type="http request")
+    assert writer["method"] == "POST"
+    assert telemetry["broker"] == one(flow, type="mqtt-broker")["id"]
+    assert path_count(by_id, telemetry["id"], writer["id"]) == 1
+
+    plant = one(flow, type="ui-text", label="Plant")
+    # ONLINE and timeout OFFLINE converge on one transition function.
+    assert path_count(by_id, telemetry["id"], plant["id"]) == 2
+    trigger = one(flow, type="trigger")
+    assert trigger["duration"] == "5"
+    assert trigger["units"] == "s"
+    assert trigger["extend"] is True
+    assert path_count(by_id, telemetry["id"], trigger["id"]) == 1
+    presence = by_id[trigger["wires"][0][0]]
+    assert presence["type"] == "function"
+    samples = run_function(presence, [
+        {"payload": {"online": True}},
+        {"payload": {"online": True}},
+        {"payload": {"online": False}},
+        {"payload": {"online": False}},
+        {"payload": {"online": True}},
+    ])["outputs"]
+    assert [sample[0]["payload"] if sample[0] else None for sample in samples] == [
+        "ONLINE", None, "OFFLINE", None, "ONLINE"
+    ]
+    assert [sample[1] is not None for sample in samples] == [
+        False, False, True, False, True
+    ]
+
+    telemetry_lp = next(
+        by_id[target] for target in telemetry["wires"][0]
+        if path_count(by_id, target, writer["id"]) == 1
+    )
+    sample = {"ts": "2026-10-11T12:00:00.123Z",
+              "buses": [{"bus_idx": 0, "name": "BUS_MV_SOURCE",
+                         "vm_pu": 1.0, "energized": True, "quality": "GOOD"}],
+              "lines": [{"line_idx": 0, "name": "L1_FEEDER_HEAD",
+                         "energized": True, "quality": "GOOD"}],
+              "transformers": [{"transformer_idx": 0, "name": "T1_PRIMARY",
+                                "hv_bus": 0, "lv_bus": 1,
+                                "energized": True, "quality": "GOOD"}],
+              "ext_grid": {"grid_idx": 0, "name": "GRID_110KV", "p_mw": 2.0}}
+    line_protocol = run_function(telemetry_lp, [{"payload": sample}])["outputs"][0]["payload"]
+    assert [line.split(",", 1)[0] for line in line_protocol.splitlines()] == [
+        "bus", "line", "transformer", "ext_grid"
+    ]
+    assert all(line.endswith(" 1791720000123") for line in line_protocol.splitlines())
+
+
+def test_ied_events_keep_identity_timestamp_and_immediate_write_path() -> None:
+    flow = flow_nodes()
+    by_id = {node["id"]: node for node in flow}
+    event_input = one(flow, type="mqtt in", topic="event/ied")
+    writer = one(flow, type="http request")
+    assert event_input["broker"] == one(flow, type="mqtt-broker")["id"]
+    assert event_input["rh"] == 0
+    assert path_count(by_id, event_input["id"], writer["id"]) == 1
+    parser = by_id[event_input["wires"][0][0]]
+    assert parser["type"] == "json"
+    transform = by_id[parser["wires"][0][0]]
     sample = {
         "ts": "2026-09-28T12:00:00.100Z",
         "event_id": "a" * 32 + ":5",
-        "ied": "IED_R1",
-        "breaker": "BRK_R1",
-        "event": "POSITION_FEEDBACK",
-        "scan_monotonic_s": 21.1,
-        "position": "CLOSED",
-        "tripped": True,
-        "requested_state": "OPEN",
-        "actual_state": "CLOSED",
-        "success": False,
-        "cause": "protection",
+        "ied": "IED_R1", "breaker": "BRK_R1",
+        "event": "POSITION_FEEDBACK", "scan_monotonic_s": 21.1,
+        "position": "CLOSED", "tripped": True, "requested_state": "OPEN",
+        "actual_state": "CLOSED", "success": False, "cause": "protection",
     }
-    script = """
-const input = JSON.parse(require('fs').readFileSync(0, 'utf8'));
-const fn = new Function('msg', 'node', input.func);
-const result = fn({payload: input.event}, {warn: () => {}});
-process.stdout.write(JSON.stringify(result));
-"""
-    function = nodes["fn_ied_event_to_lp"]["func"]
-    completed = subprocess.run(
-        ["node", "-e", script],
-        input=json.dumps({"func": function, "event": sample}),
-        text=True, capture_output=True, check=True,
-    )
-    line = json.loads(completed.stdout)["payload"]
-    assert line.startswith(
-        "ied_event,ied=IED_R1,breaker=BRK_R1,event=POSITION_FEEDBACK,"
-        "event_id=" + sample["event_id"] + " "
-    )
-    assert 'position="CLOSED"' in line
-    assert 'requested_state="OPEN"' in line
-    assert "success=false" in line
-    assert line.endswith(" 1790596800100")
+    second = {**sample, "event_id": "a" * 32 + ":6"}
+    lines = [run_function(transform, [{"payload": event}])["outputs"][0]["payload"]
+             for event in (sample, second)]
+    assert all(line.startswith("ied_event,ied=IED_R1,breaker=BRK_R1,")
+               for line in lines)
+    assert "event_id=" + sample["event_id"] in lines[0]
+    assert "event_id=" + second["event_id"] in lines[1]
+    assert lines[0] != lines[1]
+    assert all(line.endswith(" 1790596800100") for line in lines)
+    assert 'position="CLOSED"' in lines[0]
+    assert 'requested_state="OPEN"' in lines[0]
+    assert "success=false" in lines[0]
+    bad = {**sample, "ied": "IED_F1"}
+    assert run_function(transform, [{"payload": bad}])["outputs"][0] is None
 
-    malformed = {**sample, "position": "OPEN"}
-    malformed["ied"] = "IED_F1"
-    rejected = subprocess.run(
-        ["node", "-e", script],
-        input=json.dumps({"func": function, "event": malformed}),
-        text=True, capture_output=True, check=True,
+
+def test_influx_writer_and_routine_debug_are_consolidated() -> None:
+    flow = flow_nodes()
+    by_id = {node["id"]: node for node in flow}
+    writer = one(flow, type="http request")
+    header = next(
+        node for node in flow
+        if node["type"] == "function" and node["wires"] == [[writer["id"]]]
     )
-    assert json.loads(rejected.stdout) is None
+    for topic in ("telemetry/pandapower", "status/breaker/+", "event/ied"):
+        source = one(flow, type="mqtt in", topic=topic)
+        assert path_count(by_id, source["id"], header["id"]) == 1
+    assert not any(node["type"] == "debug" and node.get("active")
+                   for node in flow)
+    assert writer["wires"][0]
+    diagnostic = by_id[writer["wires"][0][0]]
+    assert diagnostic["type"] == "function"
+    assert one(flow, type="catch")["wires"] == [[diagnostic["id"]]]
+    warnings = run_function(diagnostic, [
+        {"statusCode": 204},
+        {"statusCode": 401},
+        {"error": {"message": "connection refused"}},
+    ])["warnings"]
+    assert len(warnings) == 2
+    assert "401" in warnings[0]
+    assert "connection refused" in warnings[1]
+    assert not any(node.get("name", "").startswith("Legacy") for node in flow)
 
 
 def test_existing_dashboard_contains_influx_backed_operations_panels() -> None:
