@@ -45,6 +45,10 @@ For behavior changes, add or update deterministic tests for the affected behavio
 
 Keep the README current for operation and interfaces, the backlog current for plans and evidence, and the changelog accurate for releases. Avoid duplicating those facts in this file or creating another planning document.
 
+For the Sprint 8 trial, `docs/BACKLOG.md` holds the sprint goal, working agreement, selected issue links, and combined acceptance; selected issues hold detailed work and item evidence; the Project board holds live status.
+
+For implementation, read the selected issue and relevant code/tests; read dependency issues only when needed. Repeated board inspection is not required. If issue access is unavailable, obtain the issue contents from the user rather than guessing.
+
 Do not commit credentials. Mark example values as development placeholders, keep development ports bound to localhost, and do not delete named volumes as routine verification. Explain why a new dependency is needed.
 
 At handoff, summarize the change, checks and results, remaining limitations, and any control or architecture decision the user needs to understand.

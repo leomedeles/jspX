@@ -1,3 +1,86 @@
+# Project Backlog
+
+This backlog is a living list of selected sprint scope, possible future capabilities, and recorded acceptance evidence.
+
+## Current sprint
+
+### Sprint 8: Operator feeder view
+
+**Goal:** An operator can identify which parts of the reference feeder are supplied, inspect F1/R1 position and protection state, and perform isolation and restoration from one readable Node-RED feeder view using actual feedback.
+
+**Selected work:**
+
+- [#16 Dashboard migration](https://github.com/leomedeles/jspX/issues/16)
+- [#17 Shared state and integration paths](https://github.com/leomedeles/jspX/issues/17) (depends on #16)
+- [#18 Operational feeder single-line](https://github.com/leomedeles/jspX/issues/18) (depends on #17)
+- [#19 Read-only equipment panels](https://github.com/leomedeles/jspX/issues/19) (depends on #17 and #18)
+
+[Project board](https://github.com/users/leomedeles/projects/2)
+
+Selected issues own detailed scope, task checklists, acceptance criteria, design rationale, and item evidence. The Project board owns live workflow status. This entry links the selected work without duplicating those details.
+
+**Boundary:** Preserve the reference plant, IED behavior, canonical MQTT interfaces, and historian semantics. Add no simulator capabilities, local operation, Local/Remote authority, automatic reclosing, unmodeled equipment indications, or new Grafana capabilities. Scenario injection remains in the test harness.
+
+### Sprint 8 working agreement — trial
+
+Applies to Sprint 8; review at the retrospective before adopting it again.
+
+- Board columns: Backlog → Ready → In progress → In review → Done.
+- Ready requires satisfied dependencies, inspection of affected code/configuration, an understood approach, and defined acceptance checks.
+- In review includes verification, not only code review.
+- Allow one item total across In progress and In review. Preparing later items is allowed. Blocked items still count; exceptions require agreement.
+- Issues own detailed tasks, acceptance criteria, design rationale, and item evidence. The board owns live workflow status.
+- Use ordinary [ ]/[x] checklists in issues. Do not duplicate their progress in the repository.
+- Done requires demonstrated issue acceptance and applicable docs/DoD.md conditions. Missing required verification keeps an item In review.
+- Multiple focused commits may belong to one item. No mandatory pause after each commit.
+- Record start/completion dates and significant blockers through issue comments or project fields, without duplicate tracking.
+- Identify unit, integration, end-to-end, and visual evidence where useful. Manual versus automated is a separate distinction.
+- Include relevant tests and documentation within each item; reuse evidence that remains applicable.
+- Record consequential design decisions briefly in the relevant issue: choice, reason, trade-off, and any revisit condition.
+- Future possibilities remain unselected. Before promoting one into the candidate queue, define its learning question and revisit condition.
+- Engineering acceptance does not establish personal learning mastery.
+
+### Sprint 8 combined acceptance
+
+- [ ] Demonstrate normal supply, F1 isolation, R1 isolation/restoration, selective trip, failed R1 opening, reset/CLOSE rejection, and low source voltage from documented starting states.
+- [ ] Confirm the single-line and read-only panels agree with MQTT status and plant telemetry, including R1 remaining CLOSED/tripped during failed opening.
+- [ ] Verify five-second telemetry-loss indication and recovery.
+- [ ] Verify preserved historian paths without duplicate telemetry submissions or lost/overwritten events in the tested cases.
+- [ ] Complete applicable DoD checks and reconcile operating documentation.
+- [ ] Record combined acceptance evidence against the tested commit; link to issue evidence rather than copying it.
+- [ ] Keep acceptance open while required checks are outstanding.
+
+**Retrospective:** _To be completed after Sprint 8; record review and any decision about adopting this agreement._
+
+Merge, release-version assignment, tagging, and publication remain separate decisions. No release number is reserved.
+
+
+## Future work
+
+The candidates below retain their existing priorities and parked/definition status.
+
+## Candidate queue
+
+Priorities rank possible future work. P1 is the first candidate to consider at sprint planning; it is not committed work until selected into a sprint.
+
+- **P1 — Grafana alerts, annotations, and routing for breaker trips/alarms.**
+- **P2 — OPC UA or Modbus protocol simulation.** Select one protocol and define a small, explicit signal contract.
+- **P3 — Short demo video or GIF embedded in the README.**
+
+## Parked
+
+- **AI anomaly detection.** Revisit only after the simulator has credible event history and multiple operating scenarios.
+- **Node-RED migration to a PLC environment.** Revisit after defining the learning objective and target PLC/runtime; it is an architecture decision, not a small replacement task.
+- **Optional C++ protocol component.** Revisit only if a concrete protocol or performance need justifies it.
+
+## Needs definition
+
+- **“Hygene CMD/command: between compose and dockerfile”.** Retained from the prior backlog; define the actual command/configuration problem before ranking it.
+
+---
+
+## Archived sprints
+
 ## Sprint 7 → v0.7.0: Simulated IED boundary and event evidence
 
 **Goal:** Make F1/R1 protection decisions, operation requests, physical results, and their timing inspectable while preserving the released reference feeder.
@@ -309,32 +392,6 @@ The FlowFuse migration, feeder single-line, and F1/R1 panel portrayals are plann
 - [x] No errors in Node-RED Debug for at least 60 s of runtime
 - [x] README and flow JSON updated; screenshot present
 - [x] Tag `v0.2.0` with CHANGELOG entry
-
----
-
-# Project Backlog
-
-This backlog is a living list of possible capabilities and improvements. Not every candidate will be implemented.
-
----
-
-## Candidate queue
-
-Priorities rank possible future work. P1 is the first candidate to consider at sprint planning; it is not committed work until selected into a sprint.
-
-- **P1 — Grafana alerts, annotations, and routing for breaker trips/alarms.**
-- **P2 — OPC UA or Modbus protocol simulation.** Select one protocol and define a small, explicit signal contract.
-- **P3 — Short demo video or GIF embedded in the README.**
-
-## Parked
-
-- **AI anomaly detection.** Revisit only after the simulator has credible event history and multiple operating scenarios.
-- **Node-RED migration to a PLC environment.** Revisit after defining the learning objective and target PLC/runtime; it is an architecture decision, not a small replacement task.
-- **Optional C++ protocol component.** Revisit only if a concrete protocol or performance need justifies it.
-
-## Needs definition
-
-- **“Hygene CMD/command: between compose and dockerfile”.** Retained from the prior backlog; define the actual command/configuration problem before ranking it.
 
 ---
 
