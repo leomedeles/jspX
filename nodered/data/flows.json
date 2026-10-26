@@ -2,7 +2,7 @@
     {
         "id": "f2a7b9f2d1c64f2a",
         "type": "tab",
-        "label": "Breaker",
+        "label": "Operator feeder",
         "disabled": false,
         "info": ""
     },
@@ -40,7 +40,7 @@
     {
         "id": "ui_page_breaker",
         "type": "ui-page",
-        "name": "Breaker",
+        "name": "Reference feeder",
         "ui": "ui_base_operator",
         "path": "/",
         "icon": "view-dashboard",
@@ -69,33 +69,19 @@
             }
         ],
         "order": 1,
-        "className": "",
+        "className": "operator-feeder-page",
         "visible": "true",
         "disabled": "false"
     },
     {
         "id": "ui_group_main",
         "type": "ui-group",
-        "name": "BRK_F1",
+        "name": "Reference feeder",
         "page": "ui_page_breaker",
-        "width": "6",
+        "width": "12",
         "height": "1",
         "order": 1,
-        "showTitle": true,
-        "className": "",
-        "visible": "true",
-        "disabled": "false",
-        "groupType": "default"
-    },
-    {
-        "id": "ui_group_l2",
-        "type": "ui-group",
-        "name": "BRK_R1",
-        "page": "ui_page_breaker",
-        "width": "6",
-        "height": "1",
-        "order": 2,
-        "showTitle": true,
+        "showTitle": false,
         "className": "",
         "visible": "true",
         "disabled": "false",
@@ -123,13 +109,13 @@
     {
         "id": "ui_theme_operator",
         "type": "ui-theme",
-        "name": "Operator light",
+        "name": "Operator dark",
         "colors": {
-            "surface": "#ffffff",
-            "primary": "#0094ce",
-            "bgPage": "#f5f7f9",
-            "groupBg": "#ffffff",
-            "groupOutline": "#d1d9df"
+            "surface": "#1f2937",
+            "primary": "#67e8f9",
+            "bgPage": "#111827",
+            "groupBg": "#1f2937",
+            "groupOutline": "#64748b"
         },
         "sizes": {
             "density": "default",
@@ -157,7 +143,8 @@
         "wires": [
             [
                 "7d88f8edcae91d28",
-                "fn_online_pass"
+                "fn_online_pass",
+                "fn_feeder_display"
             ]
         ]
     },
@@ -180,123 +167,6 @@
                 "917c308f0b48aa53"
             ]
         ]
-    },
-    {
-        "id": "btn_open",
-        "type": "ui-button",
-        "z": "f2a7b9f2d1c64f2a",
-        "name": "Open breaker",
-        "group": "ui_group_main",
-        "order": 1,
-        "width": 2,
-        "height": 1,
-        "label": "OPEN",
-        "tooltip": "Request breaker OPEN",
-        "color": "",
-        "bgcolor": "",
-        "className": "",
-        "icon": "",
-        "payload": "OPEN",
-        "payloadType": "str",
-        "topic": "cmd/breaker/BRK_F1/open",
-        "topicType": "str",
-        "x": 720,
-        "y": 660,
-        "wires": [
-            [
-                "mqtt_out_cmd"
-            ]
-        ],
-        "emulateClick": false,
-        "iconPosition": "left",
-        "buttonColor": "",
-        "textColor": "",
-        "iconColor": "",
-        "enableClick": true,
-        "enablePointerdown": false,
-        "pointerdownPayload": "",
-        "pointerdownPayloadType": "str",
-        "enablePointerup": false,
-        "pointerupPayload": "",
-        "pointerupPayloadType": "str"
-    },
-    {
-        "id": "btn_close",
-        "type": "ui-button",
-        "z": "f2a7b9f2d1c64f2a",
-        "name": "Close breaker",
-        "group": "ui_group_main",
-        "order": 2,
-        "width": 2,
-        "height": 1,
-        "label": "CLOSE",
-        "tooltip": "Request breaker CLOSE",
-        "color": "",
-        "bgcolor": "",
-        "className": "",
-        "icon": "",
-        "payload": "CLOSE",
-        "payloadType": "str",
-        "topic": "cmd/breaker/BRK_F1/close",
-        "topicType": "str",
-        "x": 720,
-        "y": 700,
-        "wires": [
-            [
-                "mqtt_out_cmd"
-            ]
-        ],
-        "emulateClick": false,
-        "iconPosition": "left",
-        "buttonColor": "",
-        "textColor": "",
-        "iconColor": "",
-        "enableClick": true,
-        "enablePointerdown": false,
-        "pointerdownPayload": "",
-        "pointerdownPayloadType": "str",
-        "enablePointerup": false,
-        "pointerupPayload": "",
-        "pointerupPayloadType": "str"
-    },
-    {
-        "id": "btn_reset",
-        "type": "ui-button",
-        "z": "f2a7b9f2d1c64f2a",
-        "name": "Manual Reset",
-        "group": "ui_group_main",
-        "order": 3,
-        "width": 2,
-        "height": 1,
-        "label": "Manual Reset",
-        "tooltip": "Clear the trip latch without closing",
-        "color": "",
-        "bgcolor": "",
-        "className": "",
-        "icon": "",
-        "payload": "RESET",
-        "payloadType": "str",
-        "topic": "cmd/breaker/BRK_F1/reset",
-        "topicType": "str",
-        "x": 720,
-        "y": 740,
-        "wires": [
-            [
-                "mqtt_out_cmd"
-            ]
-        ],
-        "emulateClick": false,
-        "iconPosition": "left",
-        "buttonColor": "",
-        "textColor": "",
-        "iconColor": "",
-        "enableClick": true,
-        "enablePointerdown": false,
-        "pointerdownPayload": "",
-        "pointerdownPayloadType": "str",
-        "enablePointerup": false,
-        "pointerupPayload": "",
-        "pointerupPayloadType": "str"
     },
     {
         "id": "mqtt_out_cmd",
@@ -338,54 +208,6 @@
         ]
     },
     {
-        "id": "ui_state_text",
-        "type": "ui-text",
-        "z": "f2a7b9f2d1c64f2a",
-        "group": "ui_group_main",
-        "order": 4,
-        "width": 6,
-        "height": 1,
-        "name": "",
-        "label": "State",
-        "format": "{{msg.payload}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 640,
-        "y": 400,
-        "wires": [],
-        "value": "payload",
-        "valueType": "msg",
-        "wrapText": false
-    },
-    {
-        "id": "ui_trip_text",
-        "type": "ui-text",
-        "z": "f2a7b9f2d1c64f2a",
-        "group": "ui_group_main",
-        "order": 5,
-        "width": 6,
-        "height": 1,
-        "name": "",
-        "label": "Trip latch",
-        "format": "{{msg.payload}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 640,
-        "y": 450,
-        "wires": [],
-        "value": "payload",
-        "valueType": "msg",
-        "wrapText": false
-    },
-    {
         "id": "ui_toast_trip",
         "type": "ui-notification",
         "z": "f2a7b9f2d1c64f2a",
@@ -406,54 +228,6 @@
         "x": 1070,
         "y": 360,
         "wires": []
-    },
-    {
-        "id": "ui_trip_reason",
-        "type": "ui-text",
-        "z": "f2a7b9f2d1c64f2a",
-        "group": "ui_group_main",
-        "order": 6,
-        "width": 6,
-        "height": 1,
-        "name": "",
-        "label": "Trip reason",
-        "format": "{{msg.payload}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 850,
-        "y": 500,
-        "wires": [],
-        "value": "payload",
-        "valueType": "msg",
-        "wrapText": false
-    },
-    {
-        "id": "ui_undervoltage_text",
-        "type": "ui-text",
-        "z": "f2a7b9f2d1c64f2a",
-        "group": "ui_group_main",
-        "order": 7,
-        "width": 6,
-        "height": 1,
-        "name": "",
-        "label": "Undervoltage",
-        "format": "{{msg.payload}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 870,
-        "y": 550,
-        "wires": [],
-        "value": "payload",
-        "valueType": "msg",
-        "wrapText": false
     },
     {
         "id": "fn_status_to_lp",
@@ -527,7 +301,7 @@
         "type": "function",
         "z": "f2a7b9f2d1c64f2a",
         "name": "Plant presence transitions",
-        "func": "const prev = context.get('prev');\nconst online = msg.payload && msg.payload.online === true;\nif (prev === online) return [null, null];\ncontext.set('prev', online);\nconst outText = { payload: online ? 'ONLINE' : 'OFFLINE' };\nconst outToast = prev === undefined ? null : {\n    topic: 'Plant', payload: online ? 'Plant ONLINE' : 'Plant OFFLINE',\n    position: 'top right', timeout: 3\n};\nreturn [outText, outToast];",
+        "func": "const prev = context.get('prev');\nconst online = msg.payload && msg.payload.online === true;\nif (prev === online) return [null, null];\ncontext.set('prev', online);\nconst outText = { topic: 'display/presence', payload: online ? 'ONLINE' : 'OFFLINE' };\nconst outToast = prev === undefined ? null : {\n    topic: 'Plant', payload: online ? 'Plant ONLINE' : 'Plant OFFLINE',\n    position: 'top right', timeout: 3\n};\nreturn [outText, outToast];",
         "outputs": 2,
         "timeout": "",
         "noerr": 0,
@@ -538,36 +312,12 @@
         "y": 240,
         "wires": [
             [
-                "ui_plant_text"
+                "fn_feeder_display"
             ],
             [
                 "ui_toast_trip"
             ]
         ]
-    },
-    {
-        "id": "ui_plant_text",
-        "type": "ui-text",
-        "z": "f2a7b9f2d1c64f2a",
-        "group": "ui_group_main",
-        "order": 0,
-        "width": 6,
-        "height": 1,
-        "name": "",
-        "label": "Plant",
-        "format": "{{msg.payload}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 1070,
-        "y": 240,
-        "wires": [],
-        "value": "payload",
-        "valueType": "msg",
-        "wrapText": false
     },
     {
         "id": "917c308f0b48aa53",
@@ -588,195 +338,6 @@
                 "http_influx_write_shared"
             ]
         ]
-    },
-    {
-        "id": "btn_open_l2",
-        "type": "ui-button",
-        "z": "f2a7b9f2d1c64f2a",
-        "name": "Open BRK_R1",
-        "group": "ui_group_l2",
-        "order": 1,
-        "width": 2,
-        "height": 1,
-        "label": "OPEN",
-        "tooltip": "Request BRK_R1 OPEN",
-        "color": "",
-        "bgcolor": "",
-        "className": "",
-        "icon": "",
-        "payload": "OPEN",
-        "payloadType": "str",
-        "topic": "cmd/breaker/BRK_R1/open",
-        "topicType": "str",
-        "x": 720,
-        "y": 860,
-        "wires": [
-            [
-                "mqtt_out_cmd"
-            ]
-        ],
-        "emulateClick": false,
-        "iconPosition": "left",
-        "buttonColor": "",
-        "textColor": "",
-        "iconColor": "",
-        "enableClick": true,
-        "enablePointerdown": false,
-        "pointerdownPayload": "",
-        "pointerdownPayloadType": "str",
-        "enablePointerup": false,
-        "pointerupPayload": "",
-        "pointerupPayloadType": "str"
-    },
-    {
-        "id": "btn_close_l2",
-        "type": "ui-button",
-        "z": "f2a7b9f2d1c64f2a",
-        "name": "Close BRK_R1",
-        "group": "ui_group_l2",
-        "order": 2,
-        "width": 2,
-        "height": 1,
-        "label": "CLOSE",
-        "tooltip": "Request BRK_R1 CLOSE",
-        "color": "",
-        "bgcolor": "",
-        "className": "",
-        "icon": "",
-        "payload": "CLOSE",
-        "payloadType": "str",
-        "topic": "cmd/breaker/BRK_R1/close",
-        "topicType": "str",
-        "x": 720,
-        "y": 900,
-        "wires": [
-            [
-                "mqtt_out_cmd"
-            ]
-        ],
-        "emulateClick": false,
-        "iconPosition": "left",
-        "buttonColor": "",
-        "textColor": "",
-        "iconColor": "",
-        "enableClick": true,
-        "enablePointerdown": false,
-        "pointerdownPayload": "",
-        "pointerdownPayloadType": "str",
-        "enablePointerup": false,
-        "pointerupPayload": "",
-        "pointerupPayloadType": "str"
-    },
-    {
-        "id": "btn_reset_l2",
-        "type": "ui-button",
-        "z": "f2a7b9f2d1c64f2a",
-        "name": "Reset BRK_R1",
-        "group": "ui_group_l2",
-        "order": 3,
-        "width": 2,
-        "height": 1,
-        "label": "Manual Reset",
-        "tooltip": "Clear BRK_R1 trip latch without closing",
-        "color": "",
-        "bgcolor": "",
-        "className": "",
-        "icon": "",
-        "payload": "RESET",
-        "payloadType": "str",
-        "topic": "cmd/breaker/BRK_R1/reset",
-        "topicType": "str",
-        "x": 720,
-        "y": 940,
-        "wires": [
-            [
-                "mqtt_out_cmd"
-            ]
-        ],
-        "emulateClick": false,
-        "iconPosition": "left",
-        "buttonColor": "",
-        "textColor": "",
-        "iconColor": "",
-        "enableClick": true,
-        "enablePointerdown": false,
-        "pointerdownPayload": "",
-        "pointerdownPayloadType": "str",
-        "enablePointerup": false,
-        "pointerupPayload": "",
-        "pointerupPayloadType": "str"
-    },
-    {
-        "id": "ui_state_text_l2",
-        "type": "ui-text",
-        "z": "f2a7b9f2d1c64f2a",
-        "group": "ui_group_l2",
-        "order": 4,
-        "width": 6,
-        "height": 1,
-        "name": "",
-        "label": "State",
-        "format": "{{msg.payload}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 650,
-        "y": 820,
-        "wires": [],
-        "value": "payload",
-        "valueType": "msg",
-        "wrapText": false
-    },
-    {
-        "id": "ui_trip_text_l2",
-        "type": "ui-text",
-        "z": "f2a7b9f2d1c64f2a",
-        "group": "ui_group_l2",
-        "order": 5,
-        "width": 6,
-        "height": 1,
-        "name": "",
-        "label": "Trip latch",
-        "format": "{{msg.payload}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 650,
-        "y": 860,
-        "wires": [],
-        "value": "payload",
-        "valueType": "msg",
-        "wrapText": false
-    },
-    {
-        "id": "ui_trip_reason_l2",
-        "type": "ui-text",
-        "z": "f2a7b9f2d1c64f2a",
-        "group": "ui_group_l2",
-        "order": 6,
-        "width": 6,
-        "height": 1,
-        "name": "",
-        "label": "Trip reason",
-        "format": "{{msg.payload}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 660,
-        "y": 900,
-        "wires": [],
-        "value": "payload",
-        "valueType": "msg",
-        "wrapText": false
     },
     {
         "id": "mqtt_in_ied_event",
@@ -839,9 +400,9 @@
         "id": "fn_status_display",
         "type": "function",
         "z": "f2a7b9f2d1c64f2a",
-        "name": "Validate and display F1/R1 status",
-        "func": "// Outputs: F1 state/latch/reason/UV, R1 state/latch/reason, valid historian status.\nconst offsets = {BRK_F1: 0, BRK_R1: 4};\nconst result = Array(8).fill(null);\nfunction display(breaker, status) {\n    const at = offsets[breaker];\n    const valid = status !== null;\n    result[at] = {payload: valid ? status.state : 'UNKNOWN'};\n    result[at + 1] = {payload: valid ? (status.tripped ? 'TRIPPED' : 'OK') : 'UNKNOWN'};\n    result[at + 2] = {payload: valid ? (status.trip_reason == null ? '-' : status.trip_reason) : 'UNKNOWN'};\n    if (breaker === 'BRK_F1') {\n        result[3] = {payload: valid ? (status.undervoltage_alarm ? 'ALARM' : 'NORMAL') : 'UNKNOWN'};\n    }\n}\nif (msg.topic === 'status/bootstrap') {\n    for (const breaker of Object.keys(offsets)) {\n        if (!context.get('seen_' + breaker)) display(breaker, null);\n    }\n    return result;\n}\nconst breaker = String(msg.topic || '').replace(/^status\\/breaker\\//, '');\nif (!Object.hasOwn(offsets, breaker) || msg.topic !== 'status/breaker/' + breaker) {\n    node.warn('Ignoring status on unexpected topic');\n    return null;\n}\ncontext.set('seen_' + breaker, true);\nlet p;\ntry {\n    p = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;\n} catch (_) {\n    p = null;\n}\nconst valid = p && typeof p === 'object' && !Array.isArray(p) &&\n    p.breaker === breaker && (p.state === 'OPEN' || p.state === 'CLOSED') &&\n    typeof p.tripped === 'boolean' && typeof p.undervoltage_alarm === 'boolean' &&\n    (p.trip_reason === null || typeof p.trip_reason === 'string') &&\n    Number.isFinite(Date.parse(p.ts));\nif (!valid) {\n    node.warn('Ignoring malformed status for ' + breaker);\n    display(breaker, null);\n    return result;\n}\ndisplay(breaker, p);\nresult[7] = {payload: p};\nreturn result;",
-        "outputs": 8,
+        "name": "Validate shared F1/R1 status",
+        "func": "// Share one validator between the operational view and the historian.\nconst identities = ['BRK_F1', 'BRK_R1'];\nif (msg.topic === 'status/bootstrap') {\n    const missing = identities.filter(id => !context.get('seen_' + id));\n    return [missing.map(breaker => ({topic: 'display/breaker', payload: {breaker, valid: false, status: null}})), null];\n}\nconst breaker = String(msg.topic || '').replace(/^status\\/breaker\\//, '');\nif (!identities.includes(breaker) || msg.topic !== 'status/breaker/' + breaker) {\n    node.warn('Ignoring status on unexpected topic');\n    return null;\n}\ncontext.set('seen_' + breaker, true);\nlet p;\ntry { p = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload; }\ncatch (_) { p = null; }\nconst valid = !!(p && typeof p === 'object' && !Array.isArray(p) &&\n    p.breaker === breaker && (p.state === 'OPEN' || p.state === 'CLOSED') &&\n    typeof p.tripped === 'boolean' && typeof p.undervoltage_alarm === 'boolean' &&\n    (p.trip_reason === null || typeof p.trip_reason === 'string') &&\n    typeof p.ts === 'string' && Number.isFinite(Date.parse(p.ts)));\nif (!valid) node.warn('Ignoring malformed status for ' + breaker);\nreturn [{topic: 'display/breaker', payload: {breaker, valid, status: valid ? p : null}},\n    valid ? {payload: p} : null];\n",
+        "outputs": 2,
         "timeout": "",
         "noerr": 0,
         "initialize": "",
@@ -851,25 +412,7 @@
         "y": 680,
         "wires": [
             [
-                "ui_state_text"
-            ],
-            [
-                "ui_trip_text"
-            ],
-            [
-                "ui_trip_reason"
-            ],
-            [
-                "ui_undervoltage_text"
-            ],
-            [
-                "ui_state_text_l2"
-            ],
-            [
-                "ui_trip_text_l2"
-            ],
-            [
-                "ui_trip_reason_l2"
+                "fn_feeder_display"
             ],
             [
                 "fn_status_to_lp"
@@ -901,7 +444,8 @@
         "y": 630,
         "wires": [
             [
-                "fn_status_display"
+                "fn_status_display",
+                "fn_feeder_bootstrap"
             ]
         ]
     },
@@ -960,6 +504,116 @@
         "libs": [],
         "x": 1810,
         "y": 580,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fn_feeder_display",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Shared feeder display snapshot",
+        "func": "// Complete snapshots keep all clients consistent, including on refresh.\nconst specs = [\n    ['GRID_110KV', 'buses', ['vm_pu']],\n    ['T1_PRIMARY', 'transformers', ['loading_percent']],\n    ['BUS_MV_SOURCE', 'buses', ['vm_pu']],\n    ['L1_FEEDER_HEAD', 'lines', ['i_ka', 'p_mw', 'q_mvar']],\n    ['BUS_R1_REMOTE', 'buses', ['vm_pu']],\n    ['L2_FEEDER_TAIL', 'lines', ['i_ka', 'p_mw', 'q_mvar']],\n    ['BUS_SS1_MV', 'buses', ['vm_pu']],\n    ['T2_SS1', 'transformers', ['loading_percent']],\n    ['BUS_SS1_LV', 'buses', ['vm_pu']]\n];\nlet state = flow.get('feederDisplay') || {\n    presence: 'UNKNOWN', telemetryTs: null, receivedAt: null, assets: {},\n    breakers: {BRK_F1: {valid: false, status: null}, BRK_R1: {valid: false, status: null}}\n};\nfunction quality(record) {\n    if (record && record.energized === true && record.quality === 'GOOD') return 'ENERGIZED';\n    if (record && record.energized === false && record.quality === 'NOT_ENERGIZED') return 'DE-ENERGIZED';\n    return 'UNKNOWN';\n}\nif (msg.topic === 'telemetry/pandapower') {\n    let p;\n    try { p = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload; }\n    catch (_) { p = null; }\n    const valid = p && typeof p.ts === 'string' && Number.isFinite(Date.parse(p.ts));\n    const assets = {};\n    for (const [name, collection, fields] of specs) {\n        const records = valid && Array.isArray(p[collection]) ? p[collection].filter(r => r && r.name === name) : [];\n        let record = records.length === 1 ? records[0] : null;\n        let supply = quality(record);\n        if (collection === 'lines') {\n            const from = records.filter(r => r.end === 'from');\n            const to = records.filter(r => r.end === 'to');\n            record = from.length === 1 && to.length === 1 && records.length === 2 ? from[0] : null;\n            supply = record && quality(record) === quality(to[0]) ? quality(record) : 'UNKNOWN';\n        }\n        const values = {};\n        for (const field of fields) values[field] = supply !== 'UNKNOWN' &&\n            typeof record[field] === 'number' && Number.isFinite(record[field]) ? record[field] : null;\n        assets[name] = {supply, values};\n    }\n    state = {...state, presence: 'ONLINE', telemetryTs: valid ? p.ts : null, receivedAt: Date.now(), assets};\n} else if (msg.topic === 'display/breaker') {\n    const p = msg.payload;\n    if (!p || !Object.hasOwn(state.breakers, p.breaker)) return null;\n    state = {...state, breakers: {...state.breakers, [p.breaker]: {valid: p.valid === true, status: p.status}}};\n} else if (msg.topic === 'display/presence') {\n    // ONLINE is established by the sample itself, never by resurrecting cached values.\n    if (msg.payload !== 'OFFLINE') return null;\n    state = {...state, presence: 'OFFLINE'};\n} else if (msg.topic !== 'display/bootstrap') return null;\nflow.set('feederDisplay', state);\nconst current = state.presence === 'ONLINE' && state.receivedAt !== null && Date.now() - state.receivedAt < 5000;\nconst presence = state.presence === 'ONLINE' && !current ? 'OFFLINE' : state.presence;\nconst assets = {};\nfor (const [name, , fields] of specs) {\n    const asset = state.assets[name] || {supply: 'UNKNOWN', values: {}};\n    assets[name] = {supply: current ? asset.supply : presence, values: {}};\n    for (const field of fields) assets[name].values[field] = current ? (asset.values[field] ?? null) : null;\n}\nconst breakers = {};\nfor (const [id, entry] of Object.entries(state.breakers)) {\n    const status = entry.valid ? entry.status : null;\n    breakers[id] = {\n        valid: entry.valid, status, enabled: current && entry.valid,\n        position: status ? status.state : 'UNKNOWN',\n        latch: status ? (status.tripped ? 'TRIPPED' : 'CLEAR') : 'UNKNOWN',\n        reason: status ? status.trip_reason : null,\n        alarm: status ? (status.undervoltage_alarm ? 'UV ALARM' : 'UV NORMAL') : 'UNKNOWN'\n    };\n}\nreturn {topic: 'display/snapshot', payload: {presence, telemetryTs: state.telemetryTs,\n    receivedAt: state.receivedAt, telemetryAgeMs: state.receivedAt === null ? null : Math.max(0, Date.now() - state.receivedAt), assets, breakers}};\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 480,
+        "wires": [
+            [
+                "ui_feeder"
+            ]
+        ]
+    },
+    {
+        "id": "fn_feeder_bootstrap",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Initial unknown feeder snapshot",
+        "func": "return {topic: 'display/bootstrap'};",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 520,
+        "wires": [
+            [
+                "fn_feeder_display"
+            ]
+        ]
+    },
+    {
+        "id": "fn_feeder_command",
+        "type": "function",
+        "z": "f2a7b9f2d1c64f2a",
+        "name": "Validate available operator command",
+        "func": "// Display input and refresh are never commands. Interlocks remain in the IED.\nif (msg.intent !== 'operator-command') return null;\nconst match = /^cmd\\/breaker\\/(BRK_F1|BRK_R1)\\/(open|close|reset)$/.exec(msg.topic || '');\nif (!match) return null;\nconst state = flow.get('feederDisplay');\nif (!state || state.presence !== 'ONLINE' || state.receivedAt === null ||\n    Date.now() - state.receivedAt >= 5000 || !state.breakers[match[1]].valid) {\n    node.warn('Ignoring operator command while feedback is unavailable');\n    return null;\n}\nreturn {topic: msg.topic, payload: match[2].toUpperCase()};\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 810,
+        "y": 700,
+        "wires": [
+            [
+                "mqtt_out_cmd"
+            ]
+        ]
+    },
+    {
+        "id": "ui_feeder",
+        "type": "ui-template",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "ui_group_main",
+        "page": "",
+        "ui": "",
+        "name": "Operational feeder single-line",
+        "order": 1,
+        "width": "12",
+        "height": "0",
+        "head": "",
+        "format": "<template>\n  <section class=\"feeder-view\" ref=\"view\" aria-label=\"Operational feeder single-line\">\n    <header class=\"feeder-header\">\n      <div><h2>Reference feeder</h2><p>110 / 20 / 0.4 kV · Grid to SS1</p></div>\n      <div class=\"presence\" :class=\"presence.toLowerCase()\" role=\"status\">\n        <strong>{{ presence === 'ONLINE' ? '● ONLINE' : presence === 'OFFLINE' ? '⚠ OFFLINE — telemetry unavailable' : '? UNKNOWN — awaiting telemetry' }}</strong>\n        <span v-if=\"!connected\">Dashboard disconnected — values stale</span>\n        <span>Electrical snapshot: {{ snapshot.telemetryTs || 'unavailable' }}</span>\n      </div>\n    </header>\n    <div class=\"feeder-scroll\" tabindex=\"0\" aria-label=\"Feeder diagram; scroll horizontally on narrow screens\">\n      <div class=\"feeder-diagram\" :class=\"{folded}\">\n        <div v-for=\"(row, rowIndex) in rows\" :key=\"rowIndex\" class=\"feeder-row\" :class=\"'row-' + rowIndex\">\n          <article v-for=\"item in row\" :key=\"item.id\" class=\"equipment\" :class=\"{breaker: item.kind === 'breaker'}\" :data-equipment=\"item.id\" :title=\"item.id\">\n            <div class=\"above-measurement\">\n              <span v-if=\"item.kind === 'bus'\">U {{ measurement(item.id, 'vm_pu', 3, 'pu') }}</span>\n              <span v-if=\"item.kind === 'transformer'\">Loading<br>{{ measurement(item.id, 'loading_percent', 1, '%') }}</span>\n            </div>\n            <div class=\"symbol\">\n              <div v-if=\"item.left\" class=\"rail left\" :class=\"supplyClass(item.left)\"></div>\n              <div v-if=\"item.right\" class=\"rail right\" :class=\"supplyClass(item.right)\"></div>\n              <svg class=\"equipment-symbol\" viewBox=\"0 0 64 70\" role=\"img\" :aria-label=\"symbolLabel(item)\" :class=\"item.kind === 'breaker' ? ['physical', breakerState(item.id).position === 'UNKNOWN' ? 'unknown' : ''] : supplyClass(item.asset)\">\n                <title>{{ symbolLabel(item) }}</title>\n                <template v-if=\"item.kind === 'transformer'\">\n                  <path d=\"M8 35H10 M54 35H56\"/><circle cx=\"23\" cy=\"35\" r=\"14\"/><circle cx=\"41\" cy=\"35\" r=\"14\"/>\n                </template>\n                <template v-else-if=\"item.kind === 'breaker'\">\n                  <path d=\"M8 35H20 M44 35H56\"/><circle cx=\"20\" cy=\"35\" r=\"3\"/><circle cx=\"44\" cy=\"35\" r=\"3\"/>\n                  <path v-if=\"breakerState(item.id).position === 'CLOSED'\" d=\"M20 35H44\"/>\n                  <path v-else-if=\"breakerState(item.id).position === 'OPEN'\" d=\"M20 35L40 15\"/>\n                  <text v-else x=\"32\" y=\"24\" text-anchor=\"middle\">?</text>\n                </template>\n                <template v-else-if=\"item.kind === 'load'\">\n                  <path d=\"M8 35H20 M20 23L48 35L20 47Z\"/>\n                </template>\n                <template v-else>\n                  <path :d=\"item.left ? 'M8 35H56' : 'M32 35H56'\"/>\n                  <path v-if=\"item.kind === 'bus'\" d=\"M32 14V56\" class=\"busbar\"/>\n                  <circle v-if=\"item.kind === 'bus'\" cx=\"32\" cy=\"35\" r=\"5\" class=\"bus-marker\"/>\n                </template>\n              </svg>\n            </div>\n            <h3>{{ item.label }}</h3>\n            <p class=\"equipment-note\">{{ item.note || '\\u00a0' }}</p>\n            <template v-if=\"item.kind === 'breaker'\">\n              <div class=\"breaker-feedback\" :class=\"{stale: presence !== 'ONLINE', unknown: !breakerState(item.id).valid}\">\n                <strong class=\"position-label\">{{ presence === 'ONLINE' ? '' : 'Last known: ' }}{{ breakerState(item.id).position }}</strong>\n                <span class=\"latch\" :class=\"{'trip-active': breakerState(item.id).latch === 'TRIPPED'}\">\n                  <b v-if=\"breakerState(item.id).latch === 'TRIPPED'\" class=\"trip-octagon\" aria-hidden=\"true\">!</b>\n                  Trip latch: {{ breakerState(item.id).latch }}\n                </span>\n                <span v-if=\"breakerState(item.id).reason\" class=\"trip-reason\">{{ breakerState(item.id).reason }}</span>\n                <span v-if=\"item.id === 'BRK_F1'\" class=\"alarm\" :class=\"{'alarm-active': breakerState(item.id).alarm === 'UV ALARM'}\">{{ breakerState(item.id).alarm === 'UV ALARM' ? '▲ ' : '' }}{{ breakerState(item.id).alarm }}</span>\n                <span class=\"feedback-time\" :title=\"breakerState(item.id).status?.ts\">Feedback<br><template v-if=\"breakerState(item.id).status?.ts\">{{ timestamp(breakerState(item.id).status.ts, 'date') }}<br>{{ timestamp(breakerState(item.id).status.ts, 'time') }}</template><template v-else>unavailable</template></span>\n              </div>\n              <div class=\"breaker-controls\" :aria-label=\"item.label + ' commands'\">\n                <button v-for=\"action in ['OPEN', 'CLOSE', 'RESET']\" :key=\"action\" :class=\"{'reset-command': action === 'RESET'}\" :disabled=\"!canCommand(item.id)\" :aria-label=\"item.label + ' ' + action\" :title=\"action === 'RESET' ? 'Clear trip latch without closing' : 'Request ' + item.label + ' ' + action\" @click=\"command(item.id, action)\">{{ action }}</button>\n              </div>\n            </template>\n            <template v-else>\n              <span class=\"supply-label\" :class=\"supplyClass(item.asset)\">{{ supply(item.asset) === 'UNKNOWN' ? '? ' : '' }}{{ supply(item.asset) }}</span>\n              <div v-if=\"item.kind === 'line'\" class=\"line-measurements\">\n                <span>Source terminal</span>\n                <span>I {{ measurement(item.id, 'i_ka', 3, 'kA') }}</span>\n                <span>P {{ measurement(item.id, 'p_mw', 2, 'MW') }}</span>\n                <span>Q {{ measurement(item.id, 'q_mvar', 2, 'MVAr') }}</span>\n              </div>\n              <p v-if=\"item.kind === 'load'\" class=\"load-note\">LV supply indication<br>No load measurement</p>\n            </template>\n          </article>\n          <div v-if=\"folded && rowIndex === 0\" class=\"outgoing-stem\" :class=\"supplyClass('L2_FEEDER_TAIL')\"></div>\n          <div v-if=\"folded && rowIndex === 1\" class=\"incoming-stem\" :class=\"supplyClass('L2_FEEDER_TAIL')\"></div>\n          <div v-if=\"folded && rowIndex === 0\" class=\"continuation\" :class=\"supplyClass('L2_FEEDER_TAIL')\">\n            <svg viewBox=\"0 0 900 64\" preserveAspectRatio=\"none\" aria-label=\"Continuation A: after R1 to L2\"><path d=\"M900 0V32H0V64\"/></svg>\n            <span>A · Continuation after R1 to L2</span>\n          </div>\n        </div>\n      </div>\n    </div>\n    <footer class=\"feeder-footer\">\n      <p>Commands request operation. RESET clears the trip latch without closing.</p>\n      <div class=\"feeder-legend\" aria-label=\"State legend\">\n        <span class=\"energized\">━ ● ENERGIZED</span><span class=\"de-energized\">┄ ○ DE-ENERGIZED</span>\n        <span class=\"trip-active\">⯃ TRIPPED</span><span class=\"alarm-active\">▲ UV ALARM</span><span class=\"unknown\">? UNKNOWN</span><span class=\"offline\">⚠ OFFLINE</span>\n      </div>\n      <p>ONLINE means telemetry is arriving. Position feedback and electrical snapshots update independently.</p>\n    </footer>\n  </section>\n</template>\n<script>\nexport default {\n  data() {\n    return {connected: false, awaitingSnapshot: true, folded: true, clock: performance.now(), snapshotObservedAt: performance.now(), snapshot: {presence: 'UNKNOWN', assets: {}, breakers: {}},\n      equipment: [\n        {id:'GRID_110KV', asset:'GRID_110KV', kind:'bus', label:'Grid', note:'110 kV', right:'GRID_110KV'},\n        {id:'T1_PRIMARY', asset:'T1_PRIMARY', kind:'transformer', label:'T1', note:'110 / 20 kV', left:'T1_PRIMARY', right:'T1_PRIMARY'},\n        {id:'BUS_MV_SOURCE', asset:'BUS_MV_SOURCE', kind:'bus', label:'MV source', note:'20 kV', left:'BUS_MV_SOURCE', right:'BUS_MV_SOURCE'},\n        {id:'BRK_F1', kind:'breaker', label:'F1', left:'BUS_MV_SOURCE', right:'L1_FEEDER_HEAD'},\n        {id:'L1_FEEDER_HEAD', asset:'L1_FEEDER_HEAD', kind:'line', label:'L1 head', note:'5 km · 20 kV', left:'L1_FEEDER_HEAD', right:'L1_FEEDER_HEAD'},\n        {id:'BUS_R1_REMOTE', asset:'BUS_R1_REMOTE', kind:'bus', label:'Remote bus', note:'R1 source side · 20 kV', left:'BUS_R1_REMOTE', right:'BUS_R1_REMOTE'},\n        {id:'BRK_R1', kind:'breaker', label:'R1', left:'BUS_R1_REMOTE', right:'L2_FEEDER_TAIL'},\n        {id:'L2_FEEDER_TAIL', asset:'L2_FEEDER_TAIL', kind:'line', label:'L2 tail', note:'3 km · 20 kV', left:'L2_FEEDER_TAIL', right:'L2_FEEDER_TAIL'},\n        {id:'BUS_SS1_MV', asset:'BUS_SS1_MV', kind:'bus', label:'SS1 MV', note:'20 kV', left:'BUS_SS1_MV', right:'BUS_SS1_MV'},\n        {id:'T2_SS1', asset:'T2_SS1', kind:'transformer', label:'T2', note:'20 / 0.4 kV', left:'T2_SS1', right:'T2_SS1'},\n        {id:'BUS_SS1_LV', asset:'BUS_SS1_LV', kind:'bus', label:'SS1 LV', note:'0.4 kV', left:'BUS_SS1_LV', right:'BUS_SS1_LV'},\n        {id:'LOAD_SS1_AGGREGATE', asset:'BUS_SS1_LV', kind:'load', label:'Aggregate load', note:'SS1 demand', left:'BUS_SS1_LV'}\n      ]};\n  },\n  computed: {\n    presence() {\n      if (!this.connected) return 'OFFLINE';\n      if (this.awaitingSnapshot) return this.snapshot.presence === 'UNKNOWN' ? 'UNKNOWN' : 'OFFLINE';\n      if (this.snapshot.presence === 'ONLINE' && (!Number.isFinite(this.snapshot.telemetryAgeMs) || this.snapshot.telemetryAgeMs + this.clock - this.snapshotObservedAt >= 5000)) return 'OFFLINE';\n      return this.snapshot.presence;\n    },\n    rows() { return this.folded ? [this.equipment.slice(0,7), this.equipment.slice(7)] : [this.equipment]; }\n  },\n  watch: {\n    msg: {immediate: true, handler(value) {\n      if (value?.topic === 'display/snapshot') {\n        this.snapshot = value.payload;\n        this.awaitingSnapshot = false;\n        this.clock = performance.now();\n        this.snapshotObservedAt = this.clock;\n      }\n    }}\n  },\n  methods: {\n    timestamp(value, part) {\n      if (!value) return 'unavailable';\n      const iso = new Date(value).toISOString();\n      return part === 'date' ? iso.slice(0,10) : iso.slice(11,23) + 'Z';\n    },\n    supply(id) { return this.presence === 'ONLINE' ? (this.snapshot.assets[id]?.supply || 'UNKNOWN') : this.presence; },\n    supplyClass(id) { return this.supply(id).toLowerCase(); },\n    measurement(id, field, digits, unit) {\n      const state = this.supply(id);\n      if (state === 'OFFLINE' || state === 'UNKNOWN') return '— ' + state;\n      const value = this.snapshot.assets[id]?.values[field];\n      return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) + ' ' + unit : '— UNAVAILABLE';\n    },\n    breakerState(id) { return this.snapshot.breakers[id] || {position:'UNKNOWN', latch:'UNKNOWN', alarm:'UNKNOWN', reason:null, status:null}; },\n    canCommand(id) { return this.presence === 'ONLINE' && this.breakerState(id).enabled === true; },\n    command(id, action) {\n      if (this.canCommand(id) && ['OPEN','CLOSE','RESET'].includes(action)) this.send({intent:'operator-command', topic:'cmd/breaker/' + id + '/' + action.toLowerCase(), payload:action});\n    },\n    symbolLabel(item) { return item.label + ': ' + (item.kind === 'breaker' ? this.breakerState(item.id).position : this.supply(item.asset)); }\n  },\n  mounted() {\n    this.connected = this.$socket.connected;\n    this.onDisconnect = () => { this.connected = false; this.awaitingSnapshot = true; };\n    this.onConnect = () => { this.connected = true; };\n    this.$socket.on('disconnect', this.onDisconnect);\n    this.$socket.on('connect', this.onConnect);\n    this.resizeObserver = new ResizeObserver(entries => { this.folded = entries[0].contentRect.width < 1280; });\n    this.resizeObserver.observe(this.$refs.view);\n    this.tick = setInterval(() => { this.clock = performance.now(); }, 250);\n  },\n  unmounted() {\n    this.$socket.off('disconnect', this.onDisconnect);\n    this.$socket.off('connect', this.onConnect);\n    this.resizeObserver.disconnect();\n    clearInterval(this.tick);\n  }\n};\n</script>\n<style>\n.feeder-view {color:#f3f4f6;background:#1f2937;font-size:16px;line-height:1.4;padding:16px;--live:#67e8f9;--muted:#cbd5e1;--trip:#fca5a5;--alarm:#fcd34d;--unknown:#d8b4fe;}\n.feeder-view * {box-sizing:border-box;}\n.feeder-view h2 {font-size:24px;margin:0;font-weight:650;}\n.feeder-view h3 {font-size:18px;line-height:1.3;margin:4px 0;font-weight:650;}\n.feeder-view p {margin:4px 0;}\n.feeder-header {display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:20px;}\n.presence {display:flex;flex-direction:column;text-align:right;overflow-wrap:anywhere;}\n.presence span,.equipment-note,.above-measurement,.feedback-time,.load-note,.feeder-footer p {color:#cbd5e1;}\n.feeder-scroll {overflow-x:auto;padding-bottom:12px;}\n.feeder-scroll:focus-visible,.breaker-controls button:focus-visible {outline:3px solid #fcd34d;outline-offset:3px;}\n.feeder-diagram {min-width:1280px;}\n.feeder-diagram.folded {min-width:900px;}\n.feeder-row {display:grid;grid-template-columns:repeat(3,minmax(90px,1fr)) 144px 112px 136px 144px 112px repeat(4,minmax(90px,1fr));position:relative;}\n.folded .row-0 {grid-template-columns:repeat(3,minmax(90px,1fr)) 144px 112px 136px 144px;padding-bottom:64px;}\n.folded .row-1 {grid-template-columns:112px repeat(4,minmax(90px,1fr));}\n.equipment {text-align:center;min-width:0;padding-bottom:12px;}\n.above-measurement {height:76px;display:flex;align-items:flex-end;justify-content:center;overflow-wrap:anywhere;padding:0 4px;font-variant-numeric:tabular-nums;font-family:Arial,sans-serif;}\n.symbol {height:70px;position:relative;}\n.rail {position:absolute;top:33.5px;width:calc(50% - 24px);border-top:3px solid currentColor;}\n.rail.left {left:0;}.rail.right {right:0;}\n.rail.de-energized,.rail.unknown,.rail.offline {border-top-style:dashed;}\n.equipment-symbol {position:relative;width:64px;height:70px;stroke:currentColor;stroke-width:3;fill:none;z-index:1;}\n.equipment-symbol circle {fill:#1f2937;}\n.equipment-symbol text {fill:currentColor;stroke:none;font-size:24px;}\n.equipment-symbol .busbar {stroke-width:6;}\n.equipment-symbol.energized .bus-marker {fill:currentColor;}\n.equipment-symbol.de-energized,.equipment-symbol.unknown,.equipment-symbol.offline {stroke-dasharray:5 4;}\n.physical {color:#f3f4f6;}\n.physical.unknown {color:#d8b4fe;}\n.equipment-note {min-height:46px;padding:0 4px;}\n.supply-label {display:block;padding:4px 2px;overflow-wrap:anywhere;}\n.energized {color:#67e8f9;}.de-energized {color:#cbd5e1;}.unknown {color:#d8b4fe;}.offline {color:#fcd34d;}\n.line-measurements {display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums;padding:8px 0;overflow-wrap:normal;font-family:Arial,sans-serif;}\n.line-measurements>span:first-child {color:#cbd5e1;}\n.breaker-feedback {display:flex;flex-direction:column;gap:7px;border:1px solid #64748b;border-radius:6px;padding:8px 4px;margin:0 4px;min-height:194px;overflow-wrap:anywhere;}\n.position-label {font-size:18px;}.latch {display:block;}.trip-active {color:#fca5a5;}.alarm-active {color:#fcd34d;}\n.trip-octagon {display:inline-block;background:#fca5a5;color:#111827;clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);width:22px;}\n.feedback-time {font-size:16px;}.stale {border-style:dashed;color:#cbd5e1;}.stale .trip-active,.stale .alarm-active {color:#cbd5e1;}\n.breaker-controls {display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 4px 0;}\n.breaker-controls button {background:#334155;color:#f3f4f6;border:1px solid #94a3b8;border-radius:4px;min-height:44px;font-size:16px;font-weight:600;cursor:pointer;padding:4px;}\n.breaker-controls button:hover:enabled {background:#475569;}.breaker-controls button:disabled {color:#cbd5e1;background:#1f2937;border-style:dashed;cursor:default;}\n.breaker-controls .reset-command {grid-column:span 2;}\n.continuation {position:absolute;bottom:0;left:0;width:100%;height:64px;}\n.outgoing-stem {position:absolute;right:0;top:111px;bottom:64px;border-right:3px solid currentColor;}\n.incoming-stem {position:absolute;left:0;top:0;height:111px;border-left:3px solid currentColor;}\n.outgoing-stem.de-energized,.outgoing-stem.unknown,.outgoing-stem.offline,.incoming-stem.de-energized,.incoming-stem.unknown,.incoming-stem.offline {border-style:dashed;}\n.continuation svg {width:100%;height:64px;stroke:currentColor;stroke-width:3;fill:none;}\n.continuation.de-energized path,.continuation.unknown path,.continuation.offline path {stroke-dasharray:5 4;}\n.continuation span {position:absolute;left:50%;top:16px;transform:translateX(-50%);background:#1f2937;padding:4px 12px;white-space:nowrap;}\n.feeder-footer {border-top:1px solid #64748b;padding-top:14px;}\n.feeder-legend {display:flex;flex-wrap:wrap;gap:10px 24px;margin:12px 0;}\n@media(max-width:768px) {.presence {text-align:left;}.feeder-view {padding:10px;}}\n</style>\n",
+        "storeOutMessages": false,
+        "passthru": false,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "feeder-widget",
+        "x": 950,
+        "y": 480,
+        "wires": [
+            [
+                "fn_feeder_command"
+            ]
+        ]
+    },
+    {
+        "id": "ui_feeder_style",
+        "type": "ui-template",
+        "z": "f2a7b9f2d1c64f2a",
+        "group": "",
+        "page": "ui_page_breaker",
+        "ui": "",
+        "name": "Operator page text contrast",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "head": "",
+        "format": ".operator-feeder-page { color: #f3f4f6; }\n.nrdb-ui-page .feeder-widget { padding: 0; }",
+        "storeOutMessages": false,
+        "passthru": false,
+        "resendOnRefresh": true,
+        "templateScope": "page:style",
+        "className": "",
+        "x": 950,
+        "y": 540,
         "wires": [
             []
         ]

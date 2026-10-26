@@ -112,7 +112,7 @@ non-retained.
 The Node-RED dashboard validates each named retained status before displaying
 it. Missing or malformed status shows UNKNOWN for that breaker, independently
 of the other breaker. A valid cleared latch with a null trip reason displays
-OK and clears the previous reason. Plant ONLINE means telemetry has arrived
+CLEAR and clears the previous reason. Plant ONLINE means telemetry has arrived
 within five seconds; it does not establish that either breaker status is valid
 or healthy. The indication changes to OFFLINE after five seconds without
 telemetry and returns to ONLINE when samples resume.
@@ -202,10 +202,46 @@ All published ports bind to localhost:
 
 A compact operating walkthrough from the repository directory:
 
-The FlowFuse Dashboard has F1 and R1 OPEN, CLOSE, and Manual Reset controls.
-Its State, Trip latch, Trip reason, Plant, and Undervoltage
-indications follow simulator feedback; pressing a command does not establish
-that a physical switch moved. Scenario selection stays in the test harness.
+The FlowFuse Dashboard shows the complete reference feeder in a dark single-line
+view. It uses one horizontal chain when the diagram has at least 1280 px available,
+and two connected rows below that width. The folded diagram remains at least
+900 px wide and scrolls within its container on smaller screens.
+
+The remote-bus measurement point is **before R1**, labeled **R1 source side**.
+Opening R1 leaves that connection supplied and isolates SS1; opening F1 leaves
+the grid, T1, and MV source supplied while isolating the remote point and SS1.
+Supply indications use the plant's `energized` and `quality` fields independently
+of breaker position. A CLOSED breaker does not establish downstream supply.
+
+Bus voltages use `buses[].vm_pu` in pu beside fixed nominal-kV labels. T1/T2
+show `transformers[].loading_percent`. L1/L2 show source-terminal `i_ka`, `p_mw`,
+and `q_mvar` from their `end: "from"` records, in kA, MW, and MVAr. These line
+readings are not aggregate demand or the IED's maximum-terminal pickup current.
+The load symbol indicates its connection to LV supply; no load measurement
+record is published. Canonical asset names appear in equipment tooltips.
+
+Solid cyan conductors and filled bus markers indicate ENERGIZED; dashed gray
+conductors and hollow markers indicate DE-ENERGIZED. Labels accompany every
+state. OPEN has a contact gap; CLOSED has bridged contacts, independently of
+the red octagonal TRIPPED latch badge and its reason. F1's amber triangular
+UV ALARM is distinct from a trip. R1 has no modeled undervoltage alarm.
+
+Missing/null quantities display `— UNAVAILABLE`, while finite published zeros
+remain zeros, including zero open-line current. Missing, duplicate, or inconsistent
+asset data displays UNKNOWN without old readings. OFFLINE after five seconds
+without telemetry hides current measurements and disables all commands. Invalid
+or missing breaker status disables only that breaker's commands. Browser
+disconnection also marks values stale and disables commands until fresh display
+data returns. ONLINE means arrival, not valid measurements or healthy equipment.
+
+F1 and R1 OPEN, CLOSE, and RESET controls sit below their symbols. Position,
+latch/reason, and F1 undervoltage indications follow authoritative feedback;
+pressing a command does not establish movement. CLOSE remains available while
+trip-latched so the IED can reject it; RESET clears the latch without closing.
+Cleared reasons disappear. The electrical snapshot and each breaker's feedback
+have separate timestamps because status transitions arrive faster than the
+approximately 1 Hz telemetry. Older retained status alone does not mean OFFLINE.
+Scenario selection stays in the test harness.
 
 ```powershell
 # Observe retained state.

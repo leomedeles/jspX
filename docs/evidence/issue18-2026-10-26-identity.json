@@ -1,0 +1,89 @@
+{
+  "recorded_date": "2026-10-26",
+  "issue": "https://github.com/leomedeles/jspX/issues/18",
+  "branch": "feat/operator-feeder-view",
+  "base_commit": "edf1d68103946f15c6534b06d9fede2c3619b5fa",
+  "tested_state": "Base commit plus the uncommitted #18 flow/test changes; the commit containing this record includes these exact Git blobs.",
+  "flow_and_test": {
+    "nodered/data/flows.json": {
+      "sha256": "832c0df436c4f4b4584cdaef216b342f3bc5dbe89eae487f030f5647f63c56d8",
+      "git_blob": "bf7aac2952971d7d76941d87ce70f0469e120678",
+      "matches_81_test_run": true
+    },
+    "tests/test_operations_config.py": {
+      "sha256": "23804d3582e7e3d66f957f32b031f4b2f81a7188aaefd4f583e9aae5dddc67ce",
+      "git_blob": "d68c4f7d988e7ae95be590e0b361bb4a49e00d97",
+      "matches_81_test_run": true
+    }
+  },
+  "matching_recorded_runtime_and_test_sha256": {
+    "dockerfile": "577cd99a5de6ece719ac2be7fd8e63b16a2f20ca6f4c1722fad9d4969a0e750e",
+    "src/power_grid.py": "156a13dbd87f8ebedf85cfc902c4c32d2361e94e2470b171cb6a9c3257eade7e",
+    "requirements.txt": "4532d35de17ce0f265afa40e799dae222d1d81d7a7d48655d900edb9f1ef38f5",
+    "src/power_sim.py": "6d3fc2c857f7580bf6c9e3acd1d06777e96dab62c513ae889df96118938e13a6",
+    "tests/test_opening_failure.py": "b1f4a643d7b98703c473fad13012343c223395e420e9ed5e3ea45f83a9174c1b",
+    "docker-compose.yml": "9da2040fda1f60dd0054fdd341163d0dde6ff270ead019210763aed1a81e7109",
+    "src/ied.py": "d5b66686f785cbfcec07fa5c126ce757ccfee7f093c8adad60f18a6555c1deac",
+    "src/breaker_control.py": "68a3e2df39b9251c83aa0adfb782a0273671c96ca98fb9a0d36315680692cbd0",
+    "tests/test_operations_config.py": "23804d3582e7e3d66f957f32b031f4b2f81a7188aaefd4f583e9aae5dddc67ce",
+    "nodered/data/flows.json": "832c0df436c4f4b4584cdaef216b342f3bc5dbe89eae487f030f5647f63c56d8",
+    "tests/test_scenarios.py": "8d49927a6e58413644e6004d3c2655b6bdec5bd5e119a1568f054ae31fe0f680"
+  },
+  "reused_checks": {
+    "source_archive": "docs/evidence/issue21-2026-10-26.zip",
+    "source_archive_sha256": "6327b70fec0cc4d11b7edaecbb99adb3e3639a126ebc382668c0ba5cf0c0c885",
+    "python_full_suite": "81 passed in 19.53s; reused, not rerun",
+    "compose": "Recorded config validation, build, and service observations reused",
+    "regular_runtime": "Three earlier Compose/MQTT failed-opening trials without restart; not replacement-runtime trials",
+    "historian": "All 76 earlier observed IED events matched persisted records",
+    "earlier_close_rejected_events": {
+      "count": 12,
+      "event_ids": [
+        "e24a7c7bcd514197b3830bc806bc426f:15",
+        "e24a7c7bcd514197b3830bc806bc426f:16",
+        "e24a7c7bcd514197b3830bc806bc426f:17",
+        "e24a7c7bcd514197b3830bc806bc426f:18",
+        "e24a7c7bcd514197b3830bc806bc426f:35",
+        "e24a7c7bcd514197b3830bc806bc426f:36",
+        "e24a7c7bcd514197b3830bc806bc426f:37",
+        "e24a7c7bcd514197b3830bc806bc426f:38",
+        "e24a7c7bcd514197b3830bc806bc426f:55",
+        "e24a7c7bcd514197b3830bc806bc426f:56",
+        "e24a7c7bcd514197b3830bc806bc426f:57",
+        "e24a7c7bcd514197b3830bc806bc426f:58"
+      ],
+      "attribution": "Earlier #21 regular-runtime trials; not the latest user-reported dashboard click"
+    }
+  },
+  "manual_observations": {
+    "source": "User-reported regular-dashboard checks; see acceptance record",
+    "new_close_rejected_event_capture_claimed": false,
+    "measured_protection_delays_or_timeout_interval_claimed": false
+  },
+  "screenshots": {
+    "docs/evidence/issue18_R1_Open.png": {
+      "sha256": "c072200014df78c2e4fdc2b992062e9d4e41628396c6d12a5aaafe71453f0e42",
+      "preserved_original_bytes": true
+    },
+    "docs/evidence/issue18_TAIL_OVERCURRENT_TEST.png": {
+      "sha256": "4222377362f7ab2fdc0dd9a6e4ed5011239200f00f7471c257077aa1b1912042",
+      "preserved_original_bytes": true
+    },
+    "docs/evidence/issue18_stopped_sim.png": {
+      "sha256": "bad735ed2c13bd27c1b7ad37d01680041e32b722ea249447198f5b56f2822941",
+      "preserved_original_bytes": true
+    },
+    "docs/evidence/issue21_after_R1_openning_failure.png": {
+      "sha256": "216e0aec649b879ef677a1a9997f49738dce5ab33cd78a0f2f57dd813112afe1",
+      "preserved_original_bytes": true
+    }
+  },
+  "acceptance_record": "docs/evidence/issue18-2026-10-26-acceptance.md",
+  "acceptance_coverage": "Complete using user-reported regular workflows, preserved screenshots, #21 evidence, and existing isolated display tests",
+  "remaining_issue18_acceptance_gaps": [],
+  "known_limitations": [
+    "#20 numerical convergence and truthful failure/restart recovery remain unresolved",
+    "UNKNOWN/malformed-input behavior uses isolated display tests, not a regular-system malformed-feedback exercise",
+    "Manual observations without screenshots remain user-reported; no measured timings are inferred"
+  ]
+}
