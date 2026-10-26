@@ -1,3 +1,6 @@
+from unittest.mock import Mock
+
+import numpy as np
 import pytest
 
 from src.breaker_control import BreakerController
@@ -29,6 +32,88 @@ def make_simulator() -> tuple[
 
 def queue_scenario(events: BreakerMqttEventQueue, payload: bytes) -> None:
     events.on_message(None, None, FakeMessage(payload))
+
+
+@pytest.mark.parametrize(
+    ("scenario", "source_voltage", "load_multiplier"),
+    [
+        (ReferenceFeederGrid.TAIL_OVERCURRENT_TEST, 1.0, 5.0),
+        (ReferenceFeederGrid.R1_OPENING_FAILURE_TEST, 1.0, 5.0),
+        (ReferenceFeederGrid.LOW_SOURCE_VOLTAGE, 0.90, 1.0),
+    ],
+)
+def test_diagnostic_inputs_survive_requested_variation(
+    monkeypatch, scenario, source_voltage, load_multiplier
+) -> None:
+    """Isolate input policy from numerical convergence; integration uses runpp."""
+    grid = ReferenceFeederGrid.build(seed=1)
+    solver = Mock()
+    monkeypatch.setattr("src.power_grid.pp.runpp", solver)
+    monkeypatch.setattr(grid, "read_measurements", lambda: {})
+    # A known nonzero draw exposes overwriting even at variation step zero.
+    draws = Mock(return_value=0.02)
+    monkeypatch.setattr("src.power_grid.np.random.normal", draws)
+    assert grid.set_scenario(scenario)
+
+    for vary_load in (True, False, True, True):
+        grid.solve(vary_load=vary_load)
+        assert float(grid.net.load.at[grid.load_idx, "p_mw"]) == pytest.approx(
+            grid.base_p_mw * load_multiplier
+        )
+        assert float(grid.net.load.at[grid.load_idx, "q_mvar"]) == pytest.approx(
+            grid.base_q_mvar * load_multiplier
+        )
+        assert list(grid.net.ext_grid["vm_pu"]) == pytest.approx([source_voltage])
+
+    assert solver.call_count == 4
+    assert grid.step_count == 0
+    draws.assert_not_called()
+
+
+def test_normal_variation_resumes_counter_and_draws_after_diagnostics(
+    monkeypatch,
+) -> None:
+    """Check exact sequence continuation without depending on solver behavior."""
+    grid = ReferenceFeederGrid.build(seed=1)
+    solver = Mock()
+    monkeypatch.setattr("src.power_grid.pp.runpp", solver)
+    monkeypatch.setattr(grid, "read_measurements", lambda: {})
+    draws = Mock(side_effect=[0.02, -0.01])
+    monkeypatch.setattr("src.power_grid.np.random.normal", draws)
+
+    grid.solve(vary_load=True)
+    assert grid.step_count == 1
+    assert float(grid.net.load.at[grid.load_idx, "p_mw"]) == pytest.approx(2.04)
+    assert float(grid.net.load.at[grid.load_idx, "q_mvar"]) == pytest.approx(0.51)
+    grid.solve()
+    assert grid.step_count == 1
+    assert draws.call_count == 1
+
+    for scenario in (
+        grid.TAIL_OVERCURRENT_TEST, grid.R1_OPENING_FAILURE_TEST,
+        grid.LOW_SOURCE_VOLTAGE,
+    ):
+        assert grid.set_scenario(scenario)
+        grid.solve(vary_load=True)
+        assert grid.step_count == 1
+        assert draws.call_count == 1
+        grid.solve(vary_load=True)
+        assert grid.step_count == 1
+        assert draws.call_count == 1
+
+    assert grid.set_scenario(grid.NORMAL)
+    assert float(grid.net.load.at[grid.load_idx, "p_mw"]) == grid.base_p_mw
+    assert float(grid.net.load.at[grid.load_idx, "q_mvar"]) == grid.base_q_mvar
+    assert list(grid.net.ext_grid["vm_pu"]) == [1.0]
+    assert grid.step_count == 1
+    assert draws.call_count == 1
+    grid.solve(vary_load=True)
+    factor = 1.0 + 0.05 * np.sin(2 * np.pi / 120.0) - 0.01
+    assert float(grid.net.load.at[grid.load_idx, "p_mw"]) == pytest.approx(2 * factor)
+    assert float(grid.net.load.at[grid.load_idx, "q_mvar"]) == pytest.approx(0.5 * factor)
+    assert grid.step_count == 2
+    assert draws.call_count == 2
+    assert solver.call_count == 9
 
 
 @pytest.mark.parametrize(

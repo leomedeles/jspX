@@ -61,6 +61,17 @@ strict JSON `null`, with `energized: false` and
 | `R1_OPENING_FAILURE_TEST` | The same fivefold tail input, with an explicit harness condition that refuses R1 OPEN at the plant operation boundary. R1 trips at 100 ms but remains physically CLOSED; persistent solved current causes F1 backup OPEN at 300 ms. |
 | `LOW_SOURCE_VOLTAGE` | 0.90 pu source. F1 alarms when `BUS_MV_SOURCE` is below 0.92 pu, clears at or above 0.94 pu, and does not trip. |
 
+Background demand variation runs only in `NORMAL`. Diagnostic scenarios keep
+their declared P/Q inputs and source voltage on every solve, even when routine
+publication requests variation. Their electrical solves and protection scans
+continue; only the variation counter and random draws pause. Selecting `NORMAL`
+restores nominal inputs and resumes the existing variation sequence without
+resetting it.
+
+This input policy does not resolve general solver non-convergence or truthful
+failure/restart recovery; [issue #20](https://github.com/leomedeles/jspX/issues/20)
+remains unresolved.
+
 F1 uses `I> = 0.20 kA` with a 300 ms delay. R1 uses the same pickup with a
 100 ms delay. `RESET` clears a latch without moving a switch; `CLOSE` is rejected
 while that latch is active. Returning to `NORMAL` removes the opening-failure

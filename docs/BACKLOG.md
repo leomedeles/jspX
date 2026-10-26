@@ -21,6 +21,20 @@ Selected issues own detailed scope, task checklists, acceptance criteria, design
 
 **Boundary:** Preserve the reference plant, IED behavior, canonical MQTT interfaces, and historian semantics. Add no simulator capabilities, local operation, Local/Remote authority, automatic reclosing, unmodeled equipment indications, or new Grafana capabilities. Scenario injection remains in the test harness.
 
+**Unplanned blocker correction:** [#21 Fixed diagnostic inputs](https://github.com/leomedeles/jspX/issues/21)
+pauses #18 acceptance verification. Background variation now runs only in NORMAL;
+diagnostics pause its counter/random draws while solves and protection continue.
+Local [verification evidence](evidence/issue21-2026-10-26.zip) records the dirty-tree
+identity, failing/passing regressions, 81 passing Python tests, Compose validation,
+three regular-simulator MQTT trials without restart, and historian comparisons.
+The user's [manual dashboard observations on 26 October 2026](evidence/issue21-2026-10-26-manual.md)
+record failed-opening feedback, unchanged positions/latches on NORMAL, RESET
+without movement, and restored supply after F1 CLOSE. Feedback timestamps alone
+do not establish protection delays. The earlier automated browser check was blocked.
+#18 remains unaccepted. [#20 Solver failure/recovery](https://github.com/leomedeles/jspX/issues/20)
+remains unresolved; fixed diagnostic inputs do not establish solver robustness.
+No issue or Project board status was changed.
+
 ### Sprint 8 working agreement — trial
 
 Applies to Sprint 8; review at the retrospective before adopting it again.

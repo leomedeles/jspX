@@ -282,7 +282,9 @@ class ReferenceFeederGrid:
 
     def solve(self, *, vary_load: bool = False) -> dict[str, Any]:
         """Solve the selected inputs and topology, then return safe telemetry."""
-        if vary_load:
+        # Diagnostics hold their declared inputs; resume the same variation
+        # counter and random sequence only when NORMAL is selected again.
+        if vary_load and self.scenario == self.NORMAL:
             self._apply_variation()
             self.step_count += 1
         pp.runpp(
